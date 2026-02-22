@@ -95,7 +95,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  setState(() {
+                    _currentIndex = 2; // Switch to Results tab
+                  });
+                },
                 style: TextButton.styleFrom(
                   backgroundColor: AppColors.primary.withOpacity(0.05),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -295,13 +299,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         }
 
+        final recentExams = provider.exams.take(5).toList();
+
         return ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: provider.exams.length,
+          itemCount: recentExams.length,
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
-            return _buildExamCard(context, provider.exams[index], provider);
+            return _buildExamCard(context, recentExams[index], provider);
           },
         );
       },
