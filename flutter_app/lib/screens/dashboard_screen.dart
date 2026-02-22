@@ -129,11 +129,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  user.institution.toUpperCase(),
+                  user.email,
                   style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.5,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                     color: Colors.grey[400],
                   ),
                 ),
