@@ -82,9 +82,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
     userProvider.updateUser(updatedUser);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profil başarıyla güncellendi')),
-    );
   }
 
   Widget _buildProfilePhoto() {
