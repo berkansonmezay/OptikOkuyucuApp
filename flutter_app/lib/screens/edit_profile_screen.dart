@@ -84,33 +84,77 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     Navigator.pop(context);
   }
 
+  void _showPhotoPickerDialog() {
+    final avatarUrls = List.generate(12, (i) => 'https://i.pravatar.cc/150?img=${i + 1}');
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Profil Fotoğrafı Seç'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 300,
+          child: GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            itemCount: avatarUrls.length,
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _profileImageUrl = avatarUrls[index];
+                  });
+                  Navigator.pop(context);
+                },
+                child: CircleAvatar(
+                  backgroundImage: NetworkImage(avatarUrls[index]),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildProfilePhoto() {
     return Column(
       children: [
-        Stack(
-          children: [
-            CircleAvatar(
-              radius: 60,
-              backgroundImage: NetworkImage(_profileImageUrl),
-            ),
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 3),
-                ),
-                child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
+        GestureDetector(
+          onTap: _showPhotoPickerDialog,
+          child: Stack(
+            children: [
+              CircleAvatar(
+                radius: 60,
+                backgroundImage: NetworkImage(_profileImageUrl),
               ),
-            ),
-          ],
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 3),
+                  ),
+                  child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         TextButton(
-          onPressed: () {},
+          onPressed: _showPhotoPickerDialog,
           child: const Text('Fotoğrafı Güncelle', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ],
