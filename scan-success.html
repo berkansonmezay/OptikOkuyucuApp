@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Tarama Başarılı - Onay</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#7C3AED",
+                        background: "#FAFAFA",
+                        surface: "#FFFFFF",
+                        "text-main": "#111827",
+                        "text-muted": "#6B7280",
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(124, 58, 237, 0.05)',
+                        'glow': '0 4px 14px rgba(124, 58, 237, 0.3)',
+                    }
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            min-height: 100vh;
+            background-color: #FAFAFA;
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased text-text-main">
+    <div class="max-w-md mx-auto min-h-screen relative flex flex-col bg-white shadow-xl overflow-hidden pb-24">
+        <!-- Top Navigation -->
+        <header class="px-6 pt-10 pb-6 flex items-center bg-white z-10 sticky top-0 border-b border-gray-50">
+            <button onclick="window.history.back()"
+                class="flex items-center text-gray-500 hover:text-primary transition-colors">
+                <span class="material-symbols-outlined text-2xl">chevron_left</span>
+            </button>
+            <h1 class="flex-1 text-center font-bold text-lg text-gray-900 mr-8">Tarama Onayı</h1>
+        </header>
+
+        <main class="flex-1 px-6 py-8 flex flex-col overflow-y-auto no-scrollbar pb-10">
+            <!-- Success Visual -->
+            <div class="flex flex-col items-center gap-6 mb-10">
+                <div class="relative">
+                    <div class="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-25"></div>
+                    <div
+                        class="relative flex h-24 w-24 items-center justify-center rounded-full bg-green-500 text-white shadow-lg shadow-green-200">
+                        <span class="material-symbols-outlined text-5xl font-bold">check</span>
+                    </div>
+                </div>
+                <div class="flex flex-col items-center gap-2">
+                    <h2 class="text-slate-900 text-2xl font-bold leading-tight tracking-tight text-center">Okuma
+                        Başarılı!</h2>
+                    <p class="text-slate-500 text-sm font-normal leading-normal text-center max-w-[280px]">
+                        Optik form başarıyla tarandı ve öğrenci bilgileri sistemle eşleştirildi.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Student Info Card -->
+            <div class="w-full bg-gray-50 rounded-2xl p-6 mb-8 border border-purple-100/50">
+                <h3 class="text-primary text-[10px] font-bold uppercase tracking-widest mb-5">ÖĞRENCİ BİLGİLERİ</h3>
+                <div class="flex items-center gap-4 mb-5">
+                    <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined text-2xl">person</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <p class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Ad Soyad</p>
+                        <p class="text-slate-900 text-base font-bold">Ahmet Yılmaz</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined text-2xl">badge</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <p class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Öğrenci Numarası</p>
+                        <p class="text-slate-900 text-base font-bold">12345</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scanned Preview -->
+            <div class="flex flex-col gap-3 mb-auto">
+                <p class="text-slate-400 text-[10px] uppercase font-bold px-1 tracking-wider">Form Önizleme</p>
+                <div class="relative rounded-2xl overflow-hidden aspect-video bg-slate-100 border border-slate-200">
+                    <div class="absolute inset-0 bg-cover bg-center opacity-80"
+                        style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDKLS-NA5Z8mWOvBD0QM4zLAr-BeahkBniAnPwO03DJyyGyMDFPJc9_fCz7LLW1NsnSLLLBqOW9K0z_uUhFEXIyGnuDZpSKncJEJToGPcTbnXeapQkEADl783Fyorq0SCP2gnWR8AzgzL2X25X6VSR-ZAbxp8YlNjGSPiiWlkBd2CGJIf2sdLVAxyH2xVHfgdlotd9PiO7F5AXLfm5Rg1BnHZBBhts00s8ylbYjeWNe2xQYGR22d9_GvU3RvuhQ7558riWhqomqgWU')">
+                    </div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                    <div
+                        class="absolute bottom-3 right-3 bg-white/95 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 shadow-sm border border-gray-100">
+                        <span class="material-symbols-outlined text-[14px] text-green-500 font-bold">verified</span>
+                        <span class="text-[10px] font-bold text-slate-700 uppercase tracking-wider" id="examTag">LGS
+                            Deneme #4</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col gap-3 mt-8">
+                <button onclick="window.location.href='camera.html'"
+                    class="w-full bg-primary hover:bg-primary-dark text-white font-bold py-4 rounded-2xl shadow-glow transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-xl">qr_code_scanner</span>
+                    Yeni Form Tara
+                </button>
+                <button onclick="window.location.href='results.html'"
+                    class="w-full bg-purple-50 text-primary font-bold py-4 rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 border border-primary/10">
+                    <span class="material-symbols-outlined text-xl">bar_chart</span>
+                    Sonuçları Gör
+                </button>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation Bar (Matched with main app) -->
+        <nav class="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 pb-safe pt-1 px-4 z-40">
+            <div class="flex justify-around items-center h-16">
+                <button
+                    class="flex flex-col items-center justify-center text-gray-400 hover:text-primary transition-colors w-14 group"
+                    onclick="window.location.href='dashboard.html'">
+                    <span
+                        class="material-symbols-outlined text-[24px] mb-0.5 group-hover:scale-110 transition-transform">grid_view</span>
+                    <span class="text-[10px] font-medium">Ana Sayfa</span>
+                </button>
+                <button class="flex flex-col items-center justify-center text-primary w-14 group">
+                    <span
+                        class="material-symbols-outlined filled text-[24px] mb-0.5 group-hover:scale-110 transition-transform"
+                        style="font-variation-settings: 'FILL' 1">qr_code_scanner</span>
+                    <span class="text-[10px] font-bold">Tara</span>
+                </button>
+                <button
+                    class="flex flex-col items-center justify-center text-gray-400 hover:text-primary transition-colors w-14 group"
+                    onclick="window.location.href='results.html'">
+                    <span
+                        class="material-symbols-outlined text-[24px] mb-0.5 group-hover:scale-110 transition-transform">bar_chart</span>
+                    <span class="text-[10px] font-medium">Sonuçlar</span>
+                </button>
+                <button
+                    class="flex flex-col items-center justify-center text-gray-400 hover:text-primary transition-colors w-14 group"
+                    onclick="window.location.href='settings.html'">
+                    <span
+                        class="material-symbols-outlined text-[24px] mb-0.5 group-hover:scale-110 transition-transform">settings</span>
+                    <span class="text-[10px] font-medium">Ayarlar</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+</body>
+
+</html>

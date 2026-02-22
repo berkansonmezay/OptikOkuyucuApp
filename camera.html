@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Optik Tarama</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#7C3AED",
+                        secondary: "#F3F4F6",
+                        surface: "#FFFFFF",
+                        "text-main": "#111827",
+                        "text-muted": "#6B7280",
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .scanner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .scanner-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            aspect-ratio: 2/3;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 24px;
+            box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.6);
+        }
+
+        .scanner-frame::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border: 4px solid #7C3AED;
+            border-radius: 24px;
+            clip-path: polygon(0 0, 25% 0, 25% 4px, 4px 4px, 4px 25%, 0 25%, 0 0, 75% 0, 100% 0, 100% 25%, calc(100% - 4px) 25%, calc(100% - 4px) 4px, 75% 4px, 75% 0, 100% 75%, 100% 100%, 75% 100%, 75% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 75%, 100% 75%, 25% 100%, 0 100%, 0 75%, 4px 75%, 4px calc(100% - 4px), 25% calc(100% - 4px), 25% 100%);
+        }
+
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(180deg, transparent, rgba(124, 58, 237, 0.8), transparent);
+            box-shadow: 0 0 15px rgba(124, 58, 237, 0.5);
+            animation: scan 3s ease-in-out infinite;
+        }
+
+        @keyframes scan {
+            0% {
+                top: 10%;
+            }
+
+            50% {
+                top: 90%;
+            }
+
+            100% {
+                top: 10%;
+            }
+        }
+
+        #camera-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background-color: #111;
+        }
+
+        .capture-btn {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background-color: #fff;
+            padding: 4px;
+            border: 2px solid #fff;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .capture-btn-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: #fff;
+            border: 2px solid #000;
+        }
+    </style>
+</head>
+
+<body class="font-sans">
+    <div class="max-w-md mx-auto h-full relative flex flex-col overflow-hidden">
+        <!-- Top Controls -->
+        <header class="absolute top-0 w-full px-6 pt-12 flex justify-between items-center z-20">
+            <button onclick="window.location.href='scan-select.html'"
+                class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <div class="px-4 py-2 rounded-full bg-black/40 backdrop-blur-md text-[10px] font-bold tracking-[0.1em] text-white uppercase border border-white/10"
+                id="examTypeLabel">
+                LGS DENEME
+            </div>
+            <button
+                class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white">
+                <span class="material-symbols-outlined">flash_on</span>
+            </button>
+        </header>
+
+        <!-- Camera Feed Placeholder -->
+        <div id="camera-feed" class="flex items-center justify-center">
+            <span class="material-symbols-outlined text-white/20 text-[120px]">photo_camera</span>
+        </div>
+
+        <!-- Scanner Overlay -->
+        <div class="scanner-overlay">
+            <div class="scanner-frame">
+                <div class="scan-line"></div>
+                <div class="absolute -bottom-12 left-0 right-0 text-center">
+                    <p class="text-xs font-medium text-white/80">Optik formu çerçeve içine hizalayın</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <footer class="absolute bottom-0 w-full px-8 pb-12 flex items-center justify-between z-20">
+            <button
+                class="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white">
+                <span class="material-symbols-outlined">image</span>
+            </button>
+
+            <button onclick="simulateCapture()" class="capture-btn group active:scale-95 transition-transform">
+                <div class="capture-btn-inner group-hover:bg-gray-100 transition-colors"></div>
+            </button>
+
+            <div class="w-12 h-12 rounded-xl bg-primary/20 backdrop-blur-md border border-primary/30 flex items-center justify-center text-primary relative overflow-hidden group cursor-pointer"
+                onclick="window.location.href='dashboard.html'">
+                <span class="material-symbols-outlined z-10">check</span>
+                <div
+                    class="absolute inset-0 bg-primary/20 scale-0 group-hover:scale-100 transition-transform duration-500 rounded-full">
+                </div>
+            </div>
+        </footer>
+
+        <!-- Status Toast -->
+        <div id="statusToast"
+            class="absolute top-28 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-2xl bg-primary text-white text-[11px] font-bold shadow-glow flex items-center gap-2 z-30 opacity-0 transform translate-y-4 transition-all duration-300">
+            <span class="material-symbols-outlined text-lg">check_circle</span>
+            FORM TARANDI
+        </div>
+    </div>
+
+    <script>
+        function simulateCapture() {
+            const toast = document.getElementById('statusToast');
+            toast.classList.remove('opacity-0', 'translate-y-4');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                window.location.href = 'scan-success.html';
+            }, 1000);
+        }
+
+        window.onload = () => {
+            // Get selected exam from local storage if needed to show name
+            const exams = JSON.parse(localStorage.getItem('exams') || '[]');
+            // For now, just a placeholder label
+        };
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Profil Düzenleme - Optik Okuyucu</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#7C3AED",
+                        background: "#FAFAFA",
+                        surface: "#FFFFFF",
+                        "text-main": "#1e293b",
+                        "text-muted": "#64748b",
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'card': '0 10px 15px -3px rgba(0, 0, 0, 0.04)',
+                        'glow': '0 4px 14px rgba(124, 58, 237, 0.15)',
+                    }
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            background-color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .input-group:focus-within label {
+            color: #7C3AED;
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased text-text-main">
+    <div class="max-w-md mx-auto min-h-screen relative flex flex-col bg-white shadow-xl overflow-hidden pb-10">
+        <!-- Header -->
+        <header
+            class="px-6 pt-10 pb-4 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-30">
+            <button onclick="window.history.back()"
+                class="w-10 h-10 rounded-full bg-white shadow-soft flex items-center justify-center text-gray-500 hover:text-primary transition-colors border border-gray-50">
+                <span class="material-symbols-outlined text-2xl">chevron_left</span>
+            </button>
+            <h1 class="font-extrabold text-lg text-gray-900">Profil Düzenleme</h1>
+            <div class="w-10"></div> <!-- Spacer -->
+        </header>
+
+        <main class="flex-1 px-6 space-y-8 pt-4 overflow-y-auto no-scrollbar">
+            <!-- Profile Photo Section -->
+            <div class="flex flex-col items-center">
+                <div class="relative group cursor-pointer">
+                    <div class="w-32 h-32 rounded-full ring-4 ring-white shadow-2xl overflow-hidden relative">
+                        <img src="https://i.pravatar.cc/150?img=12" alt="Ahmet Yılmaz"
+                            class="w-full h-full object-cover" id="profileImage" />
+                        <div
+                            class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                            <span class="material-symbols-outlined text-white text-3xl">add_a_photo</span>
+                        </div>
+                    </div>
+                    <button
+                        class="absolute bottom-1 right-1 w-9 h-9 bg-primary border-4 border-white rounded-full flex items-center justify-center text-white shadow-lg">
+                        <span class="material-symbols-outlined text-[20px] filled">photo_camera</span>
+                    </button>
+                </div>
+                <button class="mt-4 text-primary font-black text-sm hover:opacity-80 transition-opacity">
+                    Fotoğrafı Güncelle
+                </button>
+            </div>
+
+            <!-- Form Section -->
+            <form class="space-y-6">
+                <!-- Ad Soyad -->
+                <div class="space-y-2 input-group">
+                    <label class="block text-sm font-bold text-gray-700 ml-1" for="name">Ad Soyad</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                            <span class="material-symbols-outlined text-[22px]">person</span>
+                        </div>
+                        <input type="text" id="name"
+                            class="block w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-100 bg-gray-50/30 text-gray-900 font-semibold placeholder-gray-400 focus:ring-2 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all duration-200"
+                            placeholder="Adınız ve soyadınız" value="Ahmet Yılmaz" />
+                    </div>
+                </div>
+
+                <!-- E-posta -->
+                <div class="space-y-2 input-group">
+                    <label class="block text-sm font-bold text-gray-700 ml-1" for="email">E-posta</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                            <span class="material-symbols-outlined text-[22px]">mail</span>
+                        </div>
+                        <input type="email" id="email"
+                            class="block w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-100 bg-gray-50/30 text-gray-900 font-semibold placeholder-gray-400 focus:ring-2 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all duration-200"
+                            placeholder="ahmet.yilmaz@okul.edu.tr" value="ahmet.yilmaz@okul.edu.tr" />
+                    </div>
+                </div>
+
+                <!-- Telefon Numarası -->
+                <div class="space-y-2 input-group">
+                    <label class="block text-sm font-bold text-gray-700 ml-1" for="phone">Telefon Numarası</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                            <span class="material-symbols-outlined text-[22px]">call</span>
+                        </div>
+                        <input type="tel" id="phone"
+                            class="block w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-100 bg-gray-50/30 text-gray-900 font-semibold placeholder-gray-400 focus:ring-2 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all duration-200"
+                            placeholder="+90 532 123 45 67" value="+90 532 123 45 67" />
+                    </div>
+                </div>
+
+                <!-- Sınav Branşı -->
+                <div class="space-y-2 input-group">
+                    <label class="block text-sm font-bold text-gray-700 ml-1" for="branch">Sınav Branşı</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                            <span class="material-symbols-outlined text-[22px]">menu_book</span>
+                        </div>
+                        <select id="branch"
+                            class="block w-full pl-12 pr-10 py-4 rounded-2xl border border-gray-100 bg-gray-50/30 bg-none text-gray-900 font-semibold focus:ring-2 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all duration-200">
+                            <option value="matematik" selected>Matematik</option>
+                            <option value="turkce">Türkçe</option>
+                            <option value="fen">Fen Bilimleri</option>
+                            <option value="sosyal">Sosyal Bilgiler</option>
+                            <option value="dil">Yabancı Dil</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-8 pb-4">
+                    <button type="button" onclick="window.history.back()"
+                        class="w-full bg-primary hover:bg-primary-dark text-white font-black py-5 rounded-[2rem] shadow-glow active:scale-[0.98] transition-all duration-200 text-lg">
+                        Değişiklikleri Kaydet
+                    </button>
+                </div>
+            </form>
+        </main>
+    </div>
+</body>
+
+</html>

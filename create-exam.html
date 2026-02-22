@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Yeni Sınav Oluştur</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#7C3AED",
+                        secondary: "#F3F4F6",
+                        surface: "#FFFFFF",
+                        "text-main": "#111827",
+                        "text-muted": "#6B7280",
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'card': '0 2px 8px rgba(0, 0, 0, 0.04)',
+                        'glow': '0 4px 14px rgba(124, 58, 237, 0.3)',
+                    }
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            min-height: 100vh;
+            background-color: #FAFAFA;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased text-text-main">
+    <div class="max-w-md mx-auto min-h-screen relative flex flex-col pb-24 bg-white shadow-xl overflow-hidden">
+        <header class="px-6 pt-10 pb-6 flex items-center bg-white z-10 sticky top-0 border-b border-gray-50">
+            <button onclick="window.location.href='dashboard.html'"
+                class="flex items-center text-primary font-semibold text-sm">
+                <span class="material-symbols-outlined text-lg mr-1">chevron_left</span>
+                Geri
+            </button>
+            <h1 class="flex-1 text-center font-bold text-gray-900 mr-12">Yeni Sınav Oluştur</h1>
+        </header>
+
+        <main class="flex-1 px-6 pt-8 overflow-y-auto no-scrollbar pb-10">
+            <div class="space-y-8">
+                <!-- SINAV TÜRÜ SEÇİN -->
+                <section>
+                    <h2 class="text-[13px] font-bold mb-4 text-[#64748b] tracking-wider uppercase">SINAV TÜRÜ SEÇİN</h2>
+                    <div class="flex items-center gap-3" id="examTypeSelector">
+                        <button onclick="selectType('LGS', this)"
+                            class="type-btn flex-1 py-3 px-2 rounded-2xl border-2 border-primary bg-purple-50 text-primary font-bold text-center transition-all shadow-sm">
+                            LGS
+                        </button>
+                        <button onclick="selectType('TYT', this)"
+                            class="type-btn flex-1 py-3 px-2 rounded-2xl border-2 border-[#e2e8f0] bg-white text-[#64748b] font-bold text-center transition-all shadow-sm">
+                            TYT
+                        </button>
+                        <button onclick="selectType('AYT', this)"
+                            class="type-btn flex-1 py-3 px-2 rounded-2xl border-2 border-[#e2e8f0] bg-white text-[#64748b] font-bold text-center transition-all shadow-sm">
+                            AYT
+                        </button>
+                    </div>
+                </section>
+
+                <!-- SINAV ADI -->
+                <section>
+                    <label class="text-[13px] font-bold mb-2 block text-[#64748b] tracking-wider uppercase">SINAV
+                        ADI</label>
+                    <input type="text" id="examName" placeholder="Örn: 1. Dönem Genel Deneme"
+                        class="w-full p-4 rounded-2xl border-2 border-[#e2e8f0] text-gray-900 placeholder:text-gray-300 focus:border-primary focus:ring-4 focus:ring-purple-100 transition-all outline-none" />
+                </section>
+
+                <!-- SINAV TARİHİ -->
+                <section>
+                    <label class="text-[13px] font-bold mb-2 block text-[#64748b] tracking-wider uppercase">SINAV
+                        TARİHİ</label>
+                    <div class="relative">
+                        <input type="date" id="examDate"
+                            class="w-full p-4 rounded-2xl border-2 border-[#e2e8f0] text-gray-900 focus:border-primary focus:ring-4 focus:ring-purple-100 transition-all outline-none appearance-none" />
+                        <span
+                            class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">calendar_month</span>
+                    </div>
+                </section>
+
+                <!-- CEVAP ANAHTARI SEÇENEKLERİ -->
+                <section>
+                    <div class="flex justify-between items-center mb-4">
+                        <label class="text-[13px] font-bold text-[#64748b] tracking-wider uppercase">CEVAP
+                            ANAHTARI</label>
+                        <div class="flex gap-2">
+                            <button onclick="toggleEntryMode('excel')" id="excelTab"
+                                class="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-primary text-white transition-all">EXCEL</button>
+                            <button onclick="toggleEntryMode('manual')" id="manualTab"
+                                class="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-gray-100 text-[#64748b] transition-all">MANUEL</button>
+                        </div>
+                    </div>
+
+                    <!-- Excel Yükleme Alanı -->
+                    <div id="excelEntryArea" class="space-y-3">
+                        <div class="flex justify-end mb-1">
+                            <button onclick="downloadTemplate()"
+                                class="text-[11px] font-bold text-primary hover:underline flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm">download</span>
+                                Şablon İndir
+                            </button>
+                        </div>
+                        <input type="file" id="examExcelFile" class="hidden" accept=".xlsx, .xls, .csv"
+                            onchange="handleFileSelect(this)" />
+                        <div onclick="document.getElementById('examExcelFile').click()"
+                            class="border-2 border-dashed border-[#e2e8f0] rounded-2xl p-5 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors cursor-pointer group">
+                            <div class="flex items-center gap-4">
+                                <div
+                                    class="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                    <span class="material-symbols-outlined" id="uploadIcon">upload_file</span>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-sm text-gray-900" id="uploadTitle">Excel Yükle</h4>
+                                    <p class="text-[11px] text-gray-400" id="uploadSubtitle">Şablon dosyasını doldurup
+                                        yükleyin</p>
+                                </div>
+                            </div>
+                            <span class="material-symbols-outlined text-gray-300"
+                                id="uploadActionIcon">add_circle</span>
+                        </div>
+                        <div id="fileInfo"
+                            class="hidden mt-3 p-3 bg-green-50 rounded-xl border border-green-100 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-green-500">check_circle</span>
+                                <span id="fileNameDisplay"
+                                    class="text-xs font-medium text-green-700 truncate max-w-[200px]">dosya.xlsx</span>
+                            </div>
+                            <button onclick="removeFile(event)" class="text-green-700 hover:text-red-500">
+                                <span class="material-symbols-outlined text-sm">close</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Manuel Giriş Alanı -->
+                    <div id="manualEntryArea" class="hidden space-y-4">
+                        <button onclick="addSubject()"
+                            class="w-full py-4 border-2 border-dashed border-primary/30 text-primary text-[12px] font-bold rounded-2xl hover:bg-purple-50 transition-all flex items-center justify-center gap-2 group">
+                            <span
+                                class="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">add_circle</span>
+                            YENİ DERS EKLE
+                        </button>
+
+                        <div id="subjectsList" class="space-y-4">
+                            <!-- Subjects will be dynamically added here -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- BİLGİ NOTU -->
+                <div class="bg-[#f8fafc] rounded-2xl p-4 flex gap-3">
+                    <span class="material-symbols-outlined text-blue-400 text-xl flex-shrink-0">info</span>
+                    <p class="text-[12px] text-[#64748b] leading-relaxed">
+                        Sınavı kaydettikten sonra öğrenci optik formlarını kameranızla anında tarayabilirsiniz.
+                    </p>
+                </div>
+            </div>
+        </main>
+
+        <div class="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 p-6 z-40">
+            <button onclick="saveExam()"
+                class="w-full py-4 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-glow hover:scale-[1.02] active:scale-[0.98] transition-all">
+                <span class="material-symbols-outlined filled">check_circle</span>
+                Kaydet
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let selectedType = 'LGS';
+        let subjects = [];
+
+        // Set default date to today
+        document.getElementById('examDate').valueAsDate = new Date();
+
+        function selectType(type, btn) {
+            selectedType = type;
+            document.querySelectorAll('.type-btn').forEach(b => {
+                b.classList.remove('border-primary', 'bg-purple-50', 'text-primary');
+                b.classList.add('border-[#e2e8f0]', 'bg-white', 'text-[#64748b]');
+            });
+            btn.classList.add('border-primary', 'bg-purple-50', 'text-primary');
+            btn.classList.remove('border-[#e2e8f0]', 'bg-white', 'text-[#64748b]');
+
+            // If we are in manual mode, refresh default subjects
+            const manualArea = document.getElementById('manualEntryArea');
+            if (!manualArea.classList.contains('hidden')) {
+                loadDefaultSubjects();
+            }
+        }
+
+        function handleFileSelect(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const fileNameDisplay = document.getElementById('fileNameDisplay');
+                const fileInfo = document.getElementById('fileInfo');
+
+                fileNameDisplay.textContent = file.name;
+                fileInfo.classList.remove('hidden');
+
+                // Update upload box UI
+                document.getElementById('uploadIcon').textContent = 'task';
+                document.getElementById('uploadTitle').textContent = 'Dosya Hazır';
+                document.getElementById('uploadSubtitle').textContent = 'Değiştirmek için tıklayın';
+                document.getElementById('uploadActionIcon').textContent = 'published_with_changes';
+            }
+        }
+
+        function removeFile(event) {
+            event.stopPropagation();
+            const input = document.getElementById('examExcelFile');
+            input.value = '';
+
+            document.getElementById('fileInfo').classList.add('hidden');
+
+            // Reset upload box UI
+            document.getElementById('uploadIcon').textContent = 'upload_file';
+            document.getElementById('uploadTitle').textContent = 'Excel Yükle';
+            document.getElementById('uploadSubtitle').textContent = 'Şablon dosyasını doldurup yükleyin';
+            document.getElementById('uploadActionIcon').textContent = 'add_circle';
+        }
+
+        function toggleEntryMode(mode) {
+            const excelArea = document.getElementById('excelEntryArea');
+            const manualArea = document.getElementById('manualEntryArea');
+            const excelTab = document.getElementById('excelTab');
+            const manualTab = document.getElementById('manualTab');
+
+            if (mode === 'excel') {
+                excelArea.classList.remove('hidden');
+                manualArea.classList.add('hidden');
+                excelTab.classList.add('bg-primary', 'text-white');
+                excelTab.classList.remove('bg-gray-100', 'text-[#64748b]');
+                manualTab.classList.remove('bg-primary', 'text-white');
+                manualTab.classList.add('bg-gray-100', 'text-[#64748b]');
+            } else {
+                excelArea.classList.add('hidden');
+                manualArea.classList.remove('hidden');
+                manualTab.classList.add('bg-primary', 'text-white');
+                manualTab.classList.remove('bg-gray-100', 'text-[#64748b]');
+                excelTab.classList.remove('bg-primary', 'text-white');
+                excelTab.classList.add('bg-gray-100', 'text-[#64748b]');
+                if (subjects.length === 0) loadDefaultSubjects();
+            }
+        }
+
+        function loadDefaultSubjects() {
+            const defaults = {
+                'LGS': [
+                    { name: 'Türkçe', count: 20 },
+                    { name: 'Matematik', count: 20 },
+                    { name: 'Fen Bilimleri', count: 20 },
+                    { name: 'T.C. İnkılap Tarihi ve Atatürkçülük', count: 10 },
+                    { name: 'Din Kültürü ve Ahlak Bilgisi', count: 10 },
+                    { name: 'Yabancı Dil', count: 10 }
+                ],
+                'TYT': [
+                    { name: 'Türkçe', count: 40 },
+                    { name: 'Sosyal Bilimler Testi', count: 20 },
+                    { name: 'Temel Matematik Testi', count: 40 },
+                    { name: 'Fen Bilimleri Testi', count: 20 }
+                ],
+                'AYT': [
+                    { name: 'Türk Dili ve Edebiyatı-Sosyal Bilimler I', count: 40 },
+                    { name: 'Matematik', count: 40 },
+                    { name: 'Fen Bilimleri', count: 40 },
+                    { name: 'Sosyal Bilimler II', count: 40 }
+                ]
+            };
+
+            const selectedDefaults = defaults[selectedType] || [];
+            subjects = selectedDefaults.map((d, index) => ({
+                id: Date.now() + index,
+                name: d.name,
+                questionCount: d.count,
+                answers: Array(d.count).fill(''),
+                isExpanded: false
+            }));
+            renderSubjects();
+        }
+
+        function downloadTemplate() {
+            const headers = [
+                "Kitapçık türü", "Soru no", "[Ders grubu]", "Ders", "Ders soru numarası",
+                "B karşılığı", "Cevap", "Konu kodu", "Yayından Gelen Kazanım",
+                "İptal için X yazınız", "Zorluk seviyesi", "Soru tipi",
+                "Deneme video çözüm linki", "Konu", "Dosya Adı",
+                "AI Önerilen Konu Kodu", "AI Kontrol Durumu", "AI Güven Seviyesi"
+            ];
+
+            let csvContent = "\uFEFF" + headers.join(";") + "\n";
+            csvContent += "A;1;SÖZEL;TÜRKÇE;1;;A;;;;;;;;;;;\n";
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+
+            link.setAttribute("href", url);
+            link.setAttribute("download", "Cevap_Anahtari_Sablonu.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Manual Entry Functions
+        function addSubject() {
+            const id = Date.now();
+            subjects.push({
+                id: id,
+                name: '',
+                questionCount: 20,
+                answers: Array(20).fill(''),
+                isExpanded: true
+            });
+            renderSubjects();
+        }
+
+        function toggleSubject(id) {
+            subjects = subjects.map(s => s.id === id ? { ...s, isExpanded: !s.isExpanded } : s);
+            renderSubjects();
+        }
+
+        function updateSubjectName(id, name) {
+            subjects = subjects.map(s => s.id === id ? { ...s, name: name } : s);
+        }
+
+        function updateQuestionCount(id, count) {
+            const n = parseInt(count) || 0;
+            if (n > 100) return; // Limit for performance
+            subjects = subjects.map(s => {
+                if (s.id === id) {
+                    const newAnswers = [...s.answers];
+                    if (n > s.answers.length) {
+                        for (let i = s.answers.length; i < n; i++) newAnswers.push('');
+                    } else {
+                        newAnswers.length = n;
+                    }
+                    return { ...s, questionCount: n, answers: newAnswers };
+                }
+                return s;
+            });
+            renderSubjects();
+        }
+
+        function updateAnswer(subjectId, qIndex, value) {
+            subjects = subjects.map(s => {
+                if (s.id === subjectId) {
+                    const newAnswers = [...s.answers];
+                    newAnswers[qIndex] = value;
+                    return { ...s, answers: newAnswers };
+                }
+                return s;
+            });
+            renderSubjects();
+        }
+
+        function updateAllAnswers(id, value) {
+            const val = value.toUpperCase().replace(/[^A-E]/g, '');
+            subjects = subjects.map(s => {
+                if (s.id === id) {
+                    const newAnswers = Array(s.questionCount).fill('');
+                    for (let i = 0; i < val.length && i < s.questionCount; i++) {
+                        newAnswers[i] = val[i];
+                    }
+                    return { ...s, answers: newAnswers };
+                }
+                return s;
+            });
+            renderSubjects();
+            // Refocus the input after render
+            const input = document.querySelector(`input[data-fast-entry="${id}"]`);
+            if (input) {
+                input.focus();
+                input.selectionStart = input.selectionEnd = val.length;
+            }
+        }
+
+        function removeSubject(id, event) {
+            event.stopPropagation();
+            subjects = subjects.filter(s => s.id !== id);
+            renderSubjects();
+        }
+
+        function renderSubjects() {
+            const container = document.getElementById('subjectsList');
+            container.innerHTML = subjects.map(s => `
+                <div class="bg-white border-2 border-[#f1f5f9] rounded-2xl overflow-hidden shadow-sm transition-all ${s.isExpanded ? 'border-primary ring-4 ring-purple-50' : ''}">
+                    <div onclick="toggleSubject(${s.id})" class="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-primary">
+                                <span class="material-symbols-outlined">menu_book</span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm text-gray-900">${s.name || 'Yeni Seçilen Ders'}</h4>
+                                <p class="text-[10px] text-gray-400 font-bold uppercase">${s.questionCount} SORU TANIMLI</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="removeSubject(${s.id}, event)" class="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors">
+                                <span class="material-symbols-outlined text-lg">delete</span>
+                            </button>
+                            <span class="material-symbols-outlined text-gray-400 transition-transform ${s.isExpanded ? 'rotate-180' : ''}">expand_more</span>
+                        </div>
+                    </div>
+
+                    <div class="${s.isExpanded ? 'block' : 'hidden'} p-4 bg-[#f8fafc] border-t border-[#f1f5f9]">
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div>
+                                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1.5 block tracking-wider">Ders Adı</label>
+                                <input type="text" value="${s.name}" oninput="updateSubjectName(${s.id}, this.value)" placeholder="Örn: Matematik" 
+                                    class="w-full p-3 rounded-xl border-2 border-white bg-white shadow-sm text-sm outline-none focus:border-primary transition-all" />
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1.5 block tracking-wider">Soru Sayısı</label>
+                                <input type="number" value="${s.questionCount}" onchange="updateQuestionCount(${s.id}, this.value)" 
+                                    class="w-full p-3 rounded-xl border-2 border-white bg-white shadow-sm text-sm outline-none focus:border-primary transition-all" />
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="text-[10px] font-bold text-primary uppercase mb-1.5 flex items-center gap-1.5 tracking-wider">
+                                <span class="material-symbols-outlined text-sm">keyboard</span>
+                                Hızlı Cevap Anahtarı Girişi
+                            </label>
+                            <input type="text" 
+                                data-fast-entry="${s.id}"
+                                value="${s.answers.join('')}" 
+                                oninput="updateAllAnswers(${s.id}, this.value)" 
+                                placeholder="Örn: ABCDE..." 
+                                class="w-full p-4 rounded-xl border-2 border-primary/20 bg-white shadow-inner text-lg font-mono tracking-[0.5em] outline-none focus:border-primary focus:ring-4 focus:ring-purple-100 transition-all uppercase" />
+                            <p class="text-[10px] text-gray-400 mt-2 font-medium">Klavyeden hızlıca girmek için burayı kullanabilirsiniz.</p>
+                        </div>
+
+                        <div class="space-y-2 max-h-[350px] overflow-y-auto pr-2 no-scrollbar border-t border-gray-100 pt-4">
+                            <h5 class="text-[10px] font-bold text-[#64748b] uppercase mb-3 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-sm">edit_note</span>
+                                Cevap Anahtarı Girişi
+                            </h5>
+                            ${s.answers.map((ans, i) => `
+                                <div class="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border border-gray-100 hover:border-primary/20 transition-colors">
+                                    <span class="text-xs font-bold text-gray-400 w-8">${i + 1}.</span>
+                                    <div class="flex gap-2">
+                                        ${['A', 'B', 'C', 'D', 'E'].map(opt => `
+                                            <button onclick="updateAnswer(${s.id}, ${i}, '${opt}')" 
+                                                class="w-8 h-8 rounded-lg text-xs font-bold transition-all border-2 ${ans === opt ? 'bg-primary border-primary text-white scale-110 shadow-glow' : 'bg-white border-gray-100 text-gray-400 hover:border-primary/30'}">
+                                                ${opt}
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function saveExam() {
+            const name = document.getElementById('examName').value;
+            const date = document.getElementById('examDate').value;
+
+            if (!name) {
+                alert('Lütfen sınav adı giriniz');
+                return;
+            }
+
+            const newExam = {
+                id: Date.now(),
+                name: name,
+                type: selectedType,
+                date: date,
+                studentCount: 0,
+                status: 'pending',
+                subjects: subjects
+            };
+
+            const exams = JSON.parse(localStorage.getItem('exams') || '[]');
+            exams.unshift(newExam);
+            localStorage.setItem('exams', JSON.stringify(exams));
+
+            window.location.href = 'dashboard.html';
+        }
+    </script>
+</body>
+
+</html>

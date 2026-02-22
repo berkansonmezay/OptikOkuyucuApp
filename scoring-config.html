@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Puanlama Yapılandırması - Optik Okuyucu</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#7C3AED",
+                        background: "#FAFAFA",
+                        surface: "#FFFFFF",
+                        "text-main": "#1e293b",
+                        "text-muted": "#64748b",
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'card': '0 10px 15px -3px rgba(0, 0, 0, 0.04)',
+                        'glow': '0 4px 14px rgba(124, 58, 237, 0.15)',
+                    }
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            background-color: #fdfdff;
+            min-height: 100vh;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .input-chip {
+            flex: 1 1 0%;
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+            text-align: center;
+            font-size: 0.875rem;
+            font-weight: 700;
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 200ms;
+            border-width: 2px;
+        }
+
+        .chip-active {
+            background-color: #7C3AED;
+            color: #ffffff;
+            border-color: #7C3AED;
+            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.15);
+        }
+
+        .chip-inactive {
+            background-color: #ffffff;
+            color: #94a3b8;
+            border-color: #f8fafc;
+        }
+
+        .chip-inactive:hover {
+            border-color: #f1f5f9;
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased text-text-main">
+    <div class="max-w-md mx-auto min-h-screen relative flex flex-col bg-[#fdfdff] shadow-xl overflow-hidden pb-10">
+        <!-- Header -->
+        <header
+            class="px-6 pt-10 pb-4 flex items-center justify-between sticky top-0 bg-[#fdfdff]/80 backdrop-blur-md z-30">
+            <button onclick="window.history.back()"
+                class="w-10 h-10 rounded-full bg-white shadow-soft flex items-center justify-center text-gray-500 hover:text-primary transition-colors border border-gray-50">
+                <span class="material-symbols-outlined text-2xl">chevron_left</span>
+            </button>
+            <h1 class="font-extrabold text-lg text-gray-900">Puanlama Yapılandırması</h1>
+            <div class="w-10"></div> <!-- Spacer -->
+        </header>
+
+        <main class="flex-1 px-6 space-y-7 overflow-y-auto no-scrollbar pt-2">
+            <!-- Sınav Seçin Section -->
+            <div class="space-y-3">
+                <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">SINAV SEÇİN</h3>
+                <div class="relative group">
+                    <div
+                        class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary transition-colors">
+                        <span class="material-symbols-outlined text-[22px]">search</span>
+                    </div>
+                    <select
+                        class="w-full appearance-none bg-white bg-none border border-gray-100 rounded-3xl pl-12 pr-12 py-5 text-sm font-bold text-gray-600 focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all cursor-pointer shadow-card">
+                        <option value="" disabled selected>Bir sınav seçiniz...</option>
+                        <option value="1">LGS Branş Denemesi - 1</option>
+                        <option value="2">TYT Türkiye Geneli - 4</option>
+                        <option value="3">AYT Sayısal Deneme</option>
+                    </select>
+                    <span
+                        class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none">unfold_more</span>
+                </div>
+            </div>
+
+            <!-- Puanlama İşlemleri Section -->
+            <div class="space-y-3">
+                <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">PUANLAMA İŞLEMLERİ</h3>
+                <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-card flex gap-4">
+                    <div class="flex-1 space-y-2 text-center">
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Minimum
+                            Puan</label>
+                        <input type="number" value="0"
+                            class="w-full bg-gray-50/50 border-none rounded-2xl py-4 text-center text-lg font-black text-gray-900 focus:ring-2 focus:ring-primary/10 transition-all" />
+                    </div>
+                    <div class="flex-1 space-y-2 text-center">
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Maksimum
+                            Puan</label>
+                        <input type="number" value="100"
+                            class="w-full bg-gray-50/50 border-none rounded-2xl py-4 text-center text-lg font-black text-gray-900 focus:ring-2 focus:ring-primary/10 transition-all" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Net Hesaplama Section -->
+            <div class="space-y-3">
+                <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">NET HESAPLAMA</h3>
+                <div class="bg-white p-2 rounded-3xl border border-gray-100 shadow-card flex">
+                    <button
+                        class="flex-1 py-4 px-4 rounded-2xl text-center text-sm font-black transition-all duration-200 bg-primary text-white shadow-glow">
+                        3 Yanlış 1 Doğru
+                    </button>
+                    <button
+                        class="flex-1 py-4 px-4 rounded-2xl text-center text-sm font-black transition-all duration-200 text-gray-400 hover:text-gray-600">
+                        4 Yanlış 1 Doğru
+                    </button>
+                </div>
+            </div>
+
+            <!-- Ders Katsayıları Section -->
+            <div class="space-y-3">
+                <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">DERS KATSAYILARI
+                    (AĞIRLIK)</h3>
+                <div class="bg-white rounded-3xl border border-gray-100 shadow-card divide-y divide-gray-50">
+                    <!-- Türkçe -->
+                    <div class="px-5 py-4 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 rounded-2xl bg-purple-50 flex items-center justify-center text-primary">
+                                <span class="material-symbols-outlined filled">menu_book</span>
+                            </div>
+                            <span class="text-sm font-bold text-gray-700">Türkçe</span>
+                        </div>
+                        <input type="text" value="4.0"
+                            class="w-16 bg-gray-50/50 border-none rounded-xl py-2 text-center text-sm font-black text-primary focus:ring-2 focus:ring-primary/10" />
+                    </div>
+                    <!-- Matematik -->
+                    <div class="px-5 py-4 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 rounded-2xl bg-purple-50 flex items-center justify-center text-primary">
+                                <span class="material-symbols-outlined filled">calculate</span>
+                            </div>
+                            <span class="text-sm font-bold text-gray-700">Matematik</span>
+                        </div>
+                        <input type="text" value="4.0"
+                            class="w-16 bg-gray-50/50 border-none rounded-xl py-2 text-center text-sm font-black text-primary focus:ring-2 focus:ring-primary/10" />
+                    </div>
+                    <!-- Fen -->
+                    <div class="px-5 py-4 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 rounded-2xl bg-purple-50 flex items-center justify-center text-primary">
+                                <span class="material-symbols-outlined filled">science</span>
+                            </div>
+                            <span class="text-sm font-bold text-gray-700">Fen Bilimleri</span>
+                        </div>
+                        <input type="text" value="3.0"
+                            class="w-16 bg-gray-50/50 border-none rounded-xl py-2 text-center text-sm font-black text-primary focus:ring-2 focus:ring-primary/10" />
+                    </div>
+                    <!-- Sosyal -->
+                    <div class="px-5 py-4 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 rounded-2xl bg-purple-50 flex items-center justify-center text-primary">
+                                <span class="material-symbols-outlined filled">public</span>
+                            </div>
+                            <span class="text-sm font-bold text-gray-700">Sosyal Bilgiler</span>
+                        </div>
+                        <input type="text" value="2.0"
+                            class="w-16 bg-gray-50/50 border-none rounded-xl py-2 text-center text-sm font-black text-primary focus:ring-2 focus:ring-primary/10" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Save Button -->
+            <button onclick="window.history.back()"
+                class="w-full bg-primary hover:bg-primary-dark text-white font-black py-5 rounded-[2rem] shadow-glow active:scale-[0.98] transition-all duration-200 text-lg flex items-center justify-center gap-3 mt-4 mb-4">
+                <span class="material-symbols-outlined filled">save</span>
+                Kaydet
+            </button>
+        </main>
+    </div>
+</body>
+
+</html>

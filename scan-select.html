@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Sınav Seçimi</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#7C3AED",
+                        secondary: "#F3F4F6",
+                        surface: "#FFFFFF",
+                        "text-main": "#111827",
+                        "text-muted": "#6B7280",
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'card': '0 2px 8px rgba(0, 0, 0, 0.04)',
+                        'glow': '0 4px 14px rgba(124, 58, 237, 0.3)',
+                    }
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            min-height: 100vh;
+            background-color: #FAFAFA;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased text-text-main">
+    <div class="max-w-md mx-auto min-h-screen relative flex flex-col bg-white shadow-xl overflow-hidden pb-24">
+        <!-- Header -->
+        <header class="px-6 pt-10 pb-6 flex items-center bg-white z-10 sticky top-0">
+            <button onclick="window.location.href='dashboard.html'"
+                class="flex items-center text-gray-500 hover:text-primary transition-colors">
+                <span class="material-symbols-outlined text-2xl">chevron_left</span>
+            </button>
+            <h1 class="flex-1 text-center font-bold text-lg text-gray-900 mr-8">Sınav Seçimi</h1>
+        </header>
+
+        <!-- Search Bar -->
+        <div class="px-6 pb-6">
+            <div class="relative group">
+                <span
+                    class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors text-lg">search</span>
+                <input type="text" placeholder="Sınav ara (örn: TYT Deneme)" oninput="handleSearch(this.value)"
+                    class="w-full pl-11 pr-4 py-3.5 bg-[#f1f5f9] rounded-2xl border-none text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm" />
+            </div>
+        </div>
+
+        <div class="h-px bg-gray-50 w-full mb-6"></div>
+
+        <main class="flex-1 px-6 overflow-y-auto no-scrollbar">
+            <h2 class="text-[11px] font-bold text-[#94a3b8] tracking-[0.1em] uppercase mb-4">MEVCUT SINAVLAR</h2>
+
+            <div class="space-y-3" id="examList">
+                <!-- Dynamic exams from localStorage or fallbacks -->
+            </div>
+        </main>
+
+        <!-- Bottom Action -->
+        <div class="fixed bottom-[72px] w-full max-w-md bg-white/80 backdrop-blur-md border-t border-gray-100 p-6 z-30">
+            <button onclick="proceedToScan()"
+                class="w-full py-4 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-glow hover:scale-[1.02] active:scale-[0.98] transition-all">
+                Devam Et
+                <span class="material-symbols-outlined text-lg">arrow_forward</span>
+            </button>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 pb-safe pt-1 px-4 z-40">
+            <div class="flex justify-around items-center h-16">
+                <button
+                    class="flex flex-col items-center justify-center text-gray-400 hover:text-primary transition-colors w-14 group"
+                    onclick="window.location.href='dashboard.html'">
+                    <span
+                        class="material-symbols-outlined text-[24px] mb-0.5 group-hover:scale-110 transition-transform">grid_view</span>
+                    <span class="text-[10px] font-medium">Ana Sayfa</span>
+                </button>
+                <button class="flex flex-col items-center justify-center text-primary w-14 group">
+                    <span
+                        class="material-symbols-outlined filled text-[24px] mb-0.5 group-hover:scale-110 transition-transform">qr_code_scanner</span>
+                    <span class="text-[10px] font-bold">Tara</span>
+                </button>
+                <button
+                    class="flex flex-col items-center justify-center text-gray-400 hover:text-primary w-14 transition-colors group"
+                    onclick="window.location.href='results.html'">
+                    <span
+                        class="material-symbols-outlined text-[24px] mb-0.5 group-hover:scale-110 transition-transform">bar_chart</span>
+                    <span class="text-[10px] font-medium">Sonuçlar</span>
+                </button>
+                <button
+                    class="flex flex-col items-center justify-center text-gray-400 hover:text-primary w-14 transition-colors group"
+                    onclick="window.location.href='settings.html'">
+                    <span
+                        class="material-symbols-outlined text-[24px] mb-0.5 group-hover:scale-110 transition-transform">settings</span>
+                    <span class="text-[10px] font-medium">Ayarlar</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <script>
+        let selectedExamId = null;
+        let searchQuery = '';
+
+        function renderExams() {
+            const container = document.getElementById('examList');
+            let exams = JSON.parse(localStorage.getItem('exams') || '[]');
+
+            // Add fallbacks if empty to match screenshot
+            if (exams.length === 0) {
+                exams = [
+                    { id: 101, name: 'lgs-2', type: 'LGS', date: '2026-02-22', questions: 0 },
+                    { id: 102, name: 'ayt - 1', type: 'AYT', date: '2026-02-22', questions: 0 },
+                    { id: 103, name: 'tyt - 1', type: 'TYT', date: '2026-02-22', questions: 0 },
+                    { id: 104, name: 'lgs - 1', type: 'LGS', date: '2026-02-22', questions: 0 }
+                ];
+            }
+
+            const filteredExams = exams.filter(exam =>
+                exam.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                exam.type.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+
+            if (filteredExams.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-12 text-gray-400">
+                        <span class="material-symbols-outlined text-4xl mb-2">search_off</span>
+                        <p class="text-sm">Aradığınız kriterlere uygun sınav bulunamadı.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredExams.map(exam => {
+                const dateParts = exam.date.split('-');
+                const formattedDate = dateParts.length === 3 ? `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}` : exam.date;
+                const isSelected = selectedExamId === exam.id;
+
+                let typeBg = 'bg-purple-100 text-primary';
+                if (exam.type === 'TYT') typeBg = 'bg-blue-100 text-blue-600';
+                if (exam.type === 'AYT') typeBg = 'bg-orange-100 text-orange-600';
+
+                return `
+                    <div onclick="selectExam(${exam.id})" class="relative cursor-pointer transition-all duration-300 rounded-2xl border-2 ${isSelected ? 'border-primary bg-purple-50' : 'border-[#f1f5f9] bg-white'} p-4 shadow-sm hover:border-primary/30">
+                        <div class="flex items-center justify-between">
+                            <div class="flex flex-col gap-2">
+                                <div class="flex items-center gap-3">
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${typeBg}">${exam.type}</span>
+                                    <h3 class="font-bold text-sm text-gray-900">${exam.name}</h3>
+                                </div>
+                                <div class="flex items-center gap-2 text-text-muted text-[11px] font-medium">
+                                    <span class="material-symbols-outlined text-[14px]">description</span>
+                                    <span>${exam.questions || 0} Soru</span>
+                                    <span class="mx-1">•</span>
+                                    <span class="material-symbols-outlined text-[14px]">calendar_today</span>
+                                    <span>${formattedDate}</span>
+                                </div>
+                            </div>
+                            <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'border-primary' : 'border-gray-200'}">
+                                ${isSelected ? '<div class="w-3.5 h-3.5 rounded-full bg-primary mb-0"></div>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function handleSearch(value) {
+            searchQuery = value;
+            renderExams();
+        }
+
+        function selectExam(id) {
+            selectedExamId = id;
+            renderExams();
+        }
+
+        function proceedToScan() {
+            if (!selectedExamId) {
+                alert('Lütfen bir sınav seçiniz.');
+                return;
+            }
+            window.location.href = 'camera.html';
+        }
+
+        window.onload = () => {
+            renderExams();
+        };
+    </script>
+</body>
+
+</html>
