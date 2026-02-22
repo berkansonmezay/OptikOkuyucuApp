@@ -11,6 +11,8 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
         rel="stylesheet" />
+    <meta name="color-scheme" content="light">
+    <script src="theme-manager.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -183,9 +185,19 @@
                                         </div>
                                     </div>
                                 </div>
-                                <button onclick="deleteExam(${index})" class="text-gray-300 hover:text-red-500 transition-colors">
-                                    <span class="material-symbols-outlined">delete</span>
-                                </button>
+                                <div class="relative">
+                                    <button onclick="toggleMenu(event, ${index})" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-colors">
+                                        <span class="material-symbols-outlined">more_vert</span>
+                                    </button>
+                                    <div id="menu-${index}" class="dropdown-menu absolute right-0 mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-[100] w-32">
+                                        <button onclick="editExam(${index})" class="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-600 hover:bg-gray-50 flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-sm">edit</span> Düzenle
+                                        </button>
+                                        <button onclick="deleteExam(${index})" class="w-full px-4 py-2.5 text-left text-xs font-bold text-red-500 hover:bg-red-50 flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-sm text-red-500">delete</span> Sil
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         `;
                     }).join('');
@@ -193,16 +205,22 @@
 
                 function toggleMenu(event, index) {
                     event.stopPropagation();
-                    const menu = document.getElementById(`menu - ${index} `);
+                    const menu = document.getElementById(`menu-${index}`);
                     const allMenus = document.querySelectorAll('.dropdown-menu');
                     allMenus.forEach(m => {
-                        if (m !== menu) m.classList.remove('active');
+                        if (m !== menu) m.style.display = 'none';
                     });
-                    menu.classList.toggle('active');
+
+                    if (menu.style.display === 'block') {
+                        menu.style.display = 'none';
+                    } else {
+                        menu.style.display = 'block';
+                    }
                 }
 
-                function deleteExam(index) {
-                    if (confirm('Bu sınavı silmek istediğinizden emin misiniz?')) {
+                async function deleteExam(index) {
+                    const confirmed = await customConfirm('Sınavı Sil', 'Bu sınavı silmek istediğinizden emin misiniz?');
+                    if (confirmed) {
                         let exams = JSON.parse(localStorage.getItem('exams') || '[]');
                         exams.splice(index, 1);
                         localStorage.setItem('exams', JSON.stringify(exams));
@@ -211,12 +229,12 @@
                 }
 
                 function editExam(index) {
-                    window.location.href = `create - exam.html ? edit = ${index}`;
+                    window.location.href = `create-exam.html?edit=${index}`;
                 }
 
                 document.addEventListener('click', () => {
                     const allMenus = document.querySelectorAll('.dropdown-menu');
-                    allMenus.forEach(m => m.classList.remove('active'));
+                    allMenus.forEach(m => m.style.display = 'none');
                 });
 
                 function loadUserProfile() {

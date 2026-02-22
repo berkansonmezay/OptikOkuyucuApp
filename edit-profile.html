@@ -11,6 +11,8 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
         rel="stylesheet" />
+    <meta name="color-scheme" content="light">
+    <script src="theme-manager.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -182,9 +184,9 @@
             }
         }
 
-        function openPhotoPicker() {
+        async function openPhotoPicker() {
             // Simple mockup of a photo picker: alert choices or just toggle
-            const choice = confirm("Fotoğrafı kaldırmak için 'TAMAM'a basın.\nYeni bir avatar seçmek için 'İPTAL'e basın.");
+            const choice = await customConfirm('Fotoğraf İşlemi', "Fotoğrafı kaldırmak için 'TAMAM'a basın.\nYeni bir avatar seçmek için 'VAZGEÇ'e basın.");
             const imgEl = document.getElementById('profileImage');
             const initialsEl = document.getElementById('profile-initials');
 
