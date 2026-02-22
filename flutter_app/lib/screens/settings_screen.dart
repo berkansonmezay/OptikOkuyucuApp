@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
+import '../providers/user_provider.dart';
 import 'edit_profile_screen.dart';
+import 'scoring_config_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -25,7 +28,12 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
             _buildSettingsItem(Icons.security_outlined, 'Şifre ve Güvenlik', null),
-            _buildSettingsItem(Icons.tune_rounded, 'Puanlama Yapılandırması', null),
+            _buildSettingsItem(Icons.tune_rounded, 'Puanlama Yapılandırması', () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ScoringConfigScreen()),
+              );
+            }),
             const Divider(height: 48),
             _buildSettingsItem(Icons.help_outline_rounded, 'Yardım & Destek', null),
             _buildSettingsItem(Icons.info_outline_rounded, 'Uygulama Hakkında', null),
