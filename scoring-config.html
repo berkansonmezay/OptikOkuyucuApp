@@ -103,12 +103,9 @@
                         class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary transition-colors">
                         <span class="material-symbols-outlined text-[22px]">search</span>
                     </div>
-                    <select
+                    <select id="examSelect" onchange="loadScoringConfig()"
                         class="w-full appearance-none bg-white bg-none border border-gray-100 rounded-3xl pl-12 pr-12 py-5 text-sm font-bold text-gray-600 focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all cursor-pointer shadow-card">
                         <option value="" disabled selected>Bir sınav seçiniz...</option>
-                        <option value="1">LGS Branş Denemesi - 1</option>
-                        <option value="2">TYT Türkiye Geneli - 4</option>
-                        <option value="3">AYT Sayısal Deneme</option>
                     </select>
                     <span
                         class="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none">unfold_more</span>
@@ -122,13 +119,13 @@
                     <div class="flex-1 space-y-2 text-center">
                         <label class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Minimum
                             Puan</label>
-                        <input type="number" value="0"
+                        <input type="number" id="minScore" value="0"
                             class="w-full bg-gray-50/50 border-none rounded-2xl py-4 text-center text-lg font-black text-gray-900 focus:ring-2 focus:ring-primary/10 transition-all" />
                     </div>
                     <div class="flex-1 space-y-2 text-center">
                         <label class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Maksimum
                             Puan</label>
-                        <input type="number" value="100"
+                        <input type="number" id="maxScore" value="100"
                             class="w-full bg-gray-50/50 border-none rounded-2xl py-4 text-center text-lg font-black text-gray-900 focus:ring-2 focus:ring-primary/10 transition-all" />
                     </div>
                 </div>
@@ -139,15 +136,15 @@
                 <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">NET HESAPLAMA</h3>
                 <div class="bg-white p-2 rounded-3xl border border-gray-100 shadow-card flex gap-1"
                     id="netOptionsContainer">
-                    <button onclick="selectNetOption(this)"
+                    <button type="button" onclick="selectNetOption(this)" data-value="3y1d"
                         class="flex-1 py-4 px-2 rounded-2xl text-center text-[11px] font-black transition-all duration-200 bg-primary text-white shadow-glow">
                         3 Yanlış 1 Doğru
                     </button>
-                    <button onclick="selectNetOption(this)"
+                    <button type="button" onclick="selectNetOption(this)" data-value="4y1d"
                         class="flex-1 py-4 px-2 rounded-2xl text-center text-[11px] font-black transition-all duration-200 text-gray-400 hover:text-gray-600">
                         4 Yanlış 1 Doğru
                     </button>
-                    <button onclick="selectNetOption(this)"
+                    <button type="button" onclick="selectNetOption(this)" data-value="yd"
                         class="flex-1 py-4 px-2 rounded-2xl text-center text-[11px] font-black transition-all duration-200 text-gray-400 hover:text-gray-600">
                         - Yanlış - Doğru
                     </button>
@@ -155,6 +152,8 @@
             </div>
 
             <script>
+                let selectedNetOption = "3y1d";
+
                 function selectNetOption(button) {
                     const container = document.getElementById('netOptionsContainer');
                     const buttons = container.querySelectorAll('button');
@@ -164,7 +163,74 @@
                     });
 
                     button.className = "flex-1 py-4 px-2 rounded-2xl text-center text-[11px] font-black transition-all duration-200 bg-primary text-white shadow-glow";
+                    selectedNetOption = button.getAttribute('data-value');
                 }
+
+                function loadExams() {
+                    const select = document.getElementById('examSelect');
+                    const exams = JSON.parse(localStorage.getItem('exams') || '[]');
+
+                    exams.forEach((exam, index) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.textContent = `${exam.name} (${exam.type})`;
+                        select.appendChild(option);
+                    });
+                }
+
+                function loadScoringConfig() {
+                    const examIndex = document.getElementById('examSelect').value;
+                    const configs = JSON.parse(localStorage.getItem('scoring_configs') || '{}');
+                    const config = configs[examIndex];
+
+                    if (config) {
+                        document.getElementById('minScore').value = config.minScore;
+                        document.getElementById('maxScore').value = config.maxScore;
+
+                        // Set net option
+                        const buttons = document.querySelectorAll('#netOptionsContainer button');
+                        buttons.forEach(btn => {
+                            if (btn.getAttribute('data-value') === config.netOption) {
+                                selectNetOption(btn);
+                            }
+                        });
+
+                        // Set coefficients
+                        document.getElementById('weight_turkce').value = config.weights.turkce;
+                        document.getElementById('weight_matematik').value = config.weights.matematik;
+                        document.getElementById('weight_fen').value = config.weights.fen;
+                        document.getElementById('weight_sosyal').value = config.weights.sosyal;
+                    }
+                }
+
+                function saveScoringConfig() {
+                    const examIndex = document.getElementById('examSelect').value;
+                    if (examIndex === "") {
+                        alert('Lütfen önce bir sınav seçiniz.');
+                        return;
+                    }
+
+                    const config = {
+                        minScore: document.getElementById('minScore').value,
+                        maxScore: document.getElementById('maxScore').value,
+                        netOption: selectedNetOption,
+                        weights: {
+                            turkce: document.getElementById('weight_turkce').value,
+                            matematik: document.getElementById('weight_matematik').value,
+                            fen: document.getElementById('weight_fen').value,
+                            sosyal: document.getElementById('weight_sosyal').value
+                        }
+                    };
+
+                    const configs = JSON.parse(localStorage.getItem('scoring_configs') || '{}');
+                    configs[examIndex] = config;
+                    localStorage.setItem('scoring_configs', JSON.stringify(configs));
+
+                    alert('Puanlama yapılandırması başarıyla kaydedildi.');
+                    window.history.back();
+                }
+
+                window.onload = loadExams;
             </script>
 
             <!-- Ders Katsayıları Section -->
@@ -181,7 +247,7 @@
                             </div>
                             <span class="text-sm font-bold text-gray-700">Türkçe</span>
                         </div>
-                        <input type="text" value="4.0"
+                        <input type="text" id="weight_turkce" value="4.0"
                             class="w-16 bg-gray-50/50 border-none rounded-xl py-2 text-center text-sm font-black text-primary focus:ring-2 focus:ring-primary/10" />
                     </div>
                     <!-- Matematik -->
@@ -193,7 +259,7 @@
                             </div>
                             <span class="text-sm font-bold text-gray-700">Matematik</span>
                         </div>
-                        <input type="text" value="4.0"
+                        <input type="text" id="weight_matematik" value="4.0"
                             class="w-16 bg-gray-50/50 border-none rounded-xl py-2 text-center text-sm font-black text-primary focus:ring-2 focus:ring-primary/10" />
                     </div>
                     <!-- Fen -->
@@ -205,7 +271,7 @@
                             </div>
                             <span class="text-sm font-bold text-gray-700">Fen Bilimleri</span>
                         </div>
-                        <input type="text" value="3.0"
+                        <input type="text" id="weight_fen" value="3.0"
                             class="w-16 bg-gray-50/50 border-none rounded-xl py-2 text-center text-sm font-black text-primary focus:ring-2 focus:ring-primary/10" />
                     </div>
                     <!-- Sosyal -->
@@ -217,14 +283,14 @@
                             </div>
                             <span class="text-sm font-bold text-gray-700">Sosyal Bilgiler</span>
                         </div>
-                        <input type="text" value="2.0"
+                        <input type="text" id="weight_sosyal" value="2.0"
                             class="w-16 bg-gray-50/50 border-none rounded-xl py-2 text-center text-sm font-black text-primary focus:ring-2 focus:ring-primary/10" />
                     </div>
                 </div>
             </div>
 
             <!-- Save Button -->
-            <button onclick="window.history.back()"
+            <button onclick="saveScoringConfig()"
                 class="w-full bg-primary hover:bg-primary-dark text-white font-black py-5 rounded-[2rem] shadow-glow active:scale-[0.98] transition-all duration-200 text-lg flex items-center justify-center gap-3 mt-4 mb-4">
                 <span class="material-symbols-outlined filled">save</span>
                 Kaydet
