@@ -70,9 +70,6 @@ class _ScoringConfigScreenState extends State<ScoringConfigScreen> {
 
     Provider.of<ScoringProvider>(context, listen: false).saveConfig(_selectedExam!.id, config);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Puanlama yapılandırması kaydedildi')),
-    );
   }
 
   @override
