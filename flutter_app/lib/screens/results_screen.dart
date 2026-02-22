@@ -1,6 +1,8 @@
 import 'package:provider/provider.dart';
 import '../providers/exam_provider.dart';
 import '../models/exam.dart';
+import 'exam_results_screen.dart';
+import 'student_report_screen.dart';
 
 class ResultsScreen extends StatefulWidget {
   const ResultsScreen({super.key});
@@ -105,7 +107,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const StudentReportScreen()),
+          MaterialPageRoute(builder: (context) => ExamResultsScreen(exam: exam)),
         );
       },
       borderRadius: BorderRadius.circular(20),

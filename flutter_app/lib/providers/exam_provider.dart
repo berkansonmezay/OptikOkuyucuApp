@@ -25,6 +25,44 @@ class ExamProvider with ChangeNotifier {
       final List<dynamic> decoded = jsonDecode(examsJson);
       _exams = decoded.map((item) => Exam.fromJson(item)).toList();
     }
+
+    // Temporary: Add mock students for testing if none exist
+    for (var exam in _exams) {
+      if (exam.students.isEmpty) {
+        exam.students = [
+          StudentResult(
+            id: '1',
+            studentName: 'Zeynep Kaya',
+            studentNumber: '482',
+            score: 425.00,
+            status: 'success',
+          ),
+          StudentResult(
+            id: '2',
+            studentName: 'Ahmet Yılmaz',
+            studentNumber: '483',
+            score: 390.50,
+            status: 'success',
+            bookType: 'B',
+          ),
+          StudentResult(
+            id: '3',
+            studentName: 'Elif Çelik',
+            studentNumber: '',
+            score: 0.00,
+            status: 'warning',
+          ),
+          StudentResult(
+            id: '4',
+            studentName: 'Burak Özkan',
+            studentNumber: '490',
+            score: 310.25,
+            status: 'success',
+            bookType: 'B',
+          ),
+        ];
+      }
+    }
     
     _isLoading = false;
     notifyListeners();

@@ -6,6 +6,7 @@ class Exam {
   int studentCount;
   String status;
   List<Subject> subjects;
+  List<StudentResult> students;
 
   Exam({
     required this.id,
@@ -15,6 +16,7 @@ class Exam {
     this.studentCount = 0,
     this.status = 'pending',
     required this.subjects,
+    this.students = const [],
   });
 
   Map<String, dynamic> toJson() => {
@@ -25,6 +27,7 @@ class Exam {
     'studentCount': studentCount,
     'status': status,
     'subjects': subjects.map((s) => s.toJson()).toList(),
+    'students': students.map((s) => s.toJson()).toList(),
   };
 
   factory Exam.fromJson(Map<String, dynamic> json) => Exam(
@@ -35,6 +38,54 @@ class Exam {
     studentCount: json['studentCount'],
     status: json['status'],
     subjects: (json['subjects'] as List).map((s) => Subject.fromJson(s)).toList(),
+    students: json['students'] != null 
+        ? (json['students'] as List).map((s) => StudentResult.fromJson(s)).toList()
+        : [],
+  );
+}
+
+class StudentResult {
+  final String id;
+  final String studentName;
+  final String studentNumber;
+  final double score;
+  final String status; // 'success', 'warning' (missing info)
+  final String? bookType;
+
+  StudentResult({
+    required this.id,
+    required this.studentName,
+    required this.studentNumber,
+    required this.score,
+    required this.status,
+    this.bookType,
+  });
+
+  String get initials {
+    if (studentName.isEmpty) return '??';
+    List<String> parts = studentName.trim().split(' ');
+    if (parts.length > 1) {
+      return (parts[0][0] + parts.last[0]).toUpperCase();
+    }
+    return parts[0][0].toUpperCase();
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'studentName': studentName,
+    'studentNumber': studentNumber,
+    'score': score,
+    'status': status,
+    'bookType': bookType,
+  };
+
+  factory StudentResult.fromJson(Map<String, dynamic> json) => StudentResult(
+    id: json['id'],
+    studentName: json['studentName'],
+    studentNumber: json['studentNumber'],
+    score: (json['score'] as num).toDouble(),
+    status: json['status'],
+    bookType: json['bookType'],
   );
 }
 

@@ -10,6 +10,8 @@ import '../models/user_profile.dart';
 import 'results_screen.dart';
 import 'settings_screen.dart';
 import 'scanner_screen.dart';
+import 'exam_results_screen.dart';
+import 'student_report_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
