@@ -336,6 +336,21 @@
             </div>
         </nav>
     </div>
+    <script>
+        function loadUserProfile() {
+            const user = JSON.parse(localStorage.getItem('user_profile') || '{}');
+            if (user.name) {
+                document.querySelector('h2').textContent = user.name;
+                const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                document.querySelector('.bg-gradient-to-br').textContent = initials;
+            }
+            if (user.email) {
+                document.querySelector('p.text-xs').textContent = user.email;
+            }
+        }
+
+        window.onload = loadUserProfile;
+    </script>
 </body>
 
 </html>

@@ -234,7 +234,21 @@
                     allMenus.forEach(m => m.classList.remove('active'));
                 });
 
-                window.onload = loadRecentExams;
+                function loadUserProfile() {
+                    const user = JSON.parse(localStorage.getItem('user_profile') || '{}');
+                    if (user.name) {
+                        document.querySelector('header h1').textContent = user.name;
+                    }
+                    if (user.profileImageUrl) {
+                        document.querySelector('header img').src = user.profileImageUrl;
+                        document.querySelector('header img').alt = user.name || 'Profil';
+                    }
+                }
+
+                window.onload = () => {
+                    loadRecentExams();
+                    loadUserProfile();
+                };
             </script>
         </main>
         <nav class="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 pb-safe pt-1 px-4 z-40">

@@ -134,7 +134,7 @@
 
                 <!-- Submit Button -->
                 <div class="pt-8 pb-4">
-                    <button type="button" onclick="window.history.back()"
+                    <button type="button" onclick="saveProfile()"
                         class="w-full bg-primary hover:bg-primary-dark text-white font-black py-5 rounded-[2rem] shadow-glow active:scale-[0.98] transition-all duration-200 text-lg">
                         Değişiklikleri Kaydet
                     </button>
@@ -142,6 +142,31 @@
             </form>
         </main>
     </div>
+
+    <script>
+        function loadProfile() {
+            const user = JSON.parse(localStorage.getItem('user_profile') || '{}');
+            if (user.name) document.getElementById('name').value = user.name;
+            if (user.email) document.getElementById('email').value = user.email;
+            if (user.phone) document.getElementById('phone').value = user.phone;
+            if (user.profileImageUrl) document.getElementById('profileImage').src = user.profileImageUrl;
+        }
+
+        function saveProfile() {
+            const user = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                profileImageUrl: document.getElementById('profileImage').src,
+                institution: "ÖĞRETMEN PORTALİ"
+            };
+            localStorage.setItem('user_profile', JSON.stringify(user));
+            alert('Profil başarıyla güncellendi.');
+            window.history.back();
+        }
+
+        window.onload = loadProfile;
+    </script>
 </body>
 
 </html>

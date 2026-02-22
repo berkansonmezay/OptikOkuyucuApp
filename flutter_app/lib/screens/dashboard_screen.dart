@@ -5,6 +5,8 @@ import '../core/app_colors.dart';
 import '../providers/exam_provider.dart';
 import '../models/exam.dart';
 import 'create_exam.dart';
+import '../providers/user_provider.dart';
+import '../models/user_profile.dart';
 import 'results_screen.dart';
 import 'settings_screen.dart';
 import 'scanner_screen.dart';
@@ -112,45 +114,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.between,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Consumer<UserProvider>(
+      builder: (context, userProvider, child) {
+        final user = userProvider.user;
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.between,
           children: [
-            const Text(
-              'Sarah Jenkins',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user.name,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  user.institution.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.5,
+                    color: Colors.grey[400],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 2),
-            Text(
-              'ÖĞRETMEN PORTALI',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.5,
-                color: Colors.grey[400],
-              ),
+            Row(
+              children: [
+                Container(
+                  decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
+                  child: IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF475569)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                CircleAvatar(
+                  radius: 20,
+                  backgroundImage: NetworkImage(user.profileImageUrl),
+                ),
+              ],
             ),
           ],
-        ),
-        Row(
-          children: [
-            Container(
-              decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
-              child: IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF475569)),
-              ),
-            ),
-            const SizedBox(width: 12),
-            const CircleAvatar(
-              radius: 20,
-              backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=32'),
-            ),
-          ],
-        ),
-      ],
+        );
+      },
     );
   }
 

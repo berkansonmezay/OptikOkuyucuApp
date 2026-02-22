@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
+import '../providers/user_provider.dart';
+import '../models/user_profile.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -9,9 +11,28 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final _nameController = TextEditingController(text: 'Ahmet Yılmaz');
-  final _emailController = TextEditingController(text: 'ahmet.yilmaz@okul.edu.tr');
-  final _phoneController = TextEditingController(text: '+90 532 123 45 67');
+  late TextEditingController _nameController;
+  late TextEditingController _emailController;
+  late TextEditingController _phoneController;
+  late String _profileImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = Provider.of<UserProvider>(context, listen: false).user;
+    _nameController = TextEditingController(text: user.name);
+    _emailController = TextEditingController(text: user.email);
+    _phoneController = TextEditingController(text: user.phone);
+    _profileImageUrl = user.profileImageUrl;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +60,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: _saveProfile,
                 child: const Text('Değişiklikleri Kaydet'),
               ),
             ),
@@ -49,14 +70,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  void _saveProfile() {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final updatedUser = UserProfile(
+      name: _nameController.text,
+      email: _emailController.text,
+      phone: _phoneController.text,
+      profileImageUrl: _profileImageUrl,
+      institution: userProvider.user.institution,
+    );
+    userProvider.updateUser(updatedUser);
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Profil başarıyla güncellendi')),
+    );
+  }
+
   Widget _buildProfilePhoto() {
     return Column(
       children: [
         Stack(
           children: [
-            const CircleAvatar(
+            CircleAvatar(
               radius: 60,
-              backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=12'),
+              backgroundImage: NetworkImage(_profileImageUrl),
             ),
             Positioned(
               bottom: 0,
