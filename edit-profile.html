@@ -71,21 +71,19 @@
         <main class="flex-1 px-6 space-y-8 pt-4 overflow-y-auto no-scrollbar">
             <!-- Profile Photo Section -->
             <div class="flex flex-col items-center">
-                <div class="relative group cursor-pointer">
-                    <div class="w-32 h-32 rounded-full ring-4 ring-white shadow-2xl overflow-hidden relative">
-                        <img src="https://i.pravatar.cc/150?img=12" alt="Ahmet Yılmaz"
-                            class="w-full h-full object-cover" id="profileImage" />
+                <div class="relative group cursor-pointer" onclick="openPhotoPicker()">
+                    <div id="profile-avatar-container"
+                        class="w-32 h-32 rounded-full ring-4 ring-white shadow-2xl overflow-hidden relative bg-purple-50 flex items-center justify-center">
+                        <img src="" alt="Profile" class="w-full h-full object-cover hidden" id="profileImage" />
+                        <span id="profile-initials" class="text-4xl font-extrabold text-primary">SJ</span>
                         <div
-                            class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                            class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                             <span class="material-symbols-outlined text-white text-3xl">add_a_photo</span>
                         </div>
                     </div>
-                    <button
-                        class="absolute bottom-1 right-1 w-9 h-9 bg-primary border-4 border-white rounded-full flex items-center justify-center text-white shadow-lg">
-                        <span class="material-symbols-outlined text-[20px] filled">photo_camera</span>
-                    </button>
                 </div>
-                <button class="mt-4 text-primary font-black text-sm hover:opacity-80 transition-opacity">
+                <button onclick="openPhotoPicker()"
+                    class="mt-4 text-primary font-black text-sm hover:opacity-80 transition-opacity">
                     Fotoğrafı Güncelle
                 </button>
             </div>
@@ -101,7 +99,7 @@
                         </div>
                         <input type="text" id="name"
                             class="block w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-100 bg-gray-50/30 text-gray-900 font-semibold placeholder-gray-400 focus:ring-2 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all duration-200"
-                            placeholder="Adınız ve soyadınız" value="Ahmet Yılmaz" />
+                            placeholder="Adınız ve soyadınız" value="Ahmet Yılmaz" oninput="updateInitialsFallback()" />
                     </div>
                 </div>
 
@@ -144,20 +142,75 @@
     </div>
 
     <script>
+        function updateInitialsFallback() {
+            const name = document.getElementById('name').value;
+            const initialsEl = document.getElementById('profile-initials');
+            if (name) {
+                const parts = name.trim().split(/\s+/);
+                const initials = parts.length > 1
+                    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+                    : parts[0][0].toUpperCase();
+                initialsEl.textContent = initials;
+            } else {
+                initialsEl.textContent = "??";
+            }
+        }
+
         function loadProfile() {
-            const user = JSON.parse(localStorage.getItem('user_profile') || '{}');
-            if (user.name) document.getElementById('name').value = user.name;
-            if (user.email) document.getElementById('email').value = user.email;
-            if (user.phone) document.getElementById('phone').value = user.phone;
-            if (user.profileImageUrl) document.getElementById('profileImage').src = user.profileImageUrl;
+            const profileData = localStorage.getItem('user_profile');
+            if (profileData) {
+                const user = JSON.parse(profileData);
+                if (user.name) {
+                    document.getElementById('name').value = user.name;
+                    updateInitialsFallback();
+                }
+                if (user.email) document.getElementById('email').value = user.email;
+                if (user.phone) document.getElementById('phone').value = user.phone;
+
+                const imgEl = document.getElementById('profileImage');
+                const initialsEl = document.getElementById('profile-initials');
+                if (user.profileImageUrl) {
+                    imgEl.src = user.profileImageUrl;
+                    imgEl.classList.remove('hidden');
+                    initialsEl.classList.add('hidden');
+                } else {
+                    imgEl.classList.add('hidden');
+                    initialsEl.classList.remove('hidden');
+                }
+            } else {
+                updateInitialsFallback();
+            }
+        }
+
+        function openPhotoPicker() {
+            // Simple mockup of a photo picker: alert choices or just toggle
+            const choice = confirm("Fotoğrafı kaldırmak için 'TAMAM'a basın.\nYeni bir avatar seçmek için 'İPTAL'e basın.");
+            const imgEl = document.getElementById('profileImage');
+            const initialsEl = document.getElementById('profile-initials');
+
+            if (choice) {
+                // Remove photo
+                imgEl.src = "";
+                imgEl.classList.add('hidden');
+                initialsEl.classList.remove('hidden');
+            } else {
+                // Select a random avatar for demo
+                const newImg = `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70) + 1}`;
+                imgEl.src = newImg;
+                imgEl.classList.remove('hidden');
+                initialsEl.classList.add('hidden');
+            }
         }
 
         function saveProfile() {
+            const imgEl = document.getElementById('profileImage');
+            const isHidden = imgEl.classList.contains('hidden');
+
             const user = {
                 name: document.getElementById('name').value,
                 email: document.getElementById('email').value,
                 phone: document.getElementById('phone').value,
-                profileImageUrl: document.getElementById('profileImage').src,
+                profileImageUrl: isHidden ? "" : imgEl.src,
                 institution: "ÖĞRETMEN PORTALİ"
             };
             localStorage.setItem('user_profile', JSON.stringify(user));

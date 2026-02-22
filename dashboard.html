@@ -89,9 +89,10 @@
                     class="w-10 h-10 rounded-full bg-[#f1f5f9] flex items-center justify-center text-[#475569] hover:bg-[#e2e8f0] transition-colors">
                     <span class="material-symbols-outlined filled text-[22px]">notifications</span>
                 </button>
-                <div class="w-10 h-10 rounded-full ring-2 ring-[#ede9fe] overflow-hidden bg-purple-50 flex-shrink-0">
-                    <img id="user-avatar" src="https://i.pravatar.cc/150?img=32" alt="Profile"
-                        class="w-full h-full object-cover" />
+                <div id="user-avatar-container"
+                    class="w-10 h-10 rounded-full ring-2 ring-[#ede9fe] overflow-hidden bg-purple-50 flex-shrink-0 flex items-center justify-center">
+                    <img id="user-avatar" src="" alt="Profile" class="w-full h-full object-cover hidden" />
+                    <span id="user-initials" class="text-xs font-bold text-primary">SJ</span>
                 </div>
             </div>
         </header>
@@ -290,7 +291,21 @@
                 const user = JSON.parse(profileData);
                 if (user.name) document.getElementById('user-name').textContent = user.name;
                 if (user.email) document.getElementById('user-email').textContent = user.email;
-                if (user.profileImageUrl) document.getElementById('user-avatar').src = user.profileImageUrl;
+                if (user.profileImageUrl) {
+                    document.getElementById('user-avatar').src = user.profileImageUrl;
+                    document.getElementById('user-avatar').classList.remove('hidden');
+                    document.getElementById('user-initials').classList.add('hidden');
+                } else {
+                    document.getElementById('user-avatar').classList.add('hidden');
+                    document.getElementById('user-initials').classList.remove('hidden');
+                    if (user.name) {
+                        const parts = user.name.trim().split(/\s+/);
+                        const initials = parts.length > 1
+                            ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+                            : parts[0][0].toUpperCase();
+                        document.getElementById('user-initials').textContent = initials;
+                    }
+                }
             }
         });
     </script>

@@ -84,6 +84,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     Navigator.pop(context);
   }
 
+  String _getInitials(String name) {
+    if (name.isEmpty) return "??";
+    List<String> parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty) return "??";
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
   void _showPhotoPickerDialog() {
     final avatarUrls = List.generate(12, (i) => 'https://i.pravatar.cc/150?img=${i + 1}');
     showDialog(
@@ -92,27 +100,44 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         title: const Text('Profil Fotoğrafı Seç'),
         content: SizedBox(
           width: double.maxFinite,
-          height: 300,
-          child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: avatarUrls.length,
-            itemBuilder: (context, index) {
-              return GestureDetector(
+          height: 350,
+          child: Column(
+            children: [
+              ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.no_photography_outlined)),
+                title: const Text('Fotoğrafı Kaldır (Baş Harfler)'),
                 onTap: () {
                   setState(() {
-                    _profileImageUrl = avatarUrls[index];
+                    _profileImageUrl = '';
                   });
                   Navigator.pop(context);
                 },
-                child: CircleAvatar(
-                  backgroundImage: NetworkImage(avatarUrls[index]),
+              ),
+              const Divider(),
+              Expanded(
+                child: GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemCount: avatarUrls.length,
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _profileImageUrl = avatarUrls[index];
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: CircleAvatar(
+                        backgroundImage: NetworkImage(avatarUrls[index]),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
+              ),
+            ],
           ),
         ),
         actions: [
@@ -134,7 +159,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             children: [
               CircleAvatar(
                 radius: 60,
-                backgroundImage: NetworkImage(_profileImageUrl),
+                backgroundColor: AppColors.primary.withOpacity(0.1),
+                backgroundImage: _profileImageUrl.isNotEmpty
+                    ? NetworkImage(_profileImageUrl)
+                    : null,
+                child: _profileImageUrl.isEmpty
+                    ? Text(
+                        _getInitials(_nameController.text),
+                        style: const TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      )
+                    : null,
               ),
               Positioned(
                 bottom: 0,

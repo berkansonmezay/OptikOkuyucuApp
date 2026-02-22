@@ -25,7 +25,14 @@ class UserProfile {
     name: json['name'] ?? 'Sarah Jenkins',
     email: json['email'] ?? 'sarah@school.com',
     phone: json['phone'] ?? '+90 532 123 45 67',
-    profileImageUrl: json['profileImageUrl'] ?? 'https://i.pravatar.cc/150?img=32',
+    profileImageUrl: json['profileImageUrl'] ?? '',
     institution: json['institution'] ?? 'ÖĞRETMEN PORTALİ',
   );
+
+  String get initials {
+    if (name.isEmpty) return "??";
+    List<String> parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
 }

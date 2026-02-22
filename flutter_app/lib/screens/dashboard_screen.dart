@@ -150,7 +150,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(width: 12),
                 CircleAvatar(
                   radius: 20,
-                  backgroundImage: NetworkImage(user.profileImageUrl),
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  backgroundImage: user.profileImageUrl.isNotEmpty
+                      ? NetworkImage(user.profileImageUrl)
+                      : null,
+                  child: user.profileImageUrl.isEmpty
+                      ? Text(
+                          user.initials,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        )
+                      : null,
                 ),
               ],
             ),
