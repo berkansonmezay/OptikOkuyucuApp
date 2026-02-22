@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
+import 'edit_profile_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -15,7 +16,14 @@ class SettingsScreen extends StatelessWidget {
           children: [
             _buildProfileCard(),
             const SizedBox(height: 32),
-            _buildSettingsItem(Icons.person_outline, 'Profilimi Düzenle', null),
+            _buildSettingsItem(
+              Icons.person_outline,
+              'Profilimi Düzenle',
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const EditProfileScreen()),
+              ),
+            ),
             _buildSettingsItem(Icons.security_outlined, 'Şifre ve Güvenlik', null),
             _buildSettingsItem(Icons.tune_rounded, 'Puanlama Yapılandırması', null),
             const Divider(height: 48),
