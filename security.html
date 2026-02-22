@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Şifre ve Güvenlik - Optik Okuyucu</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#7C3AED",
+                        background: "#FAFAFA",
+                        surface: "#FFFFFF",
+                        "text-main": "#1e293b",
+                        "text-muted": "#64748b",
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'card': '0 10px 15px -3px rgba(0, 0, 0, 0.04)',
+                        'glow': '0 4px 14px rgba(124, 58, 237, 0.15)',
+                    }
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            background-color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .input-group:focus-within label {
+            color: #7C3AED;
+        }
+
+        .password-toggle {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .password-toggle:hover {
+            color: #7C3AED;
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased text-text-main">
+    <div class="max-w-md mx-auto min-h-screen relative flex flex-col bg-white shadow-xl overflow-hidden pb-10">
+        <!-- Header -->
+        <header
+            class="px-6 pt-10 pb-4 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-30">
+            <button onclick="window.history.back()"
+                class="w-10 h-10 rounded-full bg-white shadow-soft flex items-center justify-center text-gray-500 hover:text-primary transition-colors border border-gray-50">
+                <span class="material-symbols-outlined text-2xl">chevron_left</span>
+            </button>
+            <h1 class="font-extrabold text-lg text-gray-900">Şifre ve Güvenlik</h1>
+            <div class="w-10"></div> <!-- Spacer -->
+        </header>
+
+        <main class="flex-1 px-6 space-y-8 pt-6 overflow-y-auto no-scrollbar">
+            <!-- Security Info Banner -->
+            <div class="bg-purple-50/50 rounded-3xl p-5 border border-purple-100 flex items-start gap-4">
+                <div
+                    class="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-primary shadow-soft flex-shrink-0">
+                    <span class="material-symbols-outlined filled">verified_user</span>
+                </div>
+                <div class="space-y-1">
+                    <h3 class="text-sm font-bold text-gray-900 leading-tight">Güvenliğiniz Bizim İçin Önemli</h3>
+                    <p class="text-xs font-semibold text-gray-500 leading-relaxed">Hesap güvenliğiniz için şifrenizi en
+                        az 8 karakterli ve güçlü seçin.</p>
+                </div>
+            </div>
+
+            <!-- Password Form -->
+            <form class="space-y-6">
+                <!-- Current Password -->
+                <div class="space-y-2 input-group">
+                    <label class="block text-sm font-bold text-gray-700 ml-1" for="currentPassword">Mevcut Şifre</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                            <span class="material-symbols-outlined text-[20px]">lock_open</span>
+                        </div>
+                        <input type="password" id="currentPassword"
+                            class="block w-full pl-12 pr-12 py-4 rounded-2xl border border-gray-100 bg-gray-50/30 text-gray-900 font-semibold placeholder-gray-400 focus:ring-2 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all duration-200"
+                            placeholder="Mevcut şifrenizi giriniz" />
+                        <button type="button"
+                            class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-300 password-toggle">
+                            <span class="material-symbols-outlined text-[20px]">visibility</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="flex items-center gap-4 py-2">
+                    <div class="h-px bg-gray-100 flex-1"></div>
+                    <span class="text-[10px] font-black text-gray-300 uppercase tracking-widest">Yeni Şifre
+                        Belirle</span>
+                    <div class="h-px bg-gray-100 flex-1"></div>
+                </div>
+
+                <!-- New Password -->
+                <div class="space-y-2 input-group">
+                    <label class="block text-sm font-bold text-gray-700 ml-1" for="newPassword">Yeni Şifre</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                            <span class="material-symbols-outlined text-[20px]">lock</span>
+                        </div>
+                        <input type="password" id="newPassword"
+                            class="block w-full pl-12 pr-12 py-4 rounded-2xl border border-gray-100 bg-gray-50/30 text-gray-900 font-semibold placeholder-gray-400 focus:ring-2 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all duration-200"
+                            placeholder="Yeni şifrenizi giriniz" />
+                        <button type="button"
+                            class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-300 password-toggle">
+                            <span class="material-symbols-outlined text-[20px]">visibility</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Confirm New Password -->
+                <div class="space-y-2 input-group">
+                    <label class="block text-sm font-bold text-gray-700 ml-1" for="confirmPassword">Yeni Şifre
+                        (Tekrar)</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                            <span class="material-symbols-outlined text-[20px]">task_alt</span>
+                        </div>
+                        <input type="password" id="confirmPassword"
+                            class="block w-full pl-12 pr-12 py-4 rounded-2xl border border-gray-100 bg-gray-50/30 text-gray-900 font-semibold placeholder-gray-400 focus:ring-2 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all duration-200"
+                            placeholder="Yeni şifrenizi tekrar giriniz" />
+                        <button type="button"
+                            class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-300 password-toggle">
+                            <span class="material-symbols-outlined text-[20px]">visibility</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-8 pb-4">
+                    <button type="button" onclick="window.history.back()"
+                        class="w-full bg-primary hover:bg-primary-dark text-white font-black py-5 rounded-[2rem] shadow-glow active:scale-[0.98] transition-all duration-200 text-lg flex items-center justify-center gap-3">
+                        <span class="material-symbols-outlined filled">verified</span>
+                        Şifreyi Güncelle
+                    </button>
+                </div>
+            </form>
+        </main>
+    </div>
+</body>
+
+</html>
