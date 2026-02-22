@@ -137,21 +137,35 @@
             <!-- Net Hesaplama Section -->
             <div class="space-y-3">
                 <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">NET HESAPLAMA</h3>
-                <div class="bg-white p-2 rounded-3xl border border-gray-100 shadow-card flex gap-1">
-                    <button
-                        class="flex-1 py-4 px-2 rounded-2xl text-center text-[11px] font-black transition-all duration-200 text-gray-400 hover:text-gray-600">
+                <div class="bg-white p-2 rounded-3xl border border-gray-100 shadow-card flex gap-1"
+                    id="netOptionsContainer">
+                    <button onclick="selectNetOption(this)"
+                        class="flex-1 py-4 px-2 rounded-2xl text-center text-[11px] font-black transition-all duration-200 bg-primary text-white shadow-glow">
                         3 Yanlış 1 Doğru
                     </button>
-                    <button
+                    <button onclick="selectNetOption(this)"
                         class="flex-1 py-4 px-2 rounded-2xl text-center text-[11px] font-black transition-all duration-200 text-gray-400 hover:text-gray-600">
                         4 Yanlış 1 Doğru
                     </button>
-                    <button
-                        class="flex-1 py-4 px-2 rounded-2xl text-center text-[11px] font-black transition-all duration-200 bg-primary text-white shadow-glow">
-                        Yanlış - Doğru
+                    <button onclick="selectNetOption(this)"
+                        class="flex-1 py-4 px-2 rounded-2xl text-center text-[11px] font-black transition-all duration-200 text-gray-400 hover:text-gray-600">
+                        - Yanlış - Doğru
                     </button>
                 </div>
             </div>
+
+            <script>
+                function selectNetOption(button) {
+                    const container = document.getElementById('netOptionsContainer');
+                    const buttons = container.querySelectorAll('button');
+
+                    buttons.forEach(btn => {
+                        btn.className = "flex-1 py-4 px-2 rounded-2xl text-center text-[11px] font-black transition-all duration-200 text-gray-400 hover:text-gray-600";
+                    });
+
+                    button.className = "flex-1 py-4 px-2 rounded-2xl text-center text-[11px] font-black transition-all duration-200 bg-primary text-white shadow-glow";
+                }
+            </script>
 
             <!-- Ders Katsayıları Section -->
             <div class="space-y-3">
