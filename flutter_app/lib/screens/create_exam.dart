@@ -93,7 +93,7 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
             const SizedBox(height: 12),
             _buildDatePicker(),
             const SizedBox(height: 32),
-            _buildCevapAnahtarıHeader(),
+            _buildCevapAnahtariHeader(),
             const SizedBox(height: 16),
             if (_isManualMode) _buildSubjectsList() else _buildExcelPlaceholder(),
             const SizedBox(height: 100), // Space for fixed button
@@ -198,7 +198,7 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
     );
   }
 
-  Widget _buildCevapAnahtarıHeader() {
+  Widget _buildCevapAnahtariHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

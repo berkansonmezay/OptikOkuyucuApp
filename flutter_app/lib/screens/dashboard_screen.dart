@@ -43,7 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textMuted,
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.medium, fontSize: 10),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 10),
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.grid_view_rounded),
@@ -88,7 +88,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 32),
           Row(
-            mainAxisAlignment: MainAxisAlignment.between,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'Son Sınavlar',
@@ -118,7 +118,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (context, userProvider, child) {
         final user = userProvider.user;
         return Row(
-          mainAxisAlignment: MainAxisAlignment.between,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,7 +197,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: Colors.white20, borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
