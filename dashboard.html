@@ -57,7 +57,7 @@
             scrollbar-width: none;
         }
 
-        <style>body {
+        body {
             min-height: max(884px, 100dvh);
         }
 
@@ -226,9 +226,7 @@
                 }
 
                 function editExam(index) {
-                    alert('Düzenleme özelliği yakında eklenecektir.');
-                    const allMenus = document.querySelectorAll('.dropdown-menu');
-                    allMenus.forEach(m => m.classList.remove('active'));
+                    window.location.href = `create-exam.html?edit=${index}`;
                 }
 
                 document.addEventListener('click', () => {

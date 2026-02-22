@@ -59,7 +59,7 @@
                 <span class="material-symbols-outlined text-lg mr-1">chevron_left</span>
                 Geri
             </button>
-            <h1 class="flex-1 text-center font-bold text-gray-900 mr-12">Yeni Sınav Oluştur</h1>
+            <h1 class="flex-1 text-center font-bold text-gray-900 mr-12" id="pageTitle">Yeni Sınav Oluştur</h1>
         </header>
 
         <main class="flex-1 px-6 pt-8 overflow-y-auto no-scrollbar pb-10">
@@ -193,11 +193,48 @@
     <script>
         let selectedType = 'LGS';
         let subjects = [];
+        let editIndex = null;
 
-        // Set default date to today
-        document.getElementById('examDate').valueAsDate = new Date();
+        // URL Parametrelerini Kontrol Et
+        const urlParams = new URLSearchParams(window.location.search);
+        editIndex = urlParams.get('edit');
 
-        function selectType(type, btn) {
+        // Sayfa yüklendiğinde
+        window.onload = () => {
+            if (editIndex !== null) {
+                loadExamForEdit(editIndex);
+            } else {
+                document.getElementById('examDate').valueAsDate = new Date();
+                loadDefaultSubjects();
+            }
+        };
+
+        function loadExamForEdit(index) {
+            const exams = JSON.parse(localStorage.getItem('exams') || '[]');
+            const exam = exams[index];
+            if (!exam) return;
+
+            document.getElementById('pageTitle').textContent = 'Sınavı Güncelle';
+            document.getElementById('examName').value = exam.name;
+            document.getElementById('examDate').value = exam.date;
+
+            // Sınav Türünü Seç
+            const typeBtns = document.querySelectorAll('.type-btn');
+            typeBtns.forEach(btn => {
+                if (btn.textContent.trim() === exam.type) {
+                    selectType(exam.type, btn, true);
+                }
+            });
+
+            // Dersleri ve Cevap Anahtarını Yükle
+            if (exam.subjects && exam.subjects.length > 0) {
+                subjects = exam.subjects;
+                toggleEntryMode('manual');
+                renderSubjects();
+            }
+        }
+
+        function selectType(type, btn, isManualRefershDisabled = false) {
             selectedType = type;
             document.querySelectorAll('.type-btn').forEach(b => {
                 b.classList.remove('border-primary', 'bg-purple-50', 'text-primary');
@@ -208,7 +245,7 @@
 
             // If we are in manual mode, refresh default subjects
             const manualArea = document.getElementById('manualEntryArea');
-            if (!manualArea.classList.contains('hidden')) {
+            if (!manualArea.classList.contains('hidden') && !isManualRefershDisabled) {
                 loadDefaultSubjects();
             }
         }
@@ -489,20 +526,30 @@
                 return;
             }
 
-            const newExam = {
-                id: Date.now(),
+            const examData = {
                 name: name,
                 type: selectedType,
                 date: date,
-                studentCount: 0,
-                status: 'pending',
                 subjects: subjects
             };
 
             const exams = JSON.parse(localStorage.getItem('exams') || '[]');
-            exams.unshift(newExam);
-            localStorage.setItem('exams', JSON.stringify(exams));
 
+            if (editIndex !== null) {
+                // Güncelleme
+                exams[editIndex] = { ...exams[editIndex], ...examData };
+            } else {
+                // Yeni Kayıt
+                const newExam = {
+                    id: Date.now(),
+                    ...examData,
+                    studentCount: 0,
+                    status: 'pending'
+                };
+                exams.unshift(newExam);
+            }
+
+            localStorage.setItem('exams', JSON.stringify(exams));
             window.location.href = 'dashboard.html';
         }
     </script>
