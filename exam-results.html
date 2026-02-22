@@ -116,9 +116,11 @@
 
             <!-- Student List -->
             <div class="space-y-4">
-                <!-- Expanded Card (Zeynep Kaya) -->
-                <div class="rounded-3xl border-2 border-primary/20 bg-purple-50/30 overflow-hidden shadow-soft">
-                    <div class="p-5 flex items-center justify-between">
+                <!-- Card (Zeynep Kaya) - Collapsed by default -->
+                <div
+                    class="rounded-3xl border border-gray-100 bg-white overflow-hidden shadow-card hover:border-purple-100 transition-all">
+                    <div class="p-5 flex items-center justify-between cursor-pointer"
+                        onclick="toggleStudentDetail(this)">
                         <div class="flex items-center gap-4">
                             <div
                                 class="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center text-white font-extrabold text-lg shadow-glow">
@@ -136,8 +138,8 @@
                         </div>
                     </div>
 
-                    <!-- Inner Detail Section -->
-                    <div class="px-5 pb-5 pt-1 space-y-4">
+                    <!-- Inner Detail Section (hidden by default) -->
+                    <div class="px-5 pb-5 pt-1 space-y-4" style="display: none;">
                         <div class="bg-white rounded-2xl p-4 border border-purple-100 shadow-sm">
                             <div class="flex items-center justify-between mb-3">
                                 <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em]">OPTİK
@@ -243,6 +245,31 @@
             </div>
         </main>
     </div>
+
+    <script>
+        function toggleStudentDetail(headerEl) {
+            const card = headerEl.closest('.rounded-3xl');
+            const detailSection = card.querySelector('[style*="display"]') || card.querySelector('.px-5.pb-5');
+
+            if (!detailSection) return;
+
+            const isHidden = detailSection.style.display === 'none';
+
+            // Close all other open cards
+            document.querySelectorAll('.rounded-3xl .px-5.pb-5').forEach(section => {
+                section.style.display = 'none';
+                const parentCard = section.closest('.rounded-3xl');
+                parentCard.classList.remove('border-2', 'border-primary/20', 'bg-purple-50/30', 'shadow-soft');
+                parentCard.classList.add('border', 'border-gray-100', 'bg-white', 'shadow-card');
+            });
+
+            if (isHidden) {
+                detailSection.style.display = 'block';
+                card.classList.remove('border', 'border-gray-100', 'bg-white', 'shadow-card');
+                card.classList.add('border-2', 'border-primary/20', 'bg-purple-50/30', 'shadow-soft');
+            }
+        }
+    </script>
 </body>
 
 </html>
