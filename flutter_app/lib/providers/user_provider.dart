@@ -8,7 +8,7 @@ class UserProvider with ChangeNotifier {
     name: 'Sarah Jenkins',
     email: 'sarah@school.com',
     phone: '+90 532 123 45 67',
-    profileImageUrl: 'https://i.pravatar.cc/150?img=32',
+    profileImageUrl: '',
     institution: 'ÖĞRETMEN PORTALİ',
   );
 
@@ -23,6 +23,11 @@ class UserProvider with ChangeNotifier {
     final String? userJson = prefs.getString('user_profile');
     if (userJson != null) {
       _user = UserProfile.fromJson(jsonDecode(userJson));
+      // Migrate from old dummy URL to initials
+      if (_user.profileImageUrl == 'https://i.pravatar.cc/150?img=32') {
+        _user.profileImageUrl = '';
+        updateUser(_user);
+      }
       notifyListeners();
     }
   }

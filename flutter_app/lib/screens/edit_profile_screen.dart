@@ -25,6 +25,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _emailController = TextEditingController(text: user.email);
     _phoneController = TextEditingController(text: user.phone);
     _profileImageUrl = user.profileImageUrl;
+
+    _nameController.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
