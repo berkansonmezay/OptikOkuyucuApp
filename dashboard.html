@@ -81,9 +81,8 @@
         <header
             class="px-6 pt-10 pb-6 flex justify-between items-center bg-white z-10 sticky top-0 border-b border-gray-50">
             <div class="flex flex-col items-start">
-                <h1 class="text-2xl font-extrabold text-[#1e293b] tracking-tight">Sarah Jenkins</h1>
-                <span class="text-[10px] font-bold tracking-widest text-[#94a3b8] uppercase mt-0.5">Öğretmen
-                    Portalı</span>
+                <h1 id="user-name" class="text-2xl font-extrabold text-[#1e293b] tracking-tight">Sarah Jenkins</h1>
+                <span id="user-email" class="text-[12px] font-medium text-[#94a3b8] mt-0.5">sarah@school.com</span>
             </div>
             <div class="flex items-center gap-3">
                 <button
@@ -91,7 +90,7 @@
                     <span class="material-symbols-outlined filled text-[22px]">notifications</span>
                 </button>
                 <div class="w-10 h-10 rounded-full ring-2 ring-[#ede9fe] overflow-hidden bg-purple-50 flex-shrink-0">
-                    <img src="https://i.pravatar.cc/150?img=32" alt="Sarah Jenkins"
+                    <img id="user-avatar" src="https://i.pravatar.cc/150?img=32" alt="Profile"
                         class="w-full h-full object-cover" />
                 </div>
             </div>
@@ -283,6 +282,18 @@
             </div>
         </nav>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const profileData = localStorage.getItem('user_profile');
+            if (profileData) {
+                const user = JSON.parse(profileData);
+                if (user.name) document.getElementById('user-name').textContent = user.name;
+                if (user.email) document.getElementById('user-email').textContent = user.email;
+                if (user.profileImageUrl) document.getElementById('user-avatar').src = user.profileImageUrl;
+            }
+        });
+    </script>
 
 </body>
 
