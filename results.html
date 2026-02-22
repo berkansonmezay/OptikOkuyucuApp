@@ -123,15 +123,6 @@
             const container = document.getElementById('resultsList');
             let exams = JSON.parse(localStorage.getItem('exams') || '[]');
 
-            // Add fallbacks to match the screenshot context
-            if (exams.length === 0) {
-                exams = [
-                    { id: 1, name: 'LGS Deneme 4', type: 'LGS', date: '2023-10-24', studentCount: 24, average: '385.50' },
-                    { id: 2, name: 'TYT Genel Deneme', type: 'TYT', date: '2023-10-22', studentCount: 156, average: '290.40' },
-                    { id: 3, name: 'AYT Matematik Tarama', type: 'AYT', date: '2023-10-20', studentCount: 42, average: '12.5 Net' }
-                ];
-            }
-
             const filteredResults = exams.filter(result =>
                 result.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 result.type.toLowerCase().includes(searchQuery.toLowerCase())

@@ -131,7 +131,7 @@
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-lg font-bold text-text-main">Son Sınavlar</h2>
                     <a class="text-xs font-semibold text-primary hover:text-indigo-700 transition-colors bg-purple-50 px-3 py-1 rounded-full"
-                        href="#">Tümünü Gör</a>
+                        href="results.html">Tümünü Gör</a>
                 </div>
                 <div class="space-y-3" id="recentExamsList">
                     <!-- Dynamic content will be loaded here -->
@@ -143,7 +143,10 @@
                     const container = document.getElementById('recentExamsList');
                     const exams = JSON.parse(localStorage.getItem('exams') || '[]');
 
-                    if (exams.length === 0) {
+                    // Limit to last 5 exams
+                    const recentExams = exams.slice(0, 5);
+
+                    if (recentExams.length === 0) {
                         container.innerHTML = `
                             <div class="p-8 text-center border-2 border-dashed border-gray-100 rounded-3xl">
                                 <p class="text-sm text-gray-400">Henüz kaydedilmiş sınav yok.</p>
@@ -152,55 +155,37 @@
                         return;
                     }
 
-                    container.innerHTML = exams.map((exam, index) => {
-                        const date = new Date(exam.date);
+                    container.innerHTML = recentExams.map((exam, index) => {
+                        const date = new Date(exam.date || Date.now());
                         const day = date.getDate();
                         const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
                         const month = months[date.getMonth()];
 
-                        let statusIcon, statusColor, statusText;
-                        if (exam.type === 'LGS') {
-                            statusIcon = 'check_circle';
-                            statusColor = 'green';
-                        } else if (exam.type === 'TYT') {
-                            statusIcon = 'pending';
-                            statusColor = 'orange';
-                        } else {
-                            statusIcon = 'assignment_turned_in';
-                            statusColor = 'blue';
-                        }
+                        let statusColor = 'purple';
+                        if (exam.type === 'LGS') statusColor = 'green';
+                        if (exam.type === 'TYT') statusColor = 'orange';
 
                         return `
-                            <div class="bg-white p-4 rounded-2xl shadow-card border border-gray-50 flex items-center justify-between group hover:border-purple-100 transition-colors relative">
+                            <div class="bg-white p-4 rounded-2xl shadow-card border border-gray-50 flex items-center justify-between group hover:border-purple-100 transition-all cursor-pointer">
                                 <div class="flex items-center space-x-4">
-                                    <div class="w-12 h-12 rounded-full bg-${statusColor}-50 flex items-center justify-center text-${statusColor}-600 shrink-0">
-                                        <span class="material-symbols-outlined">${statusIcon}</span>
+                                    <div class="w-12 h-12 rounded-2xl bg-${statusColor}-50 flex items-center justify-center text-${statusColor}-600 group-hover:bg-${statusColor}-100 transition-colors">
+                                        <span class="material-symbols-outlined text-[24px]">analytics</span>
                                     </div>
                                     <div>
-                                        <h4 class="font-semibold text-sm text-gray-900">${exam.name} ${exam.type}</h4>
-                                        <div class="flex items-center space-x-2 mt-1.5">
+                                        <h4 class="font-bold text-sm text-gray-900 mb-1">${exam.name} ${exam.type}</h4>
+                                        <div class="flex items-center space-x-2">
                                             <span class="text-[11px] text-text-muted flex items-center bg-gray-50 px-2 py-0.5 rounded">
-                                                <span class="material-symbols-outlined text-[12px] mr-1">calendar_today</span> ${day} ${month}
+                                                <span class="material-symbols-outlined text-[12px] mr-1">group</span> ${exam.studentCount || 0} Öğrenci
                                             </span>
                                             <span class="text-[11px] text-text-muted flex items-center bg-gray-50 px-2 py-0.5 rounded">
-                                                <span class="material-symbols-outlined text-[12px] mr-1">group</span> ${exam.studentCount} Öğrenci Sayısı
+                                                <span class="material-symbols-outlined text-[12px] mr-1">calendar_today</span> ${day} ${month}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="relative">
-                                    <button onclick="toggleMenu(event, ${index})" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-colors">
-                                        <span class="material-symbols-outlined">more_vert</span>
-                                    </button>
-                                    <div id="menu-${index}" class="dropdown-menu mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden">
-                                        <button onclick="editExam(${index})" class="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-600 hover:bg-gray-50 flex items-center gap-2">
-                                            <span class="material-symbols-outlined text-sm">edit</span> Düzenle
-                                        </button>
-                                        <button onclick="deleteExam(${index})" class="w-full px-4 py-2.5 text-left text-xs font-bold text-red-500 hover:bg-red-50 flex items-center gap-2">
-                                            <span class="material-symbols-outlined text-sm text-red-500">delete</span> Sil
-                                        </button>
-                                    </div>
-                                </div>
+                                <button onclick="deleteExam(${index})" class="text-gray-300 hover:text-red-500 transition-colors">
+                                    <span class="material-symbols-outlined">delete</span>
+                                </button>
                             </div>
                         `;
                     }).join('');
@@ -208,7 +193,7 @@
 
                 function toggleMenu(event, index) {
                     event.stopPropagation();
-                    const menu = document.getElementById(`menu-${index}`);
+                    const menu = document.getElementById(`menu - ${index} `);
                     const allMenus = document.querySelectorAll('.dropdown-menu');
                     allMenus.forEach(m => {
                         if (m !== menu) m.classList.remove('active');
@@ -226,7 +211,7 @@
                 }
 
                 function editExam(index) {
-                    window.location.href = `create-exam.html?edit=${index}`;
+                    window.location.href = `create - exam.html ? edit = ${index}`;
                 }
 
                 document.addEventListener('click', () => {
