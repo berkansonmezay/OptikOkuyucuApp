@@ -74,7 +74,7 @@
             </div>
 
             <!-- Student Info Card -->
-            <div class="w-full bg-gray-50 rounded-2xl p-6 mb-8 border border-purple-100/50">
+            <div class="w-full bg-gray-50 rounded-2xl p-6 mb-8 border border-purple-100/50" id="studentInfoCard">
                 <h3 class="text-primary text-[10px] font-bold uppercase tracking-widest mb-5">ÖĞRENCİ BİLGİLERİ</h3>
                 <div class="flex items-center gap-4 mb-5">
                     <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -82,7 +82,7 @@
                     </div>
                     <div class="flex flex-col">
                         <p class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Ad Soyad</p>
-                        <p class="text-slate-900 text-base font-bold">Ahmet Yılmaz</p>
+                        <p class="text-slate-900 text-base font-bold" id="displayStudentName">Yükleniyor...</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-4">
@@ -91,7 +91,7 @@
                     </div>
                     <div class="flex flex-col">
                         <p class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Öğrenci Numarası</p>
-                        <p class="text-slate-900 text-base font-bold">12345</p>
+                        <p class="text-slate-900 text-base font-bold" id="displayStudentNo">---</p>
                     </div>
                 </div>
             </div>
@@ -100,15 +100,15 @@
             <div class="flex flex-col gap-3 mb-auto">
                 <p class="text-slate-400 text-[10px] uppercase font-bold px-1 tracking-wider">Form Önizleme</p>
                 <div class="relative rounded-2xl overflow-hidden aspect-video bg-slate-100 border border-slate-200">
-                    <div class="absolute inset-0 bg-cover bg-center opacity-80"
+                    <div class="absolute inset-0 bg-cover bg-center opacity-80" id="previewImage"
                         style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDKLS-NA5Z8mWOvBD0QM4zLAr-BeahkBniAnPwO03DJyyGyMDFPJc9_fCz7LLW1NsnSLLLBqOW9K0z_uUhFEXIyGnuDZpSKncJEJToGPcTbnXeapQkEADl783Fyorq0SCP2gnWR8AzgzL2X25X6VSR-ZAbxp8YlNjGSPiiWlkBd2CGJIf2sdLVAxyH2xVHfgdlotd9PiO7F5AXLfm5Rg1BnHZBBhts00s8ylbYjeWNe2xQYGR22d9_GvU3RvuhQ7558riWhqomqgWU')">
                     </div>
                     <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                     <div
                         class="absolute bottom-3 right-3 bg-white/95 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 shadow-sm border border-gray-100">
                         <span class="material-symbols-outlined text-[14px] text-green-500 font-bold">verified</span>
-                        <span class="text-[10px] font-bold text-slate-700 uppercase tracking-wider" id="examTag">LGS
-                            Deneme #4</span>
+                        <span class="text-[10px] font-bold text-slate-700 uppercase tracking-wider"
+                            id="examTag">Okundu</span>
                     </div>
                 </div>
             </div>
@@ -120,7 +120,7 @@
                     <span class="material-symbols-outlined text-xl">qr_code_scanner</span>
                     Yeni Form Tara
                 </button>
-                <button onclick="window.location.href='results.html'"
+                <button id="viewResultsBtn" onclick="window.location.href='results.html'"
                     class="w-full bg-purple-50 text-primary font-bold py-4 rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 border border-primary/10">
                     <span class="material-symbols-outlined text-xl">bar_chart</span>
                     Sonuçları Gör
@@ -160,7 +160,33 @@
                 </button>
             </div>
         </nav>
-    </div>
+        <script type="module">
+            import { getExamById } from './firebase-config.js';
+
+            // Very basic stub to grab parameters passed from `camera.html` in the future
+            // e.g. scan-success.html?studentName=Ahmet&studentNo=123&examId=XYZ
+            const urlParams = new URLSearchParams(window.location.search);
+            const studentName = urlParams.get('studentName') || 'Ahmet Yılmaz';
+            const studentNo = urlParams.get('studentNo') || '12345';
+            const examId = urlParams.get('examId');
+
+            document.getElementById('displayStudentName').textContent = studentName;
+            document.getElementById('displayStudentNo').textContent = studentNo;
+
+            async function loadExamInfo() {
+                if (examId) {
+                    const exam = await getExamById(examId);
+                    if (exam) {
+                        document.getElementById('examTag').textContent = exam.name || 'Sınav';
+                        document.getElementById('viewResultsBtn').onclick = () => {
+                            window.location.href = `exam-results.html?id=${examId}`;
+                        };
+                    }
+                }
+            }
+
+            window.onload = loadExamInfo;
+        </script>
 </body>
 
 </html>

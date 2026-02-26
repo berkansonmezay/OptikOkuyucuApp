@@ -13,6 +13,7 @@
         rel="stylesheet" />
     <meta name="color-scheme" content="light">
     <script src="theme-manager.js"></script>
+    <script type="module" src="firebase-config.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -186,21 +187,84 @@
         </div>
     </div>
 
-    <script>
-        function simulateCapture() {
+    <script type="module">
+        import { addStudentResult, getExams } from './firebase-config.js';
+
+        let selectedExamId = null;
+
+        window.simulateCapture = async function () {
+            if (!selectedExamId) {
+                alert("Lütfen önce bir sınav seçin.");
+                window.location.href = 'scan-select.html';
+                return;
+            }
+
             const toast = document.getElementById('statusToast');
             toast.classList.remove('opacity-0', 'translate-y-4');
             toast.classList.add('opacity-100', 'translate-y-0');
+            toast.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">sync</span> KAYDEDİLİYOR...';
 
-            setTimeout(() => {
-                window.location.href = 'scan-success.html';
-            }, 1000);
+            try {
+                // Mock student data
+                const mockStudentNames = ["Ahmet Yılmaz", "Ayşe Kaya", "Mehmet Demir", "Fatma Çelik", "Ali Aslan"];
+                const randomName = mockStudentNames[Math.floor(Math.random() * mockStudentNames.length)];
+                const randomNo = Math.floor(10000 + Math.random() * 90000).toString();
+                const randomScore = (Math.random() * 500).toFixed(2);
+
+                const resultData = {
+                    name: randomName,
+                    studentNo: randomNo,
+                    score: randomScore,
+                    booklet: Math.random() > 0.5 ? 'A' : 'B',
+                    rawAnswers: "ABACADABACADABAC",
+                    tcNo: Math.floor(10000000000 + Math.random() * 90000000000).toString()
+                };
+
+                await addStudentResult(selectedExamId, resultData);
+
+                toast.innerHTML = '<span class="material-symbols-outlined text-lg">check_circle</span> FORM TARANDI';
+
+                setTimeout(() => {
+                    window.location.href = `scan-success.html?examId=${selectedExamId}&studentName=${encodeURIComponent(randomName)}&studentNo=${randomNo}`;
+                }, 1000);
+
+            } catch (error) {
+                console.error("Error saving scan result:", error);
+                toast.classList.remove('bg-primary');
+                toast.classList.add('bg-red-500');
+                toast.innerHTML = '<span class="material-symbols-outlined text-lg">error</span> HATA OLUŞTU';
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'translate-y-4');
+                    toast.classList.remove('opacity-100', 'translate-y-0');
+                    toast.classList.add('bg-primary');
+                    toast.classList.remove('bg-red-500');
+                }, 2000);
+            }
         }
 
-        window.onload = () => {
-            // Get selected exam from local storage if needed to show name
-            const exams = JSON.parse(localStorage.getItem('exams') || '[]');
-            // For now, just a placeholder label
+        window.onload = async () => {
+            // Get selected exam from URL params
+            const urlParams = new URLSearchParams(window.location.search);
+            selectedExamId = urlParams.get('examId');
+
+            if (!selectedExamId) {
+                // Determine the most recent exam if none selected (for testing)
+                const exams = await getExams();
+                if (exams && exams.length > 0) {
+                    selectedExamId = exams[0].id;
+                    document.getElementById('examTypeLabel').textContent = exams[0].name || "SINAV";
+                } else {
+                    document.getElementById('examTypeLabel').textContent = "SINAV SEÇİLMEDİ";
+                }
+            } else {
+                document.getElementById('examTypeLabel').textContent = "Taranıyor...";
+                // Ideally fetch exam name by ID and display it here
+                const exams = await getExams();
+                const exam = exams.find(e => e.id === selectedExamId);
+                if (exam) {
+                    document.getElementById('examTypeLabel').textContent = exam.name || "SINAV";
+                }
+            }
         };
     </script>
 </body>

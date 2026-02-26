@@ -11,6 +11,9 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
         rel="stylesheet" />
+    <meta name="color-scheme" content="light">
+    <script src="theme-manager.js"></script>
+    <script type="module" src="firebase-config.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -62,43 +65,15 @@
 <body class="font-sans antialiased text-text-main">
     <div class="max-w-md mx-auto min-h-screen relative flex flex-col bg-white shadow-xl overflow-hidden pb-6">
         <!-- Header -->
-        <header class="px-6 pt-10 pb-6 bg-white z-10 sticky top-0">
+        <header class="px-6 pt-10 pb-6 bg-white z-10 sticky top-0" id="examHeader">
+            <!-- Header content will be dynamically loaded via JS -->
             <div class="flex items-center justify-between mb-4">
                 <button onclick="window.location.href='results.html'"
                     class="flex items-center text-gray-500 hover:text-primary transition-colors">
                     <span class="material-symbols-outlined text-2xl">arrow_back</span>
                 </button>
                 <div class="flex-1 px-4">
-                    <h1 class="font-extrabold text-xl text-gray-900 leading-tight">LGS Deneme 4</h1>
-                    <p class="text-[11px] font-bold text-gray-400 mt-0.5 uppercase tracking-wider">24 Eki, 2023 • Sınıf
-                        8-A</p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button class="text-primary hover:scale-110 transition-transform">
-                        <span class="material-symbols-outlined text-[26px]">download</span>
-                    </button>
-                    <button class="text-primary hover:scale-110 transition-transform">
-                        <span class="material-symbols-outlined text-[26px]">ios_share</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Stats Bar -->
-            <div class="flex gap-2.5 overflow-x-auto no-scrollbar py-1">
-                <div
-                    class="flex items-center gap-2 bg-purple-50 px-4 py-2.5 rounded-xl border border-purple-100 flex-shrink-0">
-                    <span class="material-symbols-outlined text-primary text-lg">groups</span>
-                    <span class="text-xs font-bold text-primary">24 Öğrenci</span>
-                </div>
-                <div
-                    class="flex items-center gap-2 bg-blue-50 px-4 py-2.5 rounded-xl border border-blue-100 flex-shrink-0">
-                    <span class="material-symbols-outlined text-blue-600 text-lg">equalizer</span>
-                    <span class="text-xs font-bold text-blue-600">Ort: 385.50</span>
-                </div>
-                <div
-                    class="flex items-center gap-2 bg-green-50 px-4 py-2.5 rounded-xl border border-green-100 flex-shrink-0">
-                    <span class="material-symbols-outlined text-green-600 text-lg">verified</span>
-                    <span class="text-xs font-bold text-green-600">%100 Başarı</span>
+                    <h1 class="font-extrabold text-xl text-gray-900 leading-tight">Yükleniyor...</h1>
                 </div>
             </div>
         </header>
@@ -115,139 +90,23 @@
             </div>
 
             <!-- Student List -->
-            <div class="space-y-4">
-                <!-- Card (Zeynep Kaya) - Collapsed by default -->
-                <div
-                    class="rounded-3xl border border-gray-100 bg-white overflow-hidden shadow-card hover:border-purple-100 transition-all">
-                    <div class="p-5 flex items-center justify-between cursor-pointer"
-                        onclick="toggleStudentDetail(this)">
-                        <div class="flex items-center gap-4">
-                            <div
-                                class="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center text-white font-extrabold text-lg shadow-glow">
-                                ZK
-                            </div>
-                            <div>
-                                <h3 class="font-extrabold text-[#111827] text-base">Zeynep Kaya</h3>
-                                <p class="text-[11px] font-bold text-gray-400 mt-0.5 uppercase tracking-wide">Öğrenci
-                                    No: 482 • 8-A</p>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-xl font-black text-primary block">425.00</span>
-                            <span class="text-[10px] font-black text-green-500 uppercase">İlk %5</span>
-                        </div>
-                    </div>
-
-                    <!-- Inner Detail Section (hidden by default) -->
-                    <div class="px-5 pb-5 pt-1 space-y-4" style="display: none;">
-                        <div class="bg-white rounded-2xl p-4 border border-purple-100 shadow-sm">
-                            <div class="flex items-center justify-between mb-3">
-                                <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em]">OPTİK
-                                    OKUYUCU VERİSİ</h4>
-                                <button
-                                    class="flex items-center gap-1.5 text-primary text-[10px] font-black uppercase tracking-wider hover:bg-purple-50 px-2 py-1 rounded-lg transition-colors">
-                                    <span class="material-symbols-outlined text-[14px]">content_copy</span>
-                                    Kopyala
-                                </button>
-                            </div>
-                            <div
-                                class="raw-data-box p-4 rounded-xl text-[11px] text-gray-600 leading-relaxed font-mono">
-                                Öğrenci No: 00482
-                                TC No: 12345678901
-                                Ad Soyad: ZEYNEP KAYA
-                                Sınıf: 8-A
-                                Kitapçık Türü: A
-
-                                // CEVAPLAR (TR-SOS-DIN-ING-MAT-FEN)
-                                <span class="font-bold text-gray-900">CVPLR: DACBDACBDACBD...ABCCDA</span>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <button
-                                class="flex-1 py-3 bg-white border border-gray-200 rounded-2xl text-xs font-bold text-gray-700 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors">
-                                <span class="material-symbols-outlined text-base">edit_square</span>
-                                Veriyi Düzenle
-                            </button>
-                            <button onclick="window.location.href='student-report.html'"
-                                class="flex-1 py-3 bg-primary/10 rounded-2xl text-xs font-bold text-primary flex items-center justify-center gap-2 hover:bg-primary/20 transition-colors">
-                                <span class="material-symbols-outlined text-base">analytics</span>
-                                Karne
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Card (Ahmet Yılmaz) -->
-                <div
-                    class="rounded-3xl border border-gray-100 bg-white p-5 flex items-center justify-between shadow-card hover:border-purple-100 transition-all cursor-pointer">
-                    <div class="flex items-center gap-4">
-                        <div
-                            class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-extrabold text-sm uppercase">
-                            AY
-                        </div>
-                        <div>
-                            <h3 class="font-extrabold text-[#111827] text-sm">Ahmet Yılmaz</h3>
-                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Öğrenci No: 483 • 8-A
-                            </p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <span class="text-base font-extrabold text-gray-900 block">390.50</span>
-                        <span class="text-[9px] font-bold text-gray-400 uppercase">Kitapçık B</span>
-                    </div>
-                </div>
-
-                <!-- Error Card (Elif Çelik) -->
-                <div
-                    class="rounded-3xl border-2 border-orange-200 bg-orange-50/30 p-5 flex items-center justify-between shadow-card">
-                    <div class="flex items-center gap-4">
-                        <div
-                            class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-extrabold text-sm uppercase">
-                            EÇ
-                        </div>
-                        <div>
-                            <h3 class="font-extrabold text-[#111827] text-sm">Elif Çelik</h3>
-                            <div class="flex items-center gap-1 text-orange-600 mt-0.5">
-                                <span class="material-symbols-outlined text-[14px] filled">warning</span>
-                                <span class="text-[10px] font-bold uppercase tracking-wider">No Eksik</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex flex-col items-end gap-2">
-                        <span class="text-base font-extrabold text-gray-400 block">---</span>
-                        <button
-                            class="bg-orange-100 text-orange-600 text-[10px] font-black uppercase px-4 py-1.5 rounded-full hover:bg-orange-200 transition-colors">
-                            Düzelt
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Card (Burak Özkan) -->
-                <div
-                    class="rounded-3xl border border-gray-100 bg-white p-5 flex items-center justify-between shadow-card hover:border-purple-100 transition-all cursor-pointer">
-                    <div class="flex items-center gap-4">
-                        <div
-                            class="w-12 h-12 rounded-full bg-pink-50 flex items-center justify-center text-pink-600 font-extrabold text-sm uppercase">
-                            BÖ
-                        </div>
-                        <div>
-                            <h3 class="font-extrabold text-[#111827] text-sm">Burak Özkan</h3>
-                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Öğrenci No: 490 • 8-A
-                            </p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <span class="text-base font-extrabold text-gray-900 block">310.25</span>
-                        <span class="text-[9px] font-bold text-gray-400 uppercase">Kitapçık B</span>
-                    </div>
+            <div class="space-y-4" id="studentResultsContainer">
+                <!-- Students will load here -->
+                <div class="flex justify-center py-10">
+                    <div class="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
                 </div>
             </div>
         </main>
     </div>
 
-    <script>
-        function toggleStudentDetail(headerEl) {
+    <script type="module">
+        import { getExamById, getStudentResults } from './firebase-config.js?v=3.2';
+
+        // Get exam ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const examId = urlParams.get('id');
+
+        window.toggleStudentDetail = function (headerEl) {
             const card = headerEl.closest('.rounded-3xl');
             const detailSection = card.querySelector('[style*="display"]') || card.querySelector('.px-5.pb-5');
 
@@ -268,7 +127,179 @@
                 card.classList.remove('border', 'border-gray-100', 'bg-white', 'shadow-card');
                 card.classList.add('border-2', 'border-primary/20', 'bg-purple-50/30', 'shadow-soft');
             }
+        };
+
+        async function loadExamData() {
+            if (!examId) {
+                document.getElementById('examHeader').innerHTML = `
+                <div class="flex items-center justify-between mb-4">
+                    <button onclick="window.location.href='results.html'" class="flex items-center text-gray-500 hover:text-primary transition-colors">
+                        <span class="material-symbols-outlined text-2xl">arrow_back</span>
+                    </button>
+                    <div class="flex-1 px-4">
+                        <h1 class="font-extrabold text-xl text-red-500 leading-tight">Sınav Bulunamadı</h1>
+                    </div>
+                </div>`;
+                document.getElementById('studentResultsContainer').innerHTML = "<p class='text-center text-gray-500 py-10'>Geçersiz sınav bağlantısı.</p>";
+                return;
+            }
+
+            try {
+                // Fetch Data concurrently
+                const [exam, students] = await Promise.all([
+                    getExamById(examId),
+                    getStudentResults(examId)
+                ]);
+
+                if (!exam) {
+                    document.getElementById('examHeader').innerHTML = "<h1 class='text-center text-red-500 mt-10'>Sınav Bulunamadı</h1>";
+                    document.getElementById('studentResultsContainer').innerHTML = "";
+                    return;
+                }
+
+                // Render Header
+                const dateParts = (exam.date || '').split('-');
+                const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+                const formattedDate = dateParts.length === 3 ? `${dateParts[2]} ${months[parseInt(dateParts[1]) - 1]}, ${dateParts[0]}` : (exam.date || '');
+
+                const avgScore = students.length ? (students.reduce((acc, curr) => acc + (parseFloat(curr.score) || 0), 0) / students.length).toFixed(2) : "0.00";
+
+                document.getElementById('examHeader').innerHTML = `
+                    <div class="flex items-center justify-between mb-4">
+                        <button onclick="window.location.href='results.html'"
+                            class="flex items-center text-gray-500 hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined text-2xl">arrow_back</span>
+                        </button>
+                        <div class="flex-1 px-4">
+                            <h1 class="font-extrabold text-xl text-gray-900 leading-tight">${exam.name || 'İsimsiz Sınav'}</h1>
+                            <p class="text-[11px] font-bold text-gray-400 mt-0.5 uppercase tracking-wider">${formattedDate} • ${exam.type || ''}</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button class="text-primary hover:scale-110 transition-transform">
+                                <span class="material-symbols-outlined text-[26px]">download</span>
+                            </button>
+                            <button class="text-primary hover:scale-110 transition-transform">
+                                <span class="material-symbols-outlined text-[26px]">ios_share</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Stats Bar -->
+                    <div class="flex gap-2.5 overflow-x-auto no-scrollbar py-1">
+                        <div class="flex items-center gap-2 bg-purple-50 px-4 py-2.5 rounded-xl border border-purple-100 flex-shrink-0">
+                            <span class="material-symbols-outlined text-primary text-lg">groups</span>
+                            <span class="text-xs font-bold text-primary">${students.length} Öğrenci</span>
+                        </div>
+                        <div class="flex items-center gap-2 bg-blue-50 px-4 py-2.5 rounded-xl border border-blue-100 flex-shrink-0">
+                            <span class="material-symbols-outlined text-blue-600 text-lg">equalizer</span>
+                            <span class="text-xs font-bold text-blue-600">Ort: ${avgScore}</span>
+                        </div>
+                    </div>
+                `;
+
+                // Render Students
+                const container = document.getElementById('studentResultsContainer');
+
+                if (students.length === 0) {
+                    container.innerHTML = `
+                        <div class="flex flex-col items-center justify-center py-12 text-gray-400 border-2 border-dashed border-gray-100 rounded-3xl mt-4">
+                            <span class="material-symbols-outlined text-4xl mb-2 text-gray-300">document_scanner</span>
+                            <p class="text-sm">Henüz optik form taranmamış.</p>
+                            <p class="text-[11px] mt-1 text-gray-400">Kamere ile tarama yaptığınızda sonuçlar burada görünecektir.</p>
+                            <button onclick="window.location.href='scan-select.html'" class="mt-4 px-4 py-2 bg-purple-50 text-primary font-bold rounded-xl text-xs hover:bg-purple-100 transition-colors">Şimdi Tara</button>
+                        </div>
+                     `;
+                    return;
+                }
+
+                container.innerHTML = students.map((std, i) => {
+                    const initials = std.name ? std.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '??';
+                    const hasError = std.hasError || false; // Assume data might flag errors
+
+                    if (hasError) {
+                        return `
+                        <div class="rounded-3xl border-2 border-orange-200 bg-orange-50/30 p-5 flex items-center justify-between shadow-card">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-extrabold text-sm uppercase">
+                                    ${initials}
+                                </div>
+                                <div>
+                                    <h3 class="font-extrabold text-[#111827] text-sm">${std.name || 'Bilinmeyen Öğrenci'}</h3>
+                                    <div class="flex items-center gap-1 text-orange-600 mt-0.5">
+                                        <span class="material-symbols-outlined text-[14px] filled">warning</span>
+                                        <span class="text-[10px] font-bold uppercase tracking-wider">${std.errorMessage || 'Okuma Hatası'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end gap-2">
+                                <span class="text-base font-extrabold text-gray-400 block">---</span>
+                                <button class="bg-orange-100 text-orange-600 text-[10px] font-black uppercase px-4 py-1.5 rounded-full hover:bg-orange-200 transition-colors">
+                                    Düzelt
+                                </button>
+                            </div>
+                        </div>`;
+                    }
+
+                    return `
+                    <div class="rounded-3xl border border-gray-100 bg-white overflow-hidden shadow-card hover:border-purple-100 transition-all">
+                        <div class="p-5 flex items-center justify-between cursor-pointer" onclick="toggleStudentDetail(this)">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-primary font-extrabold text-sm uppercase">
+                                    ${initials}
+                                </div>
+                                <div>
+                                    <h3 class="font-extrabold text-[#111827] text-base">${std.name || 'İsimsiz Öğrenci'}</h3>
+                                    <p class="text-[11px] font-bold text-gray-400 mt-0.5 uppercase tracking-wide">Öğrenci No: ${std.studentNo || '--'} • Kitapçık ${std.booklet || '-'}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xl font-black text-primary block">${std.score || '0.00'}</span>
+                                ${i < 3 ? '<span class="text-[10px] font-black text-green-500 uppercase">Derece</span>' : ''}
+                            </div>
+                        </div>
+
+                        <!-- Inner Detail Section -->
+                        <div class="px-5 pb-5 pt-1 space-y-4" style="display: none;">
+                            <div class="bg-white rounded-2xl p-4 border border-purple-100 shadow-sm">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em]">OPTİK OKUYUCU VERİSİ</h4>
+                                    <button class="flex items-center gap-1.5 text-primary text-[10px] font-black uppercase tracking-wider hover:bg-purple-50 px-2 py-1 rounded-lg transition-colors">
+                                        <span class="material-symbols-outlined text-[14px]">content_copy</span>
+                                        Kopyala
+                                    </button>
+                                </div>
+                                <div class="raw-data-box p-4 rounded-xl text-[11px] text-gray-600 leading-relaxed font-mono text-left">
+                                    Öğrenci No: ${std.studentNo || '--'}
+                                    TC No: ${std.tcNo || '--'}
+                                    Ad Soyad: ${std.name || '--'}
+                                    Kitapçık Türü: ${std.booklet || '-'}
+
+                                    // CEVAPLAR
+                                    <span class="font-bold text-gray-900">CVPLR: ${std.rawAnswers || 'Bulunamadı'}</span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <button class="flex-1 py-3 bg-white border border-gray-200 rounded-2xl text-xs font-bold text-gray-700 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors">
+                                    <span class="material-symbols-outlined text-base">edit_square</span>
+                                    Veriyi Düzenle
+                                </button>
+                                <button onclick="window.location.href='student-report.html'" class="flex-1 py-3 bg-primary/10 rounded-2xl text-xs font-bold text-primary flex items-center justify-center gap-2 hover:bg-primary/20 transition-colors">
+                                    <span class="material-symbols-outlined text-base">analytics</span>
+                                    Karne
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+
+            } catch (e) {
+                console.error("Error loading exam data:", e);
+                document.getElementById('studentResultsContainer').innerHTML = "<p class='text-center text-red-500 py-10'>Veriler yüklenirken bir hata oluştu.</p>";
+            }
         }
+
+        window.onload = loadExamData;
     </script>
 </body>
 

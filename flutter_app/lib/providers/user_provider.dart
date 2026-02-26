@@ -1,12 +1,11 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_profile.dart';
 
 class UserProvider with ChangeNotifier {
   UserProfile _user = UserProfile(
-    name: 'Sarah Jenkins',
-    email: 'sarah@school.com',
+    name: 'Ahmet Bakır',
+    email: 'ahmet.bakir@example.com',
     phone: '+90 532 123 45 67',
     profileImageUrl: '',
     institution: 'ÖĞRETMEN PORTALİ',
@@ -19,23 +18,40 @@ class UserProvider with ChangeNotifier {
   }
 
   Future<void> loadUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? userJson = prefs.getString('user_profile');
-    if (userJson != null) {
-      _user = UserProfile.fromJson(jsonDecode(userJson));
-      // Migrate from old dummy URL to initials
-      if (_user.profileImageUrl == 'https://i.pravatar.cc/150?img=32') {
-        _user.profileImageUrl = '';
-        updateUser(_user);
+    try {
+      final docSnap = await FirebaseFirestore.instance.collection('users').doc('user_123').get();
+      if (docSnap.exists && docSnap.data() != null) {
+        final data = docSnap.data()!;
+        _user = UserProfile(
+          name: data['name'] ?? _user.name,
+          email: data['email'] ?? _user.email,
+          phone: data['phone'] ?? _user.phone,
+          profileImageUrl: data['profileImageUrl'] ?? _user.profileImageUrl,
+          institution: data['institution'] ?? _user.institution,
+        );
+        notifyListeners();
+      } else {
+        // Save default if not exists
+        await updateUser(_user);
       }
-      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading user profile: $e');
     }
   }
 
   Future<void> updateUser(UserProfile newUser) async {
     _user = newUser;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_profile', jsonEncode(_user.toJson()));
-    notifyListeners();
+    try {
+      await FirebaseFirestore.instance.collection('users').doc('user_123').set({
+        'name': _user.name,
+        'email': _user.email,
+        'phone': _user.phone,
+        'profileImageUrl': _user.profileImageUrl,
+        'institution': _user.institution,
+      }, SetOptions(merge: true));
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error updating user profile: $e');
+    }
   }
 }

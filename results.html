@@ -13,6 +13,7 @@
         rel="stylesheet" />
     <meta name="color-scheme" content="light">
     <script src="theme-manager.js"></script>
+    <script type="module" src="firebase-config.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -118,16 +119,45 @@
         </nav>
     </div>
 
-    <script>
+    <script type="module">
+        import { getExams, getCurrentUser } from './firebase-config.js?v=3.2';
+
         let searchQuery = '';
+        let allExams = [];
 
-        function renderResults() {
+        async function fetchAndRenderResults() {
             const container = document.getElementById('resultsList');
-            let exams = JSON.parse(localStorage.getItem('exams') || '[]');
+            const sessionUser = getCurrentUser();
 
-            const filteredResults = exams.filter(result =>
-                result.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                result.type.toLowerCase().includes(searchQuery.toLowerCase())
+            // Show loading state
+            container.innerHTML = `
+                <div class="flex justify-center py-12">
+                     <div class="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+                </div>
+            `;
+
+            try {
+                if (allExams.length === 0) {
+                    const filterId = (sessionUser && sessionUser.role !== 'admin') ? sessionUser.id : null;
+                    allExams = await getExams(filterId);
+                }
+                renderResults(allExams);
+            } catch (e) {
+                console.error("Error fetching exams:", e);
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-12 text-red-400">
+                        <span class="material-symbols-outlined text-4xl mb-2">error</span>
+                        <p class="text-sm text-red-500">Sonuçlar yüklenirken bir hata oluştu.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderResults(examsData) {
+            const container = document.getElementById('resultsList');
+            const filteredResults = examsData.filter(result =>
+                (result.name && result.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (result.type && result.type.toLowerCase().includes(searchQuery.toLowerCase()))
             );
 
             if (filteredResults.length === 0) {
@@ -141,24 +171,37 @@
             }
 
             container.innerHTML = filteredResults.map(result => {
-                const dateParts = result.date.split('-');
+                const examDate = result.date || new Date().toISOString().split('T')[0];
+                const dateParts = examDate.split('-');
                 const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-                const formattedDate = dateParts.length === 3 ? `${dateParts[2]} ${months[parseInt(dateParts[1]) - 1]} ${dateParts[0]}` : result.date;
+                const formattedDate = dateParts.length === 3 ? `${dateParts[2]} ${months[parseInt(dateParts[1]) - 1]} ${dateParts[0]}` : examDate;
 
+                let statusColor = 'purple';
                 let typeBg = 'bg-purple-100 text-primary';
-                if (result.type === 'TYT') typeBg = 'bg-blue-100 text-blue-600';
-                if (result.type === 'AYT') typeBg = 'bg-orange-100 text-orange-600';
+
+                if (result.type === 'LGS') {
+                    statusColor = 'green';
+                    typeBg = 'bg-green-100 text-green-600';
+                }
+                if (result.type === 'TYT') {
+                    statusColor = 'orange';
+                    typeBg = 'bg-orange-100 text-orange-600';
+                }
+                if (result.type === 'AYT') {
+                    statusColor = 'purple';
+                    typeBg = 'bg-purple-100 text-primary';
+                }
 
                 return `
                     <div onclick="window.location.href='exam-results.html?id=${result.id}'" class="bg-white p-4 rounded-2xl shadow-card border border-gray-50 flex items-center justify-between group hover:border-purple-100 transition-all cursor-pointer">
                         <div class="flex items-center space-x-4">
-                            <div class="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-primary group-hover:bg-purple-50 transition-colors">
+                            <div class="w-12 h-12 rounded-2xl bg-${statusColor}-50 flex items-center justify-center text-${statusColor}-600 group-hover:bg-${statusColor}-100 transition-colors">
                                 <span class="material-symbols-outlined text-[24px]">analytics</span>
                             </div>
                             <div>
                                 <div class="flex items-center gap-2 mb-1">
-                                    <span class="px-2 py-0.5 rounded-md text-[9px] font-bold ${typeBg}">${result.type}</span>
-                                    <h4 class="font-bold text-sm text-gray-900">${result.name}</h4>
+                                    <span class="px-2 py-0.5 rounded-md text-[9px] font-bold ${typeBg}">${result.type || 'Sınav'}</span>
+                                    <h4 class="font-bold text-sm text-gray-900">${result.name || 'İsimsiz Sınav'}</h4>
                                 </div>
                                 <div class="flex items-center space-x-2">
                                     <span class="text-[11px] text-text-muted flex items-center bg-gray-50 px-2 py-0.5 rounded">
@@ -179,12 +222,12 @@
             }).join('');
         }
 
-        function handleSearch(value) {
+        window.handleSearch = function (value) {
             searchQuery = value;
-            renderResults();
-        }
+            renderResults(allExams);
+        };
 
-        window.onload = renderResults;
+        window.onload = fetchAndRenderResults;
     </script>
 </body>
 

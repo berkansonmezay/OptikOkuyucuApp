@@ -13,6 +13,7 @@
         rel="stylesheet" />
     <meta name="color-scheme" content="light">
     <script src="theme-manager.js"></script>
+    <script type="module" src="firebase-config.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -66,25 +67,6 @@
 
         <main class="flex-1 px-6 pt-8 overflow-y-auto no-scrollbar pb-10">
             <div class="space-y-8">
-                <!-- SINAV TÜRÜ SEÇİN -->
-                <section>
-                    <h2 class="text-[13px] font-bold mb-4 text-[#64748b] tracking-wider uppercase">SINAV TÜRÜ SEÇİN</h2>
-                    <div class="flex items-center gap-3" id="examTypeSelector">
-                        <button onclick="selectType('LGS', this)"
-                            class="type-btn flex-1 py-3 px-2 rounded-2xl border-2 border-primary bg-purple-50 text-primary font-bold text-center transition-all shadow-sm">
-                            LGS
-                        </button>
-                        <button onclick="selectType('TYT', this)"
-                            class="type-btn flex-1 py-3 px-2 rounded-2xl border-2 border-[#e2e8f0] bg-white text-[#64748b] font-bold text-center transition-all shadow-sm">
-                            TYT
-                        </button>
-                        <button onclick="selectType('AYT', this)"
-                            class="type-btn flex-1 py-3 px-2 rounded-2xl border-2 border-[#e2e8f0] bg-white text-[#64748b] font-bold text-center transition-all shadow-sm">
-                            AYT
-                        </button>
-                    </div>
-                </section>
-
                 <!-- SINAV ADI -->
                 <section>
                     <label class="text-[13px] font-bold mb-2 block text-[#64748b] tracking-wider uppercase">SINAV
@@ -184,7 +166,7 @@
         </main>
 
         <div class="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 p-6 z-40">
-            <button onclick="saveExam()"
+            <button id="saveBtn" type="button"
                 class="w-full py-4 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-glow hover:scale-[1.02] active:scale-[0.98] transition-all">
                 <span class="material-symbols-outlined filled">check_circle</span>
                 Kaydet
@@ -192,62 +174,88 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { saveExam as saveExamToDb, getExamById, getCurrentUser } from './firebase-config.js?v=3.2';
+
+        // Make functions globally available for inline event handlers
+        window.selectType = selectType;
+        window.handleFileSelect = handleFileSelect;
+        window.removeFile = removeFile;
+        window.toggleEntryMode = toggleEntryMode;
+        window.downloadTemplate = downloadTemplate;
+        window.addSubject = addSubject;
+        window.toggleSubject = toggleSubject;
+        window.updateSubjectName = updateSubjectName;
+        window.updateQuestionCount = updateQuestionCount;
+        window.updateAnswer = updateAnswer;
+        window.updateAllAnswers = updateAllAnswers;
+        window.removeSubject = removeSubject;
+
         let selectedType = 'LGS';
         let subjects = [];
         let editIndex = null;
 
         // URL Parametrelerini Kontrol Et
         const urlParams = new URLSearchParams(window.location.search);
-        editIndex = urlParams.get('edit');
+        let examIdToEdit = urlParams.get('edit');
+        let typeParam = urlParams.get('type');
 
         // Sayfa yüklendiğinde
         window.onload = () => {
-            if (editIndex !== null) {
-                loadExamForEdit(editIndex);
+            if (examIdToEdit && examIdToEdit.trim() !== '') {
+                loadExamForEdit(examIdToEdit);
             } else {
                 document.getElementById('examDate').valueAsDate = new Date();
+
+                if (typeParam) {
+                    selectedType = typeParam.toUpperCase();
+                }
+
                 loadDefaultSubjects();
             }
         };
 
-        function loadExamForEdit(index) {
-            const exams = JSON.parse(localStorage.getItem('exams') || '[]');
-            const exam = exams[index];
-            if (!exam) return;
-
-            document.getElementById('pageTitle').textContent = 'Sınavı Güncelle';
-            document.getElementById('examName').value = exam.name;
-            document.getElementById('examDate').value = exam.date;
-
-            // Sınav Türünü Seç
-            const typeBtns = document.querySelectorAll('.type-btn');
-            typeBtns.forEach(btn => {
-                if (btn.textContent.trim() === exam.type) {
-                    selectType(exam.type, btn, true);
+        async function loadExamForEdit(examId) {
+            try {
+                const exam = await getExamById(examId);
+                if (!exam) {
+                    alert('Sınav bulunamadı.');
+                    return;
                 }
-            });
 
-            // Dersleri ve Cevap Anahtarını Yükle
-            if (exam.subjects && exam.subjects.length > 0) {
-                subjects = exam.subjects;
-                toggleEntryMode('manual');
-                renderSubjects();
+                document.getElementById('pageTitle').textContent = 'Sınavı Güncelle';
+                document.getElementById('examName').value = exam.name || '';
+                document.getElementById('examDate').value = exam.date || '';
+
+                // Sınav Türünü Ayarla (Global değişkeni güncelle)
+                selectedType = exam.type;
+
+                // Dersleri ve Cevap Anahtarını Yükle
+                if (exam.subjects && exam.subjects.length > 0) {
+                    subjects = exam.subjects;
+                    toggleEntryMode('manual');
+                    renderSubjects();
+                }
+            } catch (e) {
+                console.error("Sınav yüklenirken hata:", e);
+                alert("Sınav bilgileri alınamadı.");
             }
         }
 
-        function selectType(type, btn, isManualRefershDisabled = false) {
+        function selectType(type, btn = null, isManualRefershDisabled = false) {
             selectedType = type;
-            document.querySelectorAll('.type-btn').forEach(b => {
-                b.classList.remove('border-primary', 'bg-purple-50', 'text-primary');
-                b.classList.add('border-[#e2e8f0]', 'bg-white', 'text-[#64748b]');
-            });
-            btn.classList.add('border-primary', 'bg-purple-50', 'text-primary');
-            btn.classList.remove('border-[#e2e8f0]', 'bg-white', 'text-[#64748b]');
+            if (btn) {
+                document.querySelectorAll('.type-btn').forEach(b => {
+                    b.classList.remove('border-primary', 'bg-purple-50', 'text-primary');
+                    b.classList.add('border-[#e2e8f0]', 'bg-white', 'text-[#64748b]');
+                });
+                btn.classList.add('border-primary', 'bg-purple-50', 'text-primary');
+                btn.classList.remove('border-[#e2e8f0]', 'bg-white', 'text-[#64748b]');
+            }
 
             // If we are in manual mode, refresh default subjects
             const manualArea = document.getElementById('manualEntryArea');
-            if (!manualArea.classList.contains('hidden') && !isManualRefershDisabled) {
+            if (manualArea && !manualArea.classList.contains('hidden') && !isManualRefershDisabled) {
                 loadDefaultSubjects();
             }
         }
@@ -519,7 +527,7 @@
             `).join('');
         }
 
-        function saveExam() {
+        async function saveExam() {
             const name = document.getElementById('examName').value;
             const date = document.getElementById('examDate').value;
 
@@ -528,32 +536,43 @@
                 return;
             }
 
-            const examData = {
-                name: name,
-                type: selectedType,
-                date: date,
-                subjects: subjects
-            };
+            const btn = document.getElementById('saveBtn');
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="material-symbols-outlined animate-spin">sync</span> Kaydediliyor...`;
 
-            const exams = JSON.parse(localStorage.getItem('exams') || '[]');
-
-            if (editIndex !== null) {
-                // Güncelleme
-                exams[editIndex] = { ...exams[editIndex], ...examData };
-            } else {
-                // Yeni Kayıt
-                const newExam = {
-                    id: Date.now(),
-                    ...examData,
-                    studentCount: 0,
-                    status: 'pending'
+            try {
+                const examData = {
+                    id: examIdToEdit || '', // Pass existing ID if editing
+                    name: name,
+                    type: selectedType,
+                    date: date,
+                    subjects: subjects,
+                    studentCount: 0, // In real scenario, if editing we should preserve this, but firestore rules usually handle that separately if needed, or we fetch it first. For simple edit, we'll keep it as 0 for new or keep existing if handled in getExamById.
                 };
-                exams.unshift(newExam);
-            }
 
-            localStorage.setItem('exams', JSON.stringify(exams));
-            window.location.href = 'dashboard.html';
+                // If editing, preserve the previous studentCount and createdAt if we want, but our getExamById doesn't store them globally here. 
+                // A better approach is to fetch existing data entirely and merge. 
+                // For this UI, studentCount is just a display field. If it's a new exam, it's 0.
+                if (examIdToEdit && examIdToEdit.trim() !== '') {
+                    const existingExam = await getExamById(examIdToEdit);
+                    if (existingExam) {
+                        examData.studentCount = existingExam.studentCount || 0;
+                        examData.createdAt = existingExam.createdAt || new Date().toISOString();
+                    }
+                }
+
+                await saveExamToDb(examData);
+                window.location.href = 'dashboard.html';
+            } catch (e) {
+                console.error("Sınav kaydedilirken hata:", e);
+                alert("Sınav kaydedilemedi.");
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
         }
+
+        document.getElementById('saveBtn').addEventListener('click', saveExam);
     </script>
 </body>
 

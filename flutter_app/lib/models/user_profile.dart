@@ -22,8 +22,8 @@ class UserProfile {
   };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-    name: json['name'] ?? 'Sarah Jenkins',
-    email: json['email'] ?? 'sarah@school.com',
+    name: json['name'] ?? 'Ahmet Bakır',
+    email: json['email'] ?? 'ahmet.bakir@example.com',
     phone: json['phone'] ?? '+90 532 123 45 67',
     profileImageUrl: json['profileImageUrl'] ?? '',
     institution: json['institution'] ?? 'ÖĞRETMEN PORTALİ',

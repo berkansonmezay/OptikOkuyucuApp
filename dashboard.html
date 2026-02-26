@@ -13,6 +13,7 @@
         rel="stylesheet" />
     <meta name="color-scheme" content="light">
     <script src="theme-manager.js"></script>
+    <script type="module" src="firebase-config.js?v=3.2"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -83,8 +84,9 @@
         <header
             class="px-6 pt-10 pb-6 flex justify-between items-center bg-white z-10 sticky top-0 border-b border-gray-50">
             <div class="flex flex-col items-start">
-                <h1 id="user-name" class="text-2xl font-extrabold text-[#1e293b] tracking-tight">Sarah Jenkins</h1>
-                <span id="user-email" class="text-[12px] font-medium text-[#94a3b8] mt-0.5">sarah@school.com</span>
+                <h1 id="user-name" class="text-2xl font-extrabold text-[#1e293b] tracking-tight">Ahmet Bakır</h1>
+                <span id="user-email"
+                    class="text-[12px] font-medium text-[#94a3b8] mt-0.5">ahmet.bakir@example.com</span>
             </div>
             <div class="flex items-center gap-3">
                 <button
@@ -94,7 +96,7 @@
                 <div id="user-avatar-container"
                     class="w-10 h-10 rounded-full ring-2 ring-[#ede9fe] overflow-hidden bg-purple-50 flex-shrink-0 flex items-center justify-center">
                     <img id="user-avatar" src="" alt="Profile" class="w-full h-full object-cover hidden" />
-                    <span id="user-initials" class="text-xs font-bold text-primary">SJ</span>
+                    <span id="user-initials" class="text-xs font-bold text-primary">AB</span>
                 </div>
             </div>
         </header>
@@ -118,17 +120,30 @@
             </section>
             <section class="mb-8">
                 <h2 class="text-[13px] font-bold mb-4 text-[#64748b] tracking-wider uppercase">YENİ SINAV OLUŞTUR</h2>
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="window.location.href='create-exam.html'"
-                        class="w-full py-4 px-2 rounded-2xl border-2 border-[#e2e8f0] bg-white text-[#64748b] font-bold text-center transition-all hover:border-[#cbd5e1] hover:text-[#475569] shadow-sm text-[11px] leading-tight uppercase">
-                        İLKOKUL/ORTAOKUL GRUBU
+                <div class="flex items-center gap-3">
+                    <button onclick="window.location.href='create-exam.html?type=LGS'"
+                        class="flex-1 py-4 px-2 rounded-2xl border-2 border-primary bg-purple-50 text-primary font-bold text-center transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] text-xs">
+                        LGS
                     </button>
-                    <button onclick="window.location.href='create-exam.html'"
-                        class="w-full py-4 px-2 rounded-2xl border-2 border-[#e2e8f0] bg-white text-[#64748b] font-bold text-center transition-all hover:border-[#cbd5e1] hover:text-[#475569] shadow-sm text-[11px] leading-tight uppercase">
-                        LİSE GRUBU
+                    <button onclick="window.location.href='create-exam.html?type=TYT'"
+                        class="flex-1 py-4 px-2 rounded-2xl border-2 border-[#e2e8f0] bg-white text-[#64748b] font-bold text-center transition-all hover:border-primary/30 hover:text-primary shadow-sm text-xs">
+                        TYT
+                    </button>
+                    <button onclick="window.location.href='create-exam.html?type=AYT'"
+                        class="flex-1 py-4 px-2 rounded-2xl border-2 border-[#e2e8f0] bg-white text-[#64748b] font-bold text-center transition-all hover:border-primary/30 hover:text-primary shadow-sm text-xs">
+                        AYT
                     </button>
                 </div>
             </section>
+            <section id="admin-section" class="mb-8 hidden">
+                <h2 class="text-[13px] font-bold mb-4 text-[#64748b] tracking-wider uppercase">SİSTEM YÖNETİMİ</h2>
+                <button onclick="window.location.href='admin-panel.html'"
+                    class="w-full py-4 px-4 rounded-2xl border-2 border-primary/20 bg-purple-50 text-primary font-bold transition-all hover:bg-purple-100 shadow-sm text-[12px] flex items-center justify-center gap-2 uppercase tracking-wide">
+                    <span class="material-symbols-outlined">shield_person</span>
+                    Admin Paneli (Kurum Ekle)
+                </button>
+            </section>
+
             <section>
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-lg font-bold text-text-main">Son Sınavlar</h2>
@@ -140,34 +155,46 @@
                 </div>
             </section>
 
-            <script>
-                function loadRecentExams() {
+            <script type="module">
+                import { getExams, deleteExam as deleteExamFromDb, getUserProfile, getCurrentUser } from './firebase-config.js';
+
+                async function loadRecentExams() {
                     const container = document.getElementById('recentExamsList');
-                    const exams = JSON.parse(localStorage.getItem('exams') || '[]');
+                    const sessionUser = getCurrentUser();
 
-                    // Limit to last 5 exams
-                    const recentExams = exams.slice(0, 5);
+                    // Show loading state
+                    container.innerHTML = `
+                        <div class="flex justify-center py-8">
+                            <div class="w-6 h-6 border-2 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+                        </div>
+                    `;
 
-                    if (recentExams.length === 0) {
-                        container.innerHTML = `
-                            <div class="p-8 text-center border-2 border-dashed border-gray-100 rounded-3xl">
-                                <p class="text-sm text-gray-400">Henüz kaydedilmiş sınav yok.</p>
-                            </div>
-                        `;
-                        return;
-                    }
+                    try {
+                        // If not admin, filter by current user's ID
+                        const filterId = (sessionUser && sessionUser.role !== 'admin') ? sessionUser.id : null;
+                        const exams = await getExams(filterId);
+                        const recentExams = exams.slice(0, 5);
 
-                    container.innerHTML = recentExams.map((exam, index) => {
-                        const date = new Date(exam.date || Date.now());
-                        const day = date.getDate();
-                        const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-                        const month = months[date.getMonth()];
+                        if (recentExams.length === 0) {
+                            container.innerHTML = `
+                                <div class="p-8 text-center border-2 border-dashed border-gray-100 rounded-3xl">
+                                    <p class="text-sm text-gray-400">Henüz kaydedilmiş sınav yok.</p>
+                                </div>
+                            `;
+                            return;
+                        }
 
-                        let statusColor = 'purple';
-                        if (exam.type === 'LGS') statusColor = 'green';
-                        if (exam.type === 'TYT') statusColor = 'orange';
+                        container.innerHTML = recentExams.map((exam, index) => {
+                            const date = new Date(exam.date || Date.now());
+                            const day = date.getDate();
+                            const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+                            const month = months[date.getMonth()];
 
-                        return `
+                            let statusColor = 'purple';
+                            if (exam.type === 'LGS') statusColor = 'green';
+                            if (exam.type === 'TYT') statusColor = 'orange';
+
+                            return `
                             <div class="bg-white p-4 rounded-2xl shadow-card border border-gray-50 flex items-center justify-between group hover:border-purple-100 transition-all cursor-pointer">
                                 <div class="flex items-center space-x-4">
                                     <div class="w-12 h-12 rounded-2xl bg-${statusColor}-50 flex items-center justify-center text-${statusColor}-600 group-hover:bg-${statusColor}-100 transition-colors">
@@ -190,17 +217,25 @@
                                         <span class="material-symbols-outlined">more_vert</span>
                                     </button>
                                     <div id="menu-${index}" class="dropdown-menu absolute right-0 mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-[100] w-32">
-                                        <button onclick="editExam(${index})" class="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-600 hover:bg-gray-50 flex items-center gap-2">
+                                        <button onclick="editExam('${exam.id}')" class="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-600 hover:bg-gray-50 flex items-center gap-2">
                                             <span class="material-symbols-outlined text-sm">edit</span> Düzenle
                                         </button>
-                                        <button onclick="deleteExam(${index})" class="w-full px-4 py-2.5 text-left text-xs font-bold text-red-500 hover:bg-red-50 flex items-center gap-2">
+                                        <button onclick="window.deleteExam('${exam.id}')" class="w-full px-4 py-2.5 text-left text-xs font-bold text-red-500 hover:bg-red-50 flex items-center gap-2">
                                             <span class="material-symbols-outlined text-sm text-red-500">delete</span> Sil
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         `;
-                    }).join('');
+                        }).join('');
+                    } catch (e) {
+                        console.error("Sınavlar yüklenirken hata:", e);
+                        container.innerHTML = `
+                            <div class="p-8 text-center border-2 border-dashed border-red-100 rounded-3xl">
+                                <p class="text-sm text-red-500">Sınavlar yüklenemedi.</p>
+                            </div>
+                        `;
+                    }
                 }
 
                 function toggleMenu(event, index) {
@@ -217,34 +252,64 @@
                         menu.style.display = 'block';
                     }
                 }
+                window.toggleMenu = toggleMenu;
 
-                async function deleteExam(index) {
+                async function deleteExam(examId) {
                     const confirmed = await customConfirm('Sınavı Sil', 'Bu sınavı silmek istediğinizden emin misiniz?');
                     if (confirmed) {
-                        let exams = JSON.parse(localStorage.getItem('exams') || '[]');
-                        exams.splice(index, 1);
-                        localStorage.setItem('exams', JSON.stringify(exams));
-                        loadRecentExams();
+                        const success = await deleteExamFromDb(examId);
+                        if (success) {
+                            loadRecentExams();
+                        } else {
+                            alert("Sınav silinirken bir hata oluştu.");
+                        }
                     }
                 }
+                window.deleteExam = deleteExam;
 
-                function editExam(index) {
-                    window.location.href = `create-exam.html?edit=${index}`;
+                function editExam(examId) {
+                    window.location.href = `create-exam.html?edit=${examId}`;
                 }
+                window.editExam = editExam;
 
                 document.addEventListener('click', () => {
                     const allMenus = document.querySelectorAll('.dropdown-menu');
                     allMenus.forEach(m => m.style.display = 'none');
                 });
 
-                function loadUserProfile() {
-                    const user = JSON.parse(localStorage.getItem('user_profile') || '{}');
-                    if (user.name) {
-                        document.querySelector('header h1').textContent = user.name;
+                async function loadUserProfile() {
+                    const sessionUser = getCurrentUser();
+                    console.log("[v2] Current Session Role:", sessionUser ? sessionUser.role : "None");
+                    if (!sessionUser) {
+                        window.location.href = 'login.html';
+                        return;
                     }
-                    if (user.profileImageUrl) {
-                        document.querySelector('header img').src = user.profileImageUrl;
-                        document.querySelector('header img').alt = user.name || 'Profil';
+
+                    if (sessionUser.role === 'admin') {
+                        console.log("[v2] Admin role detected. Showing admin section.");
+                        document.getElementById('admin-section').classList.remove('hidden');
+                    }
+
+                    const user = await getUserProfile();
+                    if (user) {
+                        if (user.name) {
+                            document.getElementById('user-name').textContent = user.name;
+                            const parts = user.name.trim().split(/\s+/);
+                            const initials = parts.length > 1
+                                ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+                                : parts[0][0].toUpperCase();
+                            document.getElementById('user-initials').textContent = initials;
+                        }
+                        if (user.email || user.username) document.getElementById('user-email').textContent = user.email || user.username;
+
+                        if (user.profileImageUrl) {
+                            document.getElementById('user-avatar').src = user.profileImageUrl;
+                            document.getElementById('user-avatar').classList.remove('hidden');
+                            document.getElementById('user-initials').classList.add('hidden');
+                        } else {
+                            document.getElementById('user-avatar').classList.add('hidden');
+                            document.getElementById('user-initials').classList.remove('hidden');
+                        }
                     }
                 }
 
@@ -286,33 +351,6 @@
             </div>
         </nav>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const profileData = localStorage.getItem('user_profile');
-            if (profileData) {
-                const user = JSON.parse(profileData);
-                if (user.name) document.getElementById('user-name').textContent = user.name;
-                if (user.email) document.getElementById('user-email').textContent = user.email;
-                if (user.profileImageUrl) {
-                    document.getElementById('user-avatar').src = user.profileImageUrl;
-                    document.getElementById('user-avatar').classList.remove('hidden');
-                    document.getElementById('user-initials').classList.add('hidden');
-                } else {
-                    document.getElementById('user-avatar').classList.add('hidden');
-                    document.getElementById('user-initials').classList.remove('hidden');
-                    if (user.name) {
-                        const parts = user.name.trim().split(/\s+/);
-                        const initials = parts.length > 1
-                            ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-                            : parts[0][0].toUpperCase();
-                        document.getElementById('user-initials').textContent = initials;
-                    }
-                }
-            }
-        });
-    </script>
-
 </body>
 
 </html>

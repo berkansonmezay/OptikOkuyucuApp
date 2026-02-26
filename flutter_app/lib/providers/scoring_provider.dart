@@ -1,6 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/scoring_config.dart';
 
 class ScoringProvider with ChangeNotifier {
@@ -15,19 +14,25 @@ class ScoringProvider with ChangeNotifier {
   }
 
   Future<void> loadConfigs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? configsJson = prefs.getString('scoring_configs');
-    if (configsJson != null) {
-      final Map<String, dynamic> decoded = jsonDecode(configsJson);
-      _configs = decoded.map((key, value) => MapEntry(key, ScoringConfig.fromJson(value)));
+    try {
+      final snapshot = await FirebaseFirestore.instance.collection('scoring_configs').get();
+      _configs = {};
+      for (var doc in snapshot.docs) {
+        _configs[doc.id] = ScoringConfig.fromJson(doc.data());
+      }
       notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading scoring configs: $e');
     }
   }
 
   Future<void> saveConfig(String examId, ScoringConfig config) async {
     _configs[examId] = config;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('scoring_configs', jsonEncode(_configs.map((key, value) => MapEntry(key, value.toJson()))));
-    notifyListeners();
+    try {
+      await FirebaseFirestore.instance.collection('scoring_configs').doc(examId).set(config.toJson());
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error saving scoring config: $e');
+    }
   }
 }

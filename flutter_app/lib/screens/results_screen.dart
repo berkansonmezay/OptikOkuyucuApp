@@ -1,8 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/exam_provider.dart';
 import '../models/exam.dart';
 import 'exam_results_screen.dart';
 import 'student_report_screen.dart';
+import '../core/app_colors.dart';
 
 class ResultsScreen extends StatefulWidget {
   const ResultsScreen({super.key});

@@ -13,6 +13,7 @@
         rel="stylesheet" />
     <meta name="color-scheme" content="light">
     <script src="theme-manager.js"></script>
+    <script type="module" src="firebase-config.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -77,7 +78,7 @@
                     <div id="profile-avatar-container"
                         class="w-32 h-32 rounded-full ring-4 ring-white shadow-2xl overflow-hidden relative bg-purple-50 flex items-center justify-center">
                         <img src="" alt="Profile" class="w-full h-full object-cover hidden" id="profileImage" />
-                        <span id="profile-initials" class="text-4xl font-extrabold text-primary">SJ</span>
+                        <span id="profile-initials" class="text-4xl font-extrabold text-primary">AB</span>
                         <div
                             class="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                             <span class="material-symbols-outlined text-white text-3xl">add_a_photo</span>
@@ -101,7 +102,7 @@
                         </div>
                         <input type="text" id="name"
                             class="block w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-100 bg-gray-50/30 text-gray-900 font-semibold placeholder-gray-400 focus:ring-2 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all duration-200"
-                            placeholder="Adınız ve soyadınız" value="Ahmet Yılmaz" oninput="updateInitialsFallback()" />
+                            placeholder="Adınız ve soyadınız" value="Ahmet Bakır" oninput="updateInitialsFallback()" />
                     </div>
                 </div>
 
@@ -114,7 +115,7 @@
                         </div>
                         <input type="email" id="email"
                             class="block w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-100 bg-gray-50/30 text-gray-900 font-semibold placeholder-gray-400 focus:ring-2 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all duration-200"
-                            placeholder="ahmet.yilmaz@okul.edu.tr" value="ahmet.yilmaz@okul.edu.tr" />
+                            placeholder="ahmet.bakir@example.com" value="ahmet.bakir@example.com" />
                     </div>
                 </div>
 
@@ -134,8 +135,8 @@
 
                 <!-- Submit Button -->
                 <div class="pt-8 pb-4">
-                    <button type="button" onclick="saveProfile()"
-                        class="w-full bg-primary hover:bg-primary-dark text-white font-black py-5 rounded-[2rem] shadow-glow active:scale-[0.98] transition-all duration-200 text-lg">
+                    <button type="button" id="saveBtn"
+                        class="w-full bg-primary hover:bg-primary-dark text-white font-black py-5 rounded-[2rem] shadow-glow active:scale-[0.98] transition-all duration-200 text-lg flex justify-center items-center gap-2">
                         Değişiklikleri Kaydet
                     </button>
                 </div>
@@ -143,8 +144,11 @@
         </main>
     </div>
 
-    <script>
-        function updateInitialsFallback() {
+    <script type="module">
+        import { getUserProfile, saveUserProfile as saveProfileToDb } from './firebase-config.js';
+
+        // Keep updateInitialsFallback global for inline oninput handler
+        window.updateInitialsFallback = function () {
             const name = document.getElementById('name').value;
             const initialsEl = document.getElementById('profile-initials');
             if (name) {
@@ -156,31 +160,35 @@
             } else {
                 initialsEl.textContent = "??";
             }
-        }
+        };
 
-        function loadProfile() {
-            const profileData = localStorage.getItem('user_profile');
-            if (profileData) {
-                const user = JSON.parse(profileData);
-                if (user.name) {
-                    document.getElementById('name').value = user.name;
-                    updateInitialsFallback();
-                }
-                if (user.email) document.getElementById('email').value = user.email;
-                if (user.phone) document.getElementById('phone').value = user.phone;
+        async function loadProfile() {
+            try {
+                const user = await getUserProfile();
+                if (user) {
+                    if (user.name) {
+                        document.getElementById('name').value = user.name;
+                        window.updateInitialsFallback();
+                    }
+                    if (user.email) document.getElementById('email').value = user.email;
+                    if (user.phone) document.getElementById('phone').value = user.phone;
 
-                const imgEl = document.getElementById('profileImage');
-                const initialsEl = document.getElementById('profile-initials');
-                if (user.profileImageUrl) {
-                    imgEl.src = user.profileImageUrl;
-                    imgEl.classList.remove('hidden');
-                    initialsEl.classList.add('hidden');
+                    const imgEl = document.getElementById('profileImage');
+                    const initialsEl = document.getElementById('profile-initials');
+                    if (user.profileImageUrl) {
+                        imgEl.src = user.profileImageUrl;
+                        imgEl.classList.remove('hidden');
+                        initialsEl.classList.add('hidden');
+                    } else {
+                        imgEl.classList.add('hidden');
+                        initialsEl.classList.remove('hidden');
+                    }
                 } else {
-                    imgEl.classList.add('hidden');
-                    initialsEl.classList.remove('hidden');
+                    window.updateInitialsFallback();
                 }
-            } else {
-                updateInitialsFallback();
+            } catch (e) {
+                console.error("Profil alınamadı", e);
+                window.updateInitialsFallback();
             }
         }
 
@@ -203,8 +211,14 @@
                 initialsEl.classList.add('hidden');
             }
         }
+        window.openPhotoPicker = openPhotoPicker;
 
-        function saveProfile() {
+        async function saveProfile() {
+            const btn = document.getElementById('saveBtn');
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-lg">sync</span> Kaydediliyor...`;
+
             const imgEl = document.getElementById('profileImage');
             const isHidden = imgEl.classList.contains('hidden');
 
@@ -215,10 +229,19 @@
                 profileImageUrl: isHidden ? "" : imgEl.src,
                 institution: "ÖĞRETMEN PORTALİ"
             };
-            localStorage.setItem('user_profile', JSON.stringify(user));
-            window.history.back();
+
+            const success = await saveProfileToDb(user);
+
+            if (success) {
+                window.history.back();
+            } else {
+                alert("Profil kaydedilirken hata oluştu!");
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
         }
 
+        document.getElementById('saveBtn').addEventListener('click', saveProfile);
         window.onload = loadProfile;
     </script>
 </body>

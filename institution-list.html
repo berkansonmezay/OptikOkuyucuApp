@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Kurum Listesi - Optik Okuyucu</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <meta name="color-scheme" content="light">
+    <script src="theme-manager.js"></script>
+    <script type="module" src="firebase-config.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#7C3AED",
+                        background: "#FAFAFA",
+                        surface: "#FFFFFF",
+                        "text-main": "#1e293b",
+                        "text-muted": "#64748b",
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'card': '0 10px 15px -3px rgba(0, 0, 0, 0.04)',
+                        'glow': '0 4px 14px rgba(124, 58, 237, 0.15)',
+                    }
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            min-height: 100vh;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased text-text-main">
+    <div class="max-w-md mx-auto min-h-screen relative flex flex-col bg-[#fdfdff] shadow-xl overflow-hidden pb-24">
+        <!-- Header -->
+        <header
+            class="px-6 pt-10 pb-4 flex items-center justify-between sticky top-0 bg-[#fdfdff]/80 backdrop-blur-md z-30">
+            <button onclick="window.location.href='settings.html'"
+                class="w-10 h-10 rounded-full bg-white shadow-soft flex items-center justify-center text-gray-500 hover:text-primary transition-colors border border-gray-50">
+                <span class="material-symbols-outlined text-2xl">chevron_left</span>
+            </button>
+            <h1 class="font-extrabold text-lg text-gray-900">Kurum Listesi</h1>
+            <div class="w-10 h-10 flex items-center justify-center">
+                <span class="material-symbols-outlined text-primary opacity-50 text-2xl">group</span>
+            </div>
+        </header>
+
+        <main class="flex-1 px-6 space-y-4 overflow-y-auto no-scrollbar pt-2">
+            <div id="loadingState" class="py-20 text-center space-y-4">
+                <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto">
+                </div>
+                <p class="text-sm font-bold text-gray-400">Kurumlar yükleniyor...</p>
+            </div>
+
+            <div id="emptyState" class="hidden py-20 text-center space-y-4">
+                <span class="material-symbols-outlined text-6xl text-gray-200">person_off</span>
+                <p class="text-sm font-bold text-gray-400">Henüz kayıtlı kurum bulunmamaktadır.</p>
+            </div>
+
+            <div id="institutionList" class="space-y-3 hidden pb-10">
+                <!-- Items will be injected here -->
+            </div>
+        </main>
+
+        <!-- Edit Modal (Hidden by default) -->
+        <div id="editModal"
+            class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm hidden p-4 transition-all duration-300">
+            <div class="bg-white w-full max-w-md rounded-t-[40px] rounded-b-[40px] p-8 shadow-2xl space-y-6 transform translate-y-full transition-transform duration-300"
+                id="modalContent">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-black text-gray-900">Kurum Düzenle</h2>
+                    <button onclick="closeModal()"
+                        class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <form id="editForm" class="space-y-5">
+                    <input type="hidden" id="editId">
+                    <div class="space-y-1.5">
+                        <label class="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Kullanıcı Adı
+                            (Giriş)</label>
+                        <input type="text" id="editUsername" disabled
+                            class="w-full bg-gray-50 border-gray-100 rounded-2xl px-5 py-3.5 text-gray-400 font-bold text-sm cursor-not-allowed">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Görünür İsim
+                            (Kurum Adı)</label>
+                        <input type="text" id="editName" required
+                            class="w-full bg-slate-50 border-none rounded-2xl px-5 py-3.5 text-gray-900 font-bold text-sm focus:ring-2 focus:ring-primary/10 transition-all">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Şifre</label>
+                        <input type="text" id="editPassword" required
+                            class="w-full bg-slate-50 border-none rounded-2xl px-5 py-3.5 text-gray-900 font-bold text-sm focus:ring-2 focus:ring-primary/10 transition-all">
+                    </div>
+
+                    <div class="flex gap-3 pt-4">
+                        <button type="button" onclick="handleDelete()"
+                            class="px-5 py-4 rounded-2xl border border-red-50 text-red-500 font-bold text-sm flex items-center justify-center group hover:bg-red-50 transition-colors">
+                            <span class="material-symbols-outlined">delete</span>
+                        </button>
+                        <button type="submit" id="saveBtn"
+                            class="flex-1 bg-primary text-white font-bold py-4 rounded-2xl shadow-glow hover:bg-primary-dark transition-all active:scale-[0.98]">
+                            Güncelle ve Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script type="module">
+            import { getCurrentUser, getAllInstitutions, updateInstitution, deleteInstitution } from './firebase-config.js';
+
+            // Auth Check
+            const user = getCurrentUser();
+            if (!user || user.role !== 'admin') {
+                window.location.href = 'dashboard.html';
+            }
+
+            async function renderList() {
+                const listContainer = document.getElementById('institutionList');
+                const loading = document.getElementById('loadingState');
+                const empty = document.getElementById('emptyState');
+
+                loading.classList.remove('hidden');
+                listContainer.classList.add('hidden');
+                empty.classList.add('hidden');
+
+                const items = await getAllInstitutions();
+
+                loading.classList.add('hidden');
+
+                if (items.length === 0) {
+                    empty.classList.remove('hidden');
+                    return;
+                }
+
+                listContainer.innerHTML = '';
+                items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white p-4 rounded-3xl border border-gray-100 shadow-card flex items-center justify-between hover:border-primary/20 transition-all cursor-pointer group";
+                    card.onclick = () => openModal(item);
+
+                    const initials = (item.name || item.username).split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+                    card.innerHTML = `
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center text-primary font-black text-sm">
+                                ${initials}
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-sm font-bold text-gray-900">${item.name || item.username}</span>
+                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">ID: ${item.username}</span>
+                            </div>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-gray-300 group-hover:bg-primary/5 group-hover:text-primary transition-all">
+                            <span class="material-symbols-outlined text-[20px]">edit_note</span>
+                        </div>
+                    `;
+                    listContainer.appendChild(card);
+                });
+
+                listContainer.classList.remove('hidden');
+            }
+
+            window.openModal = (item) => {
+                document.getElementById('editId').value = item.id;
+                document.getElementById('editUsername').value = item.username;
+                document.getElementById('editName').value = item.name || '';
+                document.getElementById('editPassword').value = item.password || '';
+
+                const modal = document.getElementById('editModal');
+                const content = document.getElementById('modalContent');
+                modal.classList.remove('hidden');
+                setTimeout(() => content.classList.remove('translate-y-full'), 10);
+            }
+
+            window.closeModal = () => {
+                const content = document.getElementById('modalContent');
+                content.classList.add('translate-y-full');
+                setTimeout(() => document.getElementById('editModal').classList.add('hidden'), 300);
+            }
+
+            window.handleDelete = async () => {
+                if (!confirm("Bu kurumu silmek istediğinize emin misiniz? Tüm erişimi kesilecektir.")) return;
+
+                const id = document.getElementById('editId').value;
+                const res = await deleteInstitution(id);
+                if (res.success) {
+                    closeModal();
+                    renderList();
+                } else {
+                    alert("Silme hatası: " + res.message);
+                }
+            }
+
+            document.getElementById('editForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('editId').value;
+                const saveBtn = document.getElementById('saveBtn');
+
+                const originalText = saveBtn.textContent;
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Güncelleniyor...';
+
+                const res = await updateInstitution(id, {
+                    name: document.getElementById('editName').value.trim(),
+                    password: document.getElementById('editPassword').value
+                });
+
+                if (res.success) {
+                    closeModal();
+                    renderList();
+                } else {
+                    alert("Güncelleme hatası: " + res.message);
+                }
+                saveBtn.disabled = false;
+                saveBtn.textContent = originalText;
+            }
+
+            window.onload = renderList;
+        </script>
+    </div>
+</body>
+
+</html>

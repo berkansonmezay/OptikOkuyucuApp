@@ -96,7 +96,7 @@
         </div>
         <div class="w-full bg-white rounded-2xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
             <h2 class="text-2xl font-bold text-center text-gray-900 mb-6">Hoşgeldiniz</h2>
-            <form action="dashboard.html" class="space-y-5" method="GET">
+            <form id="loginForm" class="space-y-5">
                 <div class="space-y-1.5">
                     <label class="block text-sm font-semibold text-gray-700 ml-1" for="institution">
                         Kurum Adı
@@ -120,7 +120,8 @@
                         </div>
                         <input
                             class="block w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-primary focus:border-primary transition duration-200 sm:text-sm shadow-sm"
-                            id="email" name="email" placeholder="E-posta veya kullanıcı adı giriniz" type="text" />
+                            id="email" name="email" placeholder="E-posta veya kullanıcı adı giriniz" type="text"
+                            required />
                     </div>
                 </div>
                 <div class="space-y-1.5">
@@ -135,7 +136,7 @@
                         </div>
                         <input
                             class="block w-full pl-10 pr-10 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-primary focus:border-primary transition duration-200 sm:text-sm shadow-sm"
-                            id="password" name="password" placeholder="••••••••" type="password" />
+                            id="password" name="password" placeholder="••••••••" type="password" required />
                         <div
                             class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer text-gray-400 hover:text-primary transition-colors">
                             <span class="material-symbols-outlined text-xl">visibility_off</span>
@@ -147,9 +148,13 @@
                         Şifremi Unuttum
                     </a>
                 </div>
-                <button
+                <div id="errorContainer"
+                    class="hidden p-3 bg-red-50 border border-red-200 text-red-600 text-sm font-medium rounded-xl text-center">
+                    Giriş başarısız.
+                </div>
+                <button id="submitBtn"
                     class="w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg shadow-purple-200 text-sm font-bold text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 transform active:scale-[0.98]"
-                    type="submit">
+                    type="button">
                     Giriş Yap
                     <span class="material-symbols-outlined ml-2 text-lg">login</span>
                 </button>
@@ -173,6 +178,71 @@
             </div>
         </div>
     </main>
+
+    <script type="module">
+        import { loginUser } from './firebase-config.js';
+        console.log("[v2] Login script loaded.");
+
+        document.getElementById('submitBtn').addEventListener('click', async (e) => {
+            console.log("[v2] Login button clicked.");
+            e.preventDefault();
+
+            // Trigger native HTML5 validation
+            const form = document.getElementById('loginForm');
+            if (!form.reportValidity()) {
+                console.log("Form validity check failed.");
+                return;
+            }
+
+            const emailOrUsername = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const errorContainer = document.getElementById('errorContainer');
+            const submitBtn = document.getElementById('submitBtn');
+
+            console.log("Attempting login for:", emailOrUsername);
+
+            if (!emailOrUsername || !password) {
+                errorContainer.textContent = "Lütfen kullanıcı adı ve şifrenizi giriniz.";
+                errorContainer.classList.remove('hidden');
+                return;
+            }
+
+            // Show loading state
+            const originalBtnContent = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span class="material-symbols-outlined animate-spin mr-2">sync</span> Giriş Yapılıyor...`;
+            errorContainer.classList.add('hidden');
+
+            try {
+                const result = await loginUser(emailOrUsername, password);
+                console.log("Login result:", result);
+
+                if (result.success) {
+                    console.log("Redirecting to dashboard...");
+                    window.location.href = 'dashboard.html';
+                } else {
+                    errorContainer.textContent = result.message || "Giriş başarısız.";
+                    errorContainer.classList.remove('hidden');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnContent;
+                }
+            } catch (err) {
+                console.error("Login unexpected error:", err);
+                errorContainer.textContent = "Sistem hatası oluştu.";
+                errorContainer.classList.remove('hidden');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnContent;
+            }
+        });
+
+        // Allow pressing Enter key in password field to submit
+        document.getElementById('password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('submitBtn').click();
+            }
+        });
+    </script>
 
 </body>
 

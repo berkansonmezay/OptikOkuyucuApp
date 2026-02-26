@@ -1,0 +1,12 @@
+{
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.import.exclusions": [
+        "**/android/**",
+        "**/ios/**",
+        "**/build/**"
+    ],
+    "files.exclude": {
+        "**/android/.gradle": true,
+        "**/.dart_tool": true
+    }
+}

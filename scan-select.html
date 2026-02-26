@@ -126,23 +126,38 @@
         </nav>
     </div>
 
-    <script>
+    <script type="module">
+        import { getExams, getCurrentUser } from './firebase-config.js?v=3.2';
+
         let selectedExamId = null;
         let searchQuery = '';
+        let allExams = [];
 
-        function renderExams() {
+        async function renderExams() {
             const container = document.getElementById('examList');
-            let exams = JSON.parse(localStorage.getItem('exams') || '[]');
+            const sessionUser = getCurrentUser();
 
-            // Add fallbacks if empty to match screenshot
-            if (exams.length === 0) {
-                exams = [
-                    { id: 101, name: 'lgs-2', type: 'LGS', date: '2026-02-22', questions: 0 },
-                    { id: 102, name: 'ayt - 1', type: 'AYT', date: '2026-02-22', questions: 0 },
-                    { id: 103, name: 'tyt - 1', type: 'TYT', date: '2026-02-22', questions: 0 },
-                    { id: 104, name: 'lgs - 1', type: 'LGS', date: '2026-02-22', questions: 0 }
-                ];
+            if (allExams.length === 0) {
+                container.innerHTML = `
+                    <div class="flex justify-center py-8">
+                        <div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                `;
+                try {
+                    const filterId = (sessionUser && sessionUser.role !== 'admin') ? sessionUser.id : null;
+                    allExams = await getExams(filterId);
+                } catch (error) {
+                    console.error("Error loading exams:", error);
+                    container.innerHTML = `
+                        <div class="p-8 text-center border-2 border-dashed border-red-100 rounded-3xl">
+                            <p class="text-sm text-red-500">Sınavlar yüklenemedi.</p>
+                        </div>
+                    `;
+                    return;
+                }
             }
+
+            const exams = allExams;
 
             const filteredExams = exams.filter(exam =>
                 exam.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -160,16 +175,19 @@
             }
 
             container.innerHTML = filteredExams.map(exam => {
-                const dateParts = exam.date.split('-');
+                const dateParts = (exam.date || '').split('-');
                 const formattedDate = dateParts.length === 3 ? `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}` : exam.date;
                 const isSelected = selectedExamId === exam.id;
+
+                // Calculate total questions from subjects
+                const totalQuestions = (exam.subjects || []).reduce((sum, s) => sum + (parseInt(s.questionCount) || 0), 0);
 
                 let typeBg = 'bg-purple-100 text-primary';
                 if (exam.type === 'TYT') typeBg = 'bg-blue-100 text-blue-600';
                 if (exam.type === 'AYT') typeBg = 'bg-orange-100 text-orange-600';
 
                 return `
-                    <div onclick="selectExam(${exam.id})" class="relative cursor-pointer transition-all duration-300 rounded-2xl border-2 ${isSelected ? 'border-primary bg-purple-50' : 'border-[#f1f5f9] bg-white'} p-4 shadow-sm hover:border-primary/30">
+                    <div onclick="window.selectExam('${exam.id}')" class="relative cursor-pointer transition-all duration-300 rounded-2xl border-2 ${isSelected ? 'border-primary bg-purple-50' : 'border-[#f1f5f9] bg-white'} p-4 shadow-sm hover:border-primary/30">
                         <div class="flex items-center justify-between">
                             <div class="flex flex-col gap-2">
                                 <div class="flex items-center gap-3">
@@ -178,7 +196,7 @@
                                 </div>
                                 <div class="flex items-center gap-2 text-text-muted text-[11px] font-medium">
                                     <span class="material-symbols-outlined text-[14px]">description</span>
-                                    <span>${exam.questions || 0} Soru</span>
+                                    <span>${totalQuestions} Soru</span>
                                     <span class="mx-1">•</span>
                                     <span class="material-symbols-outlined text-[14px]">calendar_today</span>
                                     <span>${formattedDate}</span>
@@ -197,19 +215,25 @@
             searchQuery = value;
             renderExams();
         }
+        window.handleSearch = handleSearch;
 
         function selectExam(id) {
             selectedExamId = id;
             renderExams();
         }
+        window.selectExam = selectExam;
 
         function proceedToScan() {
             if (!selectedExamId) {
                 alert('Lütfen bir sınav seçiniz.');
                 return;
             }
-            window.location.href = 'camera.html';
+            // Store selected exam ID in localStorage temporarily to pass it to camera.html
+            // Or pass it via URL parameters. Assuming camera.html reads from localStorage or expects a URL param.
+            // Let's pass via URL so it's consistent.
+            window.location.href = `camera.html?examId=${selectedExamId}`;
         }
+        window.proceedToScan = proceedToScan;
 
         window.onload = () => {
             renderExams();
