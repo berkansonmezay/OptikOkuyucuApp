@@ -144,8 +144,11 @@
             </button>
         </header>
 
-        <!-- Camera Feed Placeholder -->
-        <div id="camera-feed" class="flex items-center justify-center">
+        <!-- Camera Feed -->
+        <video id="camera-feed" autoplay playsinline muted
+            class="absolute inset-0 w-full h-full object-cover z-0"></video>
+        <div id="camera-placeholder"
+            class="absolute inset-0 flex items-center justify-center bg-[#111] z-0 transition-opacity duration-500">
             <span class="material-symbols-outlined text-white/20 text-[120px]">photo_camera</span>
         </div>
 
@@ -265,7 +268,32 @@
                     document.getElementById('examTypeLabel').textContent = exam.name || "SINAV";
                 }
             }
+
+            // Initialize Camera
+            await initCamera();
         };
+
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+                const videoEl = document.getElementById('camera-feed');
+                videoEl.srcObject = stream;
+
+                // Hide placeholder once video playing
+                videoEl.onplaying = () => {
+                    document.getElementById('camera-placeholder').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('camera-placeholder').style.display = 'none';
+                    }, 500);
+                };
+            } catch (err) {
+                console.error("Camera access error:", err);
+                const placeholder = document.getElementById('camera-placeholder');
+                placeholder.innerHTML = `<div class="text-center text-red-400 p-4"><span class="material-symbols-outlined text-[64px] mb-2">no_photography</span><br/>Kamera erişimi reddedildi veya bulunamadı. Lütfen izin verin.</div>`;
+            }
+        }
     </script>
 </body>
 
