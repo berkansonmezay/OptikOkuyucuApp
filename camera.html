@@ -246,15 +246,14 @@
                     }
                 }
 
-                // OMR Data Preparation (Mock for now, to be integrated with real pixel analysis)
-                const bookletTypes = ['A', 'B', 'C', 'D'];
-                const selectedBooklet = bookletTypes[Math.floor(Math.random() * bookletTypes.length)];
+                // OMR Data Preparation (Simulating logic: Booklet 'A' and empty answers)
+                const selectedBooklet = 'A'; // Fixed to 'A' based on form sample
 
                 const mockAnswers = {
-                    "Türkçe": "ABACADABACADABACDDAE",
-                    "Sosyal Bilgiler": "ABCDABCDAB",
+                    "Türkçe": "ABACADABAC D B CDDAE", // Example with spaces for unmarked questions
+                    "Sosyal Bilgiler": "ABC ABCD B",
                     "Din Kültürü": "DDDDCCCCCB",
-                    "İngilizce": "AAAAABBBBB",
+                    "İngilizce": "AAAAA     ", // Unmarked questions at the end
                     "Matematik": "ABCDABCDABCDABCDABCD",
                     "Fen Bilimleri": "DDDDCCCCBBBBAAAAABCD"
                 };
