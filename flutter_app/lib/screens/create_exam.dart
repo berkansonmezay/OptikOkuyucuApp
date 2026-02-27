@@ -258,7 +258,7 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
   Widget _buildSubjectsList() {
     return Column(
       children: [
-        ..._subjects.map((s) => _buildSubjectCard(s)).toList(),
+        ..._subjects.map((s) => _buildSubjectCard(s)),
         const SizedBox(height: 16),
         OutlinedButton.icon(
           onPressed: () {

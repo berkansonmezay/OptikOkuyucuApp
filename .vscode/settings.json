@@ -1,13 +1,5 @@
 {
-    "java.configuration.updateBuildConfiguration": "automatic",
-    "java.import.exclusions": [
-        "**/android/**",
-        "**/ios/**",
-        "**/build/**"
-    ],
-    "files.exclude": {
-        "**/android/.gradle": true,
-        "**/.dart_tool": true
-    },
-    "java.import.gradle.enabled": false
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "java.jdt.ls.java.home": "C:\\Program Files\\Java\\jdk-17",
+    "gradle.java.home": "C:\\Program Files\\Java\\jdk-17"
 }

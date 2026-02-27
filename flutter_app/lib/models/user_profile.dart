@@ -1,16 +1,20 @@
 class UserProfile {
+  String? id;
   String name;
   String email;
   String phone;
   String profileImageUrl;
   String institution;
+  String role;
 
   UserProfile({
+    this.id,
     required this.name,
     required this.email,
     required this.phone,
     required this.profileImageUrl,
     required this.institution,
+    required this.role,
   });
 
   Map<String, dynamic> toJson() => {
@@ -19,14 +23,17 @@ class UserProfile {
     'phone': phone,
     'profileImageUrl': profileImageUrl,
     'institution': institution,
+    'role': role,
   };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-    name: json['name'] ?? 'Ahmet Bakır',
-    email: json['email'] ?? 'ahmet.bakir@example.com',
-    phone: json['phone'] ?? '+90 532 123 45 67',
+    id: json['id'],
+    name: json['name'] ?? 'İsimsiz Kullanıcı',
+    email: json['email'] ?? json['username'] ?? '',
+    phone: json['phone'] ?? '',
     profileImageUrl: json['profileImageUrl'] ?? '',
-    institution: json['institution'] ?? 'ÖĞRETMEN PORTALİ',
+    institution: json['institution'] ?? 'Bilinmiyor',
+    role: json['role'] ?? 'user',
   );
 
   String get initials {

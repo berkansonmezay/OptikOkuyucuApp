@@ -168,7 +168,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       const SizedBox(width: 8),
                       Text(
                         '${exam.studentCount} Öğrenci',
-                        style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                        style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
                       ),
                     ],
                   ),

@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../core/app_colors.dart';
+import '../models/exam.dart';
 
 class StudentReportScreen extends StatelessWidget {
-  const StudentReportScreen({super.key});
+  final Exam exam;
+  final StudentResult result;
+
+  const StudentReportScreen({
+    super.key,
+    required this.exam,
+    required this.result,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -45,24 +54,25 @@ class StudentReportScreen extends StatelessWidget {
           BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
-      child: const Row(
+      child: Row(
         children: [
           CircleAvatar(
             radius: 30,
-            backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=12'),
+            backgroundColor: AppColors.primary.withOpacity(0.1),
+            child: Text(result.initials, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
           ),
-          SizedBox(width: 16),
+          const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Emirhan Soydan',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textMain),
+                result.studentName,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textMain),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text(
-                '12-A Sınıfı • No: 452',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                'No: ${result.studentNumber} • Kitapçık: ${result.bookType ?? "A"}',
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
               ),
             ],
           ),
@@ -72,6 +82,14 @@ class StudentReportScreen extends StatelessWidget {
   }
 
   Widget _buildRadarChart() {
+    // Collect stats from rawStats if available
+    final stats = result.rawStats ?? {};
+    final subjects = ['Türkçe', 'Matematik', 'Fen', 'Sosyal', 'Din', 'İng'];
+    final data = subjects.map((s) {
+      final val = stats[s.toLowerCase()]; // simplified check
+      return RadarEntry(value: (val is num) ? val.toDouble() : 50.0);
+    }).toList();
+
     return Container(
       padding: const EdgeInsets.all(24),
       height: 350,
@@ -82,7 +100,7 @@ class StudentReportScreen extends StatelessWidget {
       child: Column(
         children: [
           const Text(
-            'Konu Dağılım Analizi',
+            'Başarı Analizi',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 24),
@@ -91,21 +109,14 @@ class StudentReportScreen extends StatelessWidget {
               RadarChartData(
                 radarShape: RadarShape.polygon,
                 getTitle: (index, angle) {
-                  const titles = ['Matematik', 'Türkçe', 'Fen', 'Sosyal', 'İngilizce'];
-                  return RadarChartTitle(text: titles[index], angle: angle);
+                  return RadarChartTitle(text: subjects[index], angle: angle);
                 },
                 dataSets: [
                   RadarDataSet(
                     fillColor: AppColors.primary.withOpacity(0.2),
                     borderColor: AppColors.primary,
                     entryRadius: 3,
-                    dataEntries: [
-                      const RadarEntry(value: 85),
-                      const RadarEntry(value: 70),
-                      const RadarEntry(value: 90),
-                      const RadarEntry(value: 65),
-                      const RadarEntry(value: 80),
-                    ],
+                    dataEntries: data,
                   ),
                 ],
               ),
@@ -119,9 +130,9 @@ class StudentReportScreen extends StatelessWidget {
   Widget _buildScoreSection() {
     return Row(
       children: [
-        _buildScoreCard('LGS PUANI', '482.450', AppColors.primary),
+        _buildScoreCard('${exam.type} PUANI', result.score.toStringAsFixed(3), AppColors.primary),
         const SizedBox(width: 12),
-        _buildScoreCard('GENEL SIRA', '12 / 450', Colors.blue),
+        _buildScoreCard('SINAV TARİHİ', DateFormat('dd.MM.yyyy').format(exam.date), Colors.blue),
       ],
     );
   }
@@ -139,7 +150,7 @@ class StudentReportScreen extends StatelessWidget {
           children: [
             Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
             const SizedBox(height: 8),
-            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
+            FittedBox(child: Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color))),
           ],
         ),
       ),
@@ -147,6 +158,8 @@ class StudentReportScreen extends StatelessWidget {
   }
 
   Widget _buildDetailedStats() {
+    final stats = result.rawStats ?? {};
+    
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
@@ -155,17 +168,23 @@ class StudentReportScreen extends StatelessWidget {
         children: [
           const Text('Ders Bazlı Detaylar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 20),
-          _buildStatRow('Türkçe', '18 DOĞRU', '2 YANLIŞ', 0.9),
+          _buildStatRow('Türkçe', stats['tur_d'] ?? 0, stats['tur_y'] ?? 0, 20),
           const Divider(height: 32),
-          _buildStatRow('Matematik', '15 DOĞRU', '5 YANLIŞ', 0.75),
+          _buildStatRow('Matematik', stats['mat_d'] ?? 0, stats['mat_y'] ?? 0, 20),
           const Divider(height: 32),
-          _buildStatRow('Fen Bilimleri', '20 DOĞRU', '0 YANLIŞ', 1.0),
+          _buildStatRow('Fen Bilimleri', stats['fen_d'] ?? 0, stats['fen_y'] ?? 0, 20),
+          const Divider(height: 32),
+          _buildStatRow('Sosyal Bilgiler', stats['sos_d'] ?? 0, stats['sos_y'] ?? 0, 10),
         ],
       ),
     );
   }
 
-  Widget _buildStatRow(String subject, String d, String y, double progress) {
+  Widget _buildStatRow(String subject, dynamic d, dynamic y, int total) {
+    final dCount = (d is num) ? d.toInt() : 0;
+    final yCount = (y is num) ? y.toInt() : 0;
+    final progress = total > 0 ? dCount / total : 0.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -175,9 +194,9 @@ class StudentReportScreen extends StatelessWidget {
             Text(subject, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             Row(
               children: [
-                Text(d, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.green)),
+                Text('$dCount DOĞRU', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.green)),
                 const SizedBox(width: 8),
-                Text(y, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.redAccent)),
+                Text('$yCount YANLIŞ', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.redAccent)),
               ],
             ),
           ],

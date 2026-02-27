@@ -148,7 +148,12 @@ class _ExamResultsScreenState extends State<ExamResultsScreen> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const StudentReportScreen()),
+          MaterialPageRoute(
+            builder: (context) => StudentReportScreen(
+              exam: widget.exam,
+              result: student,
+            ),
+          ),
         );
       },
       borderRadius: BorderRadius.circular(24),

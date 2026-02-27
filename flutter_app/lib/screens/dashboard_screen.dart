@@ -6,12 +6,10 @@ import '../providers/exam_provider.dart';
 import '../models/exam.dart';
 import 'create_exam.dart';
 import '../providers/user_provider.dart';
-import '../models/user_profile.dart';
 import 'results_screen.dart';
 import 'settings_screen.dart';
 import 'scanner_screen.dart';
-import 'exam_results_screen.dart';
-import 'student_report_screen.dart';
+import 'admin_panel_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -24,14 +22,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = context.read<UserProvider>().user;
+      if (user != null) {
+        context.read<ExamProvider>().loadExams(user.id, user.role);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final userProvider = context.watch<UserProvider>();
+    final user = userProvider.user;
+
+    if (userProvider.isLoading || user == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFFDFDFF),
       body: SafeArea(
         child: IndexedStack(
           index: _currentIndex,
           children: [
-            _buildHomeTab(),
+            _buildDashboardHome(user),
             const ScannerScreen(),
             const ResultsScreen(),
             const SettingsScreen(),
@@ -48,20 +66,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
         unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 10),
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view_rounded),
-            activeIcon: Icon(Icons.grid_view_rounded, fill: 1.0),
+            icon: Icon(Icons.grid_view_rounded, size: 22),
+            activeIcon: Icon(Icons.grid_view_rounded, size: 22),
             label: 'Ana Sayfa',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.qr_code_scanner_rounded),
+            icon: Icon(Icons.qr_code_scanner_rounded, size: 22),
             label: 'Tara',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart_rounded),
+            icon: Icon(Icons.bar_chart_rounded, size: 22),
             label: 'Sonuçlar',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings_outlined),
+            icon: Icon(Icons.settings_outlined, size: 22),
             label: 'Ayarlar',
           ),
         ],
@@ -69,26 +87,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildHomeTab() {
+  Widget _buildDashboardHome(user) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(),
-          const SizedBox(height: 24),
+          _buildHeader(user),
+          const SizedBox(height: 32),
           _buildStatsCard(),
           const SizedBox(height: 32),
           _buildSectionHeader('YENİ SINAV OLUŞTUR'),
           const SizedBox(height: 16),
           Row(
             children: [
-              _buildExamTypeButton('İLKOKUL/ORTAOKUL GRUBU'),
-              const SizedBox(width: 12),
-              _buildExamTypeButton('LİSE GRUBU'),
+              _buildExamTypeButton('LGS', true),
+              const SizedBox(width: 8),
+              _buildExamTypeButton('TYT', false),
+              const SizedBox(width: 8),
+              _buildExamTypeButton('AYT', false),
             ],
           ),
           const SizedBox(height: 32),
+          if (user.role == 'admin') ...[
+            _buildSectionHeader('SİSTEM YÖNETİMİ'),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AdminPanelScreen()),
+                  );
+                },
+                icon: const Icon(Icons.shield_person_rounded),
+                label: const Text('Admin Paneli (Kurum Ekle)'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: BorderSide(color: AppColors.primary.withOpacity(0.2), width: 2),
+                  backgroundColor: AppColors.primary.withOpacity(0.05),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -98,9 +143,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               TextButton(
                 onPressed: () {
-                  setState(() {
-                    _currentIndex = 2; // Switch to Results tab
-                  });
+                  setState(() => _currentIndex = 2);
                 },
                 style: TextButton.styleFrom(
                   backgroundColor: AppColors.primary.withOpacity(0.05),
@@ -119,63 +162,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildHeader() {
-    return Consumer<UserProvider>(
-      builder: (context, userProvider, child) {
-        final user = userProvider.user;
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildHeader(user) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  user.name,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  user.email,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[400],
-                  ),
-                ),
-              ],
+            Text(
+              user.name,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
             ),
-            Row(
-              children: [
-                Container(
-                  decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
-                  child: IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF475569)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: AppColors.primary.withOpacity(0.1),
-                  backgroundImage: user.profileImageUrl.isNotEmpty
-                      ? NetworkImage(user.profileImageUrl)
-                      : null,
-                  child: user.profileImageUrl.isEmpty
-                      ? Text(
-                          user.initials,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        )
-                      : null,
-                ),
-              ],
+            const SizedBox(height: 2),
+            Text(
+              user.email,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.grey[400]),
             ),
           ],
-        );
-      },
+        ),
+        Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
+              child: IconButton(
+                onPressed: () {},
+                icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF475569)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: AppColors.primary.withOpacity(0.1),
+              child: Text(
+                user.initials,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -186,11 +211,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         gradient: AppColors.primaryGradient,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
+          BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
         ],
       ),
       child: Stack(
@@ -203,15 +224,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Bu Hafta Toplam Tarama',
-                style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
-              ),
+              const Text('Bu Hafta Toplam Tarama', style: TextStyle(color: Colors.white70, fontSize: 13)),
               const SizedBox(height: 6),
-              const Text(
-                '1,248',
-                style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w800),
-              ),
+              const Text('1,248', style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w800)),
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -235,36 +250,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 1.2,
-        color: Colors.grey[500],
-      ),
+      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: Colors.grey[500]),
     );
   }
 
-  Widget _buildExamTypeButton(String title) {
+  Widget _buildExamTypeButton(String title, bool isSelected) {
     return Expanded(
       child: GestureDetector(
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const CreateExamScreen()),
+            MaterialPageRoute(
+              builder: (context) => CreateExamScreen(
+                editExam: Exam(
+                  id: '',
+                  name: '',
+                  type: title,
+                  date: DateTime.now(),
+                  subjects: [],
+                ),
+              ),
+            ),
           );
         },
         child: Container(
-          height: 60,
+          height: 56,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isSelected ? AppColors.primary.withOpacity(0.05) : Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey[200]!, width: 2),
+            border: Border.all(color: isSelected ? AppColors.primary : Colors.grey[200]!, width: 2),
           ),
           child: Center(
             child: Text(
               title,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? AppColors.primary : Colors.grey[600],
+              ),
             ),
           ),
         ),
@@ -292,45 +315,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Icon(Icons.assignment_outlined, size: 48, color: Colors.grey[200]),
                 const SizedBox(height: 16),
-                const Text(
-                  'Henüz kaydedilmiş sınav yok.',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 13),
-                ),
+                const Text('Henüz kaydedilmiş sınav yok.', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
               ],
             ),
           );
         }
 
         final recentExams = provider.exams.take(5).toList();
-
         return ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: recentExams.length,
           separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            return _buildExamCard(context, recentExams[index], provider);
-          },
+          itemBuilder: (context, index) => _buildExamCard(context, recentExams[index], provider),
         );
       },
     );
   }
 
   Widget _buildExamCard(BuildContext context, Exam exam, ExamProvider provider) {
-    Color statusColor;
-    IconData statusIcon;
-    
-    if (exam.type == 'LGS') {
-      statusColor = AppColors.green;
-      statusIcon = Icons.check_circle_rounded;
-    } else if (exam.type == 'TYT') {
-      statusColor = AppColors.orange;
-      statusIcon = Icons.pending_rounded;
-    } else {
-      statusColor = AppColors.blue;
-      statusIcon = Icons.assignment_turned_in_rounded;
-    }
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -345,87 +348,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: statusColor.withOpacity(0.08), shape: BoxShape.circle),
-            child: Icon(statusIcon, color: statusColor, size: 24),
+            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), shape: BoxShape.circle),
+            child: Icon(Icons.assignment_outlined, color: AppColors.primary, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${exam.name} ${exam.type}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textMain),
-                ),
+                Text(exam.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 const SizedBox(height: 6),
                 Row(
                   children: [
                     _buildTag(Icons.calendar_today_rounded, DateFormat('dd MMM', 'tr_TR').format(exam.date)),
                     const SizedBox(width: 8),
-                    _buildTag(Icons.group_rounded, '${exam.studentCount} Öğrenci Sayısı'),
+                    _buildTag(Icons.group_rounded, '${exam.studentCount} Öğrenci'),
                   ],
                 ),
               ],
             ),
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert_rounded, color: Colors.grey),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            onSelected: (value) {
-              if (value == 'edit') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => CreateExamScreen(editExam: exam)),
-                );
-              } else if (value == 'delete') {
-                _showDeleteConfirmation(context, exam, provider);
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'edit',
-                child: Row(
-                  children: [
-                    Icon(Icons.edit_outlined, size: 20, color: AppColors.textMuted),
-                    SizedBox(width: 12),
-                    Text('Düzenle', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_outline_rounded, size: 20, color: Colors.redAccent),
-                    SizedBox(width: 12),
-                    Text('Sil', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.redAccent)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDeleteConfirmation(BuildContext context, Exam exam, ExamProvider provider) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Silme Onayı'),
-        content: const Text('Bu sınavı silmek istediğinizden emin misiniz?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
-          ),
-          TextButton(
-            onPressed: () {
-              provider.deleteExam(exam.id);
-              Navigator.pop(context);
-            },
-            child: const Text('Sil', style: TextStyle(color: Colors.redAccent)),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
           ),
         ],
       ),

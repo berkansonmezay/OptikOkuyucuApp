@@ -36,45 +36,52 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Logo Placeholder (Using an Icon for now)
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
+            Hero(
+              tag: 'app_logo',
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(40),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(36),
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.cover,
                   ),
-                ],
-              ),
-              child: const Icon(
-                Icons.qr_code_scanner_rounded,
-                size: 80,
-                color: AppColors.primary,
+                ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             const Text(
               'Optik Okuyucu',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
+                fontSize: 32,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Hızlı ve Güvenilir Tarama',
+              'Sınav Asistanınız',
               style: TextStyle(
                 color: Colors.white.withOpacity(0.8),
-                fontSize: 16,
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 48),
+            const SizedBox(height: 64),
             const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             ),

@@ -13,36 +13,41 @@ class ExamProvider with ChangeNotifier {
     loadExams();
   }
 
-  Future<void> loadExams() async {
+  Future<void> loadExams([String? userId, String? role]) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final snapshot = await FirebaseFirestore.instance.collection('exams').orderBy('date', descending: true).get();
+      Query query = FirebaseFirestore.instance.collection('exams').orderBy('date', descending: true);
+      
+      // Role-based filtering
+      if (role != 'admin' && userId != null) {
+        query = query.where('creatorId', isEqualTo: userId);
+      }
+
+      final snapshot = await query.get();
       _exams = snapshot.docs.map((doc) {
-        final data = doc.data();
-        data['id'] = doc.id; // Override ID with doc ID if missing
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
         return Exam.fromJson(data);
       }).toList();
 
-      // For cross-platform compatibility, fetch results subcollection
+      // Fetch results for each exam
       for (var exam in _exams) {
         final resultsSnap = await FirebaseFirestore.instance.collection('exams').doc(exam.id).collection('results').get();
-        if (resultsSnap.docs.isNotEmpty) {
-           exam.students = resultsSnap.docs.map((rDoc) {
-             final rData = rDoc.data();
-             rData['id'] = rDoc.id;
-             // mapping web fields to flutter fields
-             return StudentResult(
-               id: rDoc.id,
-               studentName: rData['name'] ?? rData['studentName'] ?? 'Bilinmeyen',
-               studentNumber: rData['studentNo'] ?? rData['studentNumber'] ?? '',
-               score: double.tryParse(rData['score'].toString()) ?? 0.0,
-               status: 'success',
-               bookType: rData['booklet'] ?? rData['bookType'] ?? 'A',
-             );
-           }).toList();
-        }
+        exam.students = resultsSnap.docs.map((rDoc) {
+          final rData = rDoc.data();
+          return StudentResult(
+            id: rDoc.id,
+            studentName: rData['name'] ?? 'Bilinmeyen',
+            studentNumber: rData['studentNo'] ?? '',
+            score: (rData['score'] as num?)?.toDouble() ?? 0.0,
+            status: 'success',
+            bookType: rData['booklet'] ?? 'A',
+            rawStats: rData,
+          );
+        }).toList();
+        exam.studentCount = exam.students.length;
       }
 
     } catch (e) {
@@ -53,26 +58,18 @@ class ExamProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addExam(Exam exam) async {
+  Future<void> addExam(Exam exam, String creatorId) async {
     try {
-      // Create a doc reference first to get an ID if it's new
       final docRef = FirebaseFirestore.instance.collection('exams').doc();
-      final finalExam = Exam(
-         id: docRef.id,
-         name: exam.name,
-         type: exam.type,
-         date: exam.date,
-         studentCount: exam.studentCount,
-         status: exam.status,
-         subjects: exam.subjects,
-         students: exam.students,
-      );
-      
-      final examData = finalExam.toJson();
-      // Remove students from exam doc if we want to store them in subcollection, but keeping it simple for now
+      final examData = exam.toJson();
+      examData['id'] = docRef.id;
+      examData['creatorId'] = creatorId;
+      examData['createdAt'] = DateTime.now().toIso8601String();
       examData.remove('students'); 
+      
       await docRef.set(examData);
-
+      
+      final finalExam = Exam.fromJson(examData);
       _exams.insert(0, finalExam);
       notifyListeners();
     } catch (e) {
@@ -84,6 +81,8 @@ class ExamProvider with ChangeNotifier {
     try {
       final examData = updatedExam.toJson();
       examData.remove('students');
+      examData['updatedAt'] = DateTime.now().toIso8601String();
+      
       await FirebaseFirestore.instance.collection('exams').doc(id).set(examData, SetOptions(merge: true));
       
       final index = _exams.indexWhere((e) => e.id == id);
@@ -109,21 +108,32 @@ class ExamProvider with ChangeNotifier {
   Future<void> saveStudentResult(String examId, StudentResult result) async {
      try {
         final resultDoc = FirebaseFirestore.instance.collection('exams').doc(examId).collection('results').doc();
-        await resultDoc.set({
+        final resultData = {
            'name': result.studentName,
            'studentNo': result.studentNumber,
            'score': result.score,
            'booklet': result.bookType,
-           'tcNo': '', // default
-           'rawAnswers': '', // default
-        });
+           'createdAt': DateTime.now().toIso8601String(),
+        };
         
-        // Find exam and update state
+        await resultDoc.set(resultData);
+        
+        // Update exam student count
+        final examRef = FirebaseFirestore.instance.collection('exams').doc(examId);
+        await FirebaseFirestore.instance.runTransaction((transaction) async {
+          final snapshot = await transaction.get(examRef);
+          if (snapshot.exists) {
+            final currentCount = snapshot.data()?['studentCount'] ?? 0;
+            transaction.update(examRef, {'studentCount': currentCount + 1});
+          }
+        });
+
+        // Update local state
         final index = _exams.indexWhere((e) => e.id == examId);
         if (index != -1) {
            _exams[index].students.add(result);
-           _exams[index].studentCount = _exams[index].students.length;
-           await updateExam(examId, _exams[index]); // This updates studentCount in DB
+           _exams[index].studentCount++;
+           notifyListeners();
         }
      } catch (e) {
         debugPrint('Error saving student result: $e');

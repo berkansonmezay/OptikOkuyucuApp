@@ -7,6 +7,8 @@ class Exam {
   String status;
   List<Subject> subjects;
   List<StudentResult> students;
+  String? creatorId;
+  Map<String, dynamic>? scoring;
 
   Exam({
     required this.id,
@@ -17,6 +19,8 @@ class Exam {
     this.status = 'pending',
     required this.subjects,
     this.students = const [],
+    this.creatorId,
+    this.scoring,
   });
 
   Map<String, dynamic> toJson() => {
@@ -28,6 +32,8 @@ class Exam {
     'status': status,
     'subjects': subjects.map((s) => s.toJson()).toList(),
     'students': students.map((s) => s.toJson()).toList(),
+    'creatorId': creatorId,
+    'scoring': scoring,
   };
 
   factory Exam.fromJson(Map<String, dynamic> json) => Exam(
@@ -41,6 +47,8 @@ class Exam {
     students: json['students'] != null 
         ? (json['students'] as List).map((s) => StudentResult.fromJson(s)).toList()
         : [],
+    creatorId: json['creatorId'],
+    scoring: json['scoring'],
   );
 }
 
@@ -51,6 +59,7 @@ class StudentResult {
   final double score;
   final String status; // 'success', 'warning' (missing info)
   final String? bookType;
+  final Map<String, dynamic>? rawStats; // Added for web parity
 
   StudentResult({
     required this.id,
@@ -59,6 +68,7 @@ class StudentResult {
     required this.score,
     required this.status,
     this.bookType,
+    this.rawStats,
   });
 
   String get initials {
@@ -77,6 +87,7 @@ class StudentResult {
     'score': score,
     'status': status,
     'bookType': bookType,
+    'rawStats': rawStats,
   };
 
   factory StudentResult.fromJson(Map<String, dynamic> json) => StudentResult(
@@ -86,6 +97,7 @@ class StudentResult {
     score: (json['score'] as num).toDouble(),
     status: json['status'],
     bookType: json['bookType'],
+    rawStats: json['rawStats'],
   );
 }
 

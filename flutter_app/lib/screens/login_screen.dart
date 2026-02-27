@@ -22,7 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             // Upper Section with Gradient and Logo
             Container(
-              height: 280,
+              height: 300,
               width: double.infinity,
               decoration: const BoxDecoration(
                 gradient: AppColors.primaryGradient,
@@ -34,33 +34,49 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const SizedBox(height: 40),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(
-                      Icons.qr_code_scanner_rounded,
-                      size: 60,
-                      color: AppColors.primary,
+                  Hero(
+                    tag: 'app_logo',
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Hoş Geldiniz',
+                    'Optik Okuyucu',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Hesabınıza giriş yapın',
+                    'Sınav Asistanınız',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.8),
                       fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -68,12 +84,25 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             
             Padding(
-              padding: const EdgeInsets.all(30.0),
+              padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const Center(
+                    child: Text(
+                      'Hoş Geldiniz',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textMain,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  
+                  // Institution Code Field
                   const Text(
-                    'E-posta Adresi',
+                    'Kurum Kodu',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: AppColors.textMain,
@@ -82,17 +111,48 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     decoration: InputDecoration(
-                      hintText: 'ornek@email.com',
-                      prefixIcon: const Icon(Icons.email_outlined),
+                      hintText: 'Kurum kodunu giriniz',
+                      prefixIcon: const Icon(Icons.business_outlined),
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
+
+                  const Text(
+                    'E-posta veya Kullanıcı Adı',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textMain,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'E-posta veya kullanıcı adı giriniz',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
                   const Text(
                     'Şifre',
                     style: TextStyle(
@@ -116,7 +176,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
                       ),
                     ),
                   ),
@@ -131,14 +195,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
+                    height: 56,
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => const DashboardScreen()),
-                        );
-                      },
-                      child: const Text('Giriş Yap'),
+                      onPressed: _login, // Call the new _login method
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Giriş Yap', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          SizedBox(width: 8),
+                          Icon(Icons.login_rounded),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 30),

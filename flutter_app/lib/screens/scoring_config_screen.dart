@@ -21,8 +21,10 @@ class _ScoringConfigScreenState extends State<ScoringConfigScreen> {
   final Map<String, TextEditingController> _weightControllers = {
     'Türkçe': TextEditingController(text: '4.0'),
     'Matematik': TextEditingController(text: '4.0'),
-    'Fen Bilimleri': TextEditingController(text: '3.0'),
-    'Sosyal Bilgiler': TextEditingController(text: '2.0'),
+    'Fen Bilimleri': TextEditingController(text: '4.0'),
+    'Sosyal Bilgiler': TextEditingController(text: '1.0'),
+    'Din Kültürü': TextEditingController(text: '1.0'),
+    'İngilizce': TextEditingController(text: '1.0'),
   };
 
   @override
@@ -39,16 +41,30 @@ class _ScoringConfigScreenState extends State<ScoringConfigScreen> {
     if (exam == null) return;
     setState(() {
       _selectedExam = exam;
-      final config = Provider.of<ScoringProvider>(context, listen: false).getConfigForExam(exam.id);
-      if (config != null) {
-        _minScoreController.text = config.minScore.toString();
-        _maxScoreController.text = config.maxScore.toString();
-        _netOption = config.netOption;
-        config.subjectWeights.forEach((key, value) {
-          if (_weightControllers.containsKey(key)) {
-            _weightControllers[key]!.text = value.toString();
-          }
-        });
+      if (exam.scoring != null) {
+        final scoring = exam.scoring!;
+        _minScoreController.text = (scoring['minScore'] ?? 0).toString();
+        _maxScoreController.text = (scoring['maxScore'] ?? 500).toString();
+        _netOption = scoring['netOption'] ?? '3y1d';
+        final weights = scoring['subjectWeights'] as Map<String, dynamic>?;
+        if (weights != null) {
+          weights.forEach((key, value) {
+            if (_weightControllers.containsKey(key)) {
+              _weightControllers[key]!.text = value.toString();
+            }
+          });
+        }
+      } else {
+        // Set defaults for LGS if type is LGS
+        if (exam.type == 'LGS') {
+           _maxScoreController.text = '500';
+           _weightControllers['Türkçe']!.text = '4.0';
+           _weightControllers['Matematik']!.text = '4.0';
+           _weightControllers['Fen Bilimleri']!.text = '4.0';
+           _weightControllers['Sosyal Bilgiler']!.text = '1.0';
+           _weightControllers['Din Kültürü']!.text = '1.0';
+           _weightControllers['İngilizce']!.text = '1.0';
+        }
       }
     });
   }
@@ -61,14 +77,19 @@ class _ScoringConfigScreenState extends State<ScoringConfigScreen> {
       return;
     }
 
-    final config = ScoringConfig(
-      minScore: double.tryParse(_minScoreController.text) ?? 0,
-      maxScore: double.tryParse(_maxScoreController.text) ?? 100,
-      netOption: _netOption,
-      subjectWeights: _weightControllers.map((key, controller) => MapEntry(key, double.tryParse(controller.text) ?? 1.0)),
-    );
+    final scoringData = {
+      'minScore': double.tryParse(_minScoreController.text) ?? 0,
+      'maxScore': double.tryParse(_maxScoreController.text) ?? 500,
+      'netOption': _netOption,
+      'subjectWeights': _weightControllers.map((key, controller) => MapEntry(key, double.tryParse(controller.text) ?? 1.0)),
+    };
 
-    Provider.of<ScoringProvider>(context, listen: false).saveConfig(_selectedExam!.id, config);
+    _selectedExam!.scoring = scoringData;
+    context.read<ExamProvider>().updateExam(_selectedExam!.id, _selectedExam!);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Yapılandırma kaydedildi')),
+    );
     Navigator.pop(context);
   }
 
@@ -285,6 +306,10 @@ class _ScoringConfigScreenState extends State<ScoringConfigScreen> {
           _buildWeightItem('Fen Bilimleri', Icons.science_rounded),
           const Divider(height: 1, color: Color(0xFFF8FAFC)),
           _buildWeightItem('Sosyal Bilgiler', Icons.public_rounded),
+          const Divider(height: 1, color: Color(0xFFF8FAFC)),
+          _buildWeightItem('Din Kültürü', Icons.mosque_rounded),
+          const Divider(height: 1, color: Color(0xFFF8FAFC)),
+          _buildWeightItem('İngilizce', Icons.language_rounded),
         ],
       ),
     );
