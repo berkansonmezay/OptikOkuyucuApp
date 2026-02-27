@@ -266,8 +266,13 @@
 
                 toast.innerHTML = '<span class="material-symbols-outlined text-lg">check_circle</span> FORM TARANDI';
 
+                // Get preview image data URL to pass to next screen
+                // Reduce size for URL parameter (taking a smaller quality jpeg from canvas)
+                const previewUrl = canvasElement ? canvasElement.toDataURL('image/jpeg', 0.5) : '';
+
                 setTimeout(() => {
-                    window.location.href = `scan-success.html?examId=${selectedExamId}&studentName=${encodeURIComponent(resultData.name)}&studentNo=${resultData.studentNo}`;
+                    const encodedPreview = encodeURIComponent(previewUrl);
+                    window.location.href = `scan-success.html?examId=${selectedExamId}&studentName=${encodeURIComponent(resultData.name)}&studentNo=${resultData.studentNo}&previewUrl=${encodedPreview}`;
                 }, 1000);
 
             } catch (error) {

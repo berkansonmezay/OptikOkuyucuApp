@@ -76,22 +76,52 @@
             <!-- Student Info Card -->
             <div class="w-full bg-gray-50 rounded-2xl p-6 mb-8 border border-purple-100/50" id="studentInfoCard">
                 <h3 class="text-primary text-[10px] font-bold uppercase tracking-widest mb-5">ÖĞRENCİ BİLGİLERİ</h3>
-                <div class="flex items-center gap-4 mb-5">
-                    <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <span class="material-symbols-outlined text-2xl">person</span>
+
+                <div class="flex flex-col gap-4">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                            <span class="material-symbols-outlined text-xl">person</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <p class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Adı Soyadı</p>
+                            <p class="text-slate-900 text-sm font-bold truncate" id="displayStudentName">Yükleniyor...
+                            </p>
+                        </div>
                     </div>
-                    <div class="flex flex-col">
-                        <p class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Ad Soyad</p>
-                        <p class="text-slate-900 text-base font-bold" id="displayStudentName">Yükleniyor...</p>
+
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                            <span class="material-symbols-outlined text-xl">badge</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <p class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Öğrenci Numarası
+                            </p>
+                            <p class="text-slate-900 text-sm font-bold" id="displayStudentNo">---</p>
+                        </div>
                     </div>
-                </div>
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <span class="material-symbols-outlined text-2xl">badge</span>
+
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                            <span class="material-symbols-outlined text-xl">id_card</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <p class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">TC Numarası</p>
+                            <p class="text-slate-900 text-sm font-bold" id="displayStudentTc">---</p>
+                        </div>
                     </div>
-                    <div class="flex flex-col">
-                        <p class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Öğrenci Numarası</p>
-                        <p class="text-slate-900 text-base font-bold" id="displayStudentNo">---</p>
+
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                            <span class="material-symbols-outlined text-xl">school</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <p class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Sınıfı</p>
+                            <p class="text-slate-900 text-sm font-bold" id="displayStudentClass">---</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -164,14 +194,23 @@
             import { getExamById } from './firebase-config.js';
 
             // Very basic stub to grab parameters passed from `camera.html` in the future
-            // e.g. scan-success.html?studentName=Ahmet&studentNo=123&examId=XYZ
+            // e.g. scan-success.html?studentName=Ahmet&studentNo=123&studentTc=11111111111&studentClass=12A&examId=XYZ
             const urlParams = new URLSearchParams(window.location.search);
             const studentName = urlParams.get('studentName') || 'Ahmet Yılmaz';
             const studentNo = urlParams.get('studentNo') || '12345';
+            const studentTc = urlParams.get('studentTc') || '12345678901';
+            const studentClass = urlParams.get('studentClass') || '12/A';
             const examId = urlParams.get('examId');
+            const previewUrl = urlParams.get('previewUrl');
 
             document.getElementById('displayStudentName').textContent = studentName;
             document.getElementById('displayStudentNo').textContent = studentNo;
+            document.getElementById('displayStudentTc').textContent = studentTc;
+            document.getElementById('displayStudentClass').textContent = studentClass;
+
+            if (previewUrl) {
+                document.getElementById('previewImage').style.backgroundImage = `url('${previewUrl}')`;
+            }
 
             async function loadExamInfo() {
                 if (examId) {
