@@ -438,24 +438,29 @@
             activeSwipeElement = e.currentTarget;
             activeSwipeElement.style.transition = 'none';
             isMoving = false;
-
-            // Add swiping state to parent
-            const container = activeSwipeElement.closest('.swipe-container');
-            if (container) container.classList.add('swiping');
         };
 
         window.handleTouchMove = function (e) {
             if (!activeSwipeElement) return;
             touchMoveX = e.touches[0].clientX;
             const diff = touchMoveX - touchStartX;
+            const container = activeSwipeElement.closest('.swipe-container');
 
             // Only allow swipe to left (negative diff)
-            if (diff < -5) { // Threshold to start
+            if (diff < -5) { // Minimum threshold to start movement
                 isMoving = true;
                 const move = Math.max(diff, -100);
                 activeSwipeElement.style.transform = `translateX(${move}px)`;
+
+                // Show delete button only after swiping halfway (40px)
+                if (diff < -40) {
+                    if (container) container.classList.add('swiping');
+                } else {
+                    if (container) container.classList.remove('swiping');
+                }
             } else if (diff > 0) {
                 activeSwipeElement.style.transform = `translateX(0px)`;
+                if (container) container.classList.remove('swiping');
             }
         };
 
