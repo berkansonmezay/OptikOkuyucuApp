@@ -76,13 +76,14 @@
 
         .swipe-action {
             position: absolute;
-            top: 1px;
-            bottom: 1px;
-            right: 1px;
+            top: 0;
+            bottom: 0;
+            right: 0;
             width: 80px;
             background: #ef4444;
             /* red-500 */
-            display: flex;
+            display: none;
+            /* Hidden by default */
             align-items: center;
             justify-content: center;
             color: white;
@@ -92,6 +93,12 @@
             font-weight: 800;
             font-size: 11px;
             text-transform: uppercase;
+        }
+
+        .swipe-container.swiping .swipe-action,
+        .swipe-container.swiped .swipe-action {
+            display: flex;
+            /* Only show when swiping or swiped */
         }
     </style>
 </head>
@@ -141,11 +148,13 @@
         const examId = urlParams.get('id');
 
         window.toggleStudentDetail = function (headerEl) {
-            // Check if any card is currently swiped
-            const swipedCard = document.querySelector('.swipe-content[style*="translateX"]');
-            if (swipedCard && swipedCard.style.transform !== 'translateX(0px)') {
-                // If this or another card is swiped, reset it instead of detailing
-                swipedCard.style.transform = 'translateX(0px)';
+            const container = headerEl.closest('.swipe-container');
+            const content = container.querySelector('.swipe-content');
+
+            // If the card is currently swiped left, just reset it
+            if (container.classList.contains('swiped') || (content.style.transform && content.style.transform !== 'translateX(0px)')) {
+                content.style.transform = 'translateX(0px)';
+                container.classList.remove('swiped', 'swiping');
                 return;
             }
 
@@ -429,6 +438,10 @@
             activeSwipeElement = e.currentTarget;
             activeSwipeElement.style.transition = 'none';
             isMoving = false;
+
+            // Add swiping state to parent
+            const container = activeSwipeElement.closest('.swipe-container');
+            if (container) container.classList.add('swiping');
         };
 
         window.handleTouchMove = function (e) {
@@ -437,12 +450,11 @@
             const diff = touchMoveX - touchStartX;
 
             // Only allow swipe to left (negative diff)
-            if (diff < -10) { // 10px threshold
+            if (diff < -5) { // Threshold to start
                 isMoving = true;
-                const move = Math.max(diff, -100); // Max swipe 100px
+                const move = Math.max(diff, -100);
                 activeSwipeElement.style.transform = `translateX(${move}px)`;
-            } else if (diff > 5) {
-                // Return to zero if swiping back
+            } else if (diff > 0) {
                 activeSwipeElement.style.transform = `translateX(0px)`;
             }
         };
@@ -451,19 +463,26 @@
             if (!activeSwipeElement) return;
             activeSwipeElement.style.transition = 'transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1)';
             const diff = touchMoveX - touchStartX;
+            const container = activeSwipeElement.closest('.swipe-container');
 
             if (isMoving && diff < -40) {
                 // Swipe successful
                 activeSwipeElement.style.transform = `translateX(-80px)`;
+                if (container) {
+                    container.classList.remove('swiping');
+                    container.classList.add('swiped');
+                }
             } else {
                 // Reset
                 activeSwipeElement.style.transform = `translateX(0px)`;
+                if (container) {
+                    container.classList.remove('swiping', 'swiped');
+                }
             }
 
             // Reset variables
             touchStartX = 0;
             touchMoveX = 0;
-            // Delay resetting isMoving slightly to prevent immediate click
             setTimeout(() => { isMoving = false; }, 50);
         };
 
