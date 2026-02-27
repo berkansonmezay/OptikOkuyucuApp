@@ -280,6 +280,24 @@ export async function getStudentResults(examId) {
     }
 }
 
+export async function getStudentResult(examId, resultId) {
+    try {
+        const exam = await getExamById(examId);
+        if (!exam) return null;
+
+        const docRef = doc(db, "exams", examId, "results", resultId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() };
+        }
+        return null;
+    } catch (e) {
+        console.error("Error getting student result: ", e);
+        return null;
+    }
+}
+
 export async function deleteStudentResult(examId, resultId) {
     try {
         const exam = await getExamById(examId);
