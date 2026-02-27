@@ -117,6 +117,16 @@ export async function getExams(userId = null) {
     }
 }
 
+export async function getTotalScanCount(userId = null) {
+    try {
+        const exams = await getExams(userId);
+        return exams.reduce((total, exam) => total + (exam.studentCount || 0), 0);
+    } catch (e) {
+        console.error("Error calculating total scan count:", e);
+        return 0;
+    }
+}
+
 export async function deleteExam(examId) {
     try {
         const currentUser = getCurrentUser();

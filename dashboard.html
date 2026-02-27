@@ -106,8 +106,8 @@
                     <span class="material-symbols-outlined text-[140px]">analytics</span>
                 </div>
                 <div class="z-10 relative">
-                    <p class="text-sm font-medium text-white/90 mb-1">Bu Hafta Toplam Tarama</p>
-                    <h3 class="text-4xl font-bold tracking-tight">1,248</h3>
+                    <p class="text-sm font-medium text-white/90 mb-1">Toplam Tarama</p>
+                    <h3 id="totalScanCount" class="text-4xl font-bold tracking-tight">...</h3>
                 </div>
                 <div
                     class="z-10 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 self-start mt-1">
@@ -155,7 +155,18 @@
             </section>
 
             <script type="module">
-                import { getExams, deleteExam as deleteExamFromDb, getUserProfile, getCurrentUser } from './firebase-config.js';
+                import { getExams, deleteExam as deleteExamFromDb, getUserProfile, getCurrentUser, getTotalScanCount } from './firebase-config.js?v=3.2';
+
+                async function updateStats() {
+                    const sessionUser = getCurrentUser();
+                    const filterId = (sessionUser && sessionUser.role !== 'admin') ? sessionUser.id : null;
+                    const totalScans = await getTotalScanCount(filterId);
+
+                    const countEl = document.getElementById('totalScanCount');
+                    if (countEl) {
+                        countEl.textContent = new Intl.NumberFormat('tr-TR').format(totalScans);
+                    }
+                }
 
                 async function loadRecentExams() {
                     const container = document.getElementById('recentExamsList');
@@ -315,6 +326,7 @@
                 window.onload = () => {
                     loadRecentExams();
                     loadUserProfile();
+                    updateStats();
                 };
             </script>
         </main>
