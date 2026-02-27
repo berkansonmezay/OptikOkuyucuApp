@@ -325,7 +325,8 @@
 
                     students.forEach(std => {
                         // Output: StudentNo TCNo Name Class Booklet Answers
-                        let row = `${(std.studentNo || '').padEnd(10)} ${(std.tcNo || '').padEnd(11)} ${(std.name || '').padEnd(25)} ${(std.className || '').padEnd(5)} ${(std.booklet || 'A')}`;
+                        // Output format matched to image with fixed widths for perfect alignment
+                        let row = `${(std.studentNo || '').padEnd(12)} ${(std.tcNo || '').padEnd(15)} ${(std.name || '').padEnd(30)} ${(std.className || '').padEnd(6)} ${(std.booklet || 'A').padEnd(6)}`;
 
                         try {
                             const answers = JSON.parse(std.rawAnswers);
