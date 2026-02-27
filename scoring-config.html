@@ -153,10 +153,12 @@
                 </div>
             </div>
 
-            <script>
+            <script type="module">
+                import { getExams, getExamById, saveExam, getCurrentUser } from './firebase-config.js?v=3.2';
+
                 let selectedNetOption = "3y1d";
 
-                function selectNetOption(button) {
+                window.selectNetOption = function (button) {
                     const container = document.getElementById('netOptionsContainer');
                     const buttons = container.querySelectorAll('button');
 
@@ -168,67 +170,113 @@
                     selectedNetOption = button.getAttribute('data-value');
                 }
 
-                function loadExams() {
+                async function loadExams() {
                     const select = document.getElementById('examSelect');
-                    const exams = JSON.parse(localStorage.getItem('exams') || '[]');
+                    const sessionUser = getCurrentUser();
+                    const filterId = (sessionUser && sessionUser.role !== 'admin') ? sessionUser.id : null;
 
-                    exams.forEach((exam, index) => {
-                        const option = document.createElement('option');
-                        option.value = index;
-                        option.textContent = `${exam.name} (${exam.type})`;
-                        select.appendChild(option);
-                    });
-                }
+                    try {
+                        const exams = await getExams(filterId);
 
-                function loadScoringConfig() {
-                    const examIndex = document.getElementById('examSelect').value;
-                    const configs = JSON.parse(localStorage.getItem('scoring_configs') || '{}');
-                    const config = configs[examIndex];
+                        // Clear existing except placeholder
+                        select.innerHTML = '<option value="" disabled selected>Bir sınav seçiniz...</option>';
 
-                    if (config) {
-                        document.getElementById('minScore').value = config.minScore;
-                        document.getElementById('maxScore').value = config.maxScore;
-
-                        // Set net option
-                        const buttons = document.querySelectorAll('#netOptionsContainer button');
-                        buttons.forEach(btn => {
-                            if (btn.getAttribute('data-value') === config.netOption) {
-                                selectNetOption(btn);
-                            }
+                        exams.forEach((exam) => {
+                            const option = document.createElement('option');
+                            option.value = exam.id;
+                            option.textContent = `${exam.name} (${exam.type})`;
+                            select.appendChild(option);
                         });
-
-                        // Set coefficients
-                        document.getElementById('weight_turkce').value = config.weights.turkce;
-                        document.getElementById('weight_matematik').value = config.weights.matematik;
-                        document.getElementById('weight_fen').value = config.weights.fen;
-                        document.getElementById('weight_sosyal').value = config.weights.sosyal;
+                    } catch (e) {
+                        console.error("Error loading exams:", e);
                     }
                 }
 
-                function saveScoringConfig() {
-                    const examIndex = document.getElementById('examSelect').value;
-                    if (examIndex === "") {
+                window.loadScoringConfig = async function () {
+                    const examId = document.getElementById('examSelect').value;
+                    if (!examId) return;
+
+                    try {
+                        const exam = await getExamById(examId);
+                        if (exam && exam.scoring) {
+                            const config = exam.scoring;
+                            document.getElementById('minScore').value = config.minScore || 0;
+                            document.getElementById('maxScore').value = config.maxScore || 100;
+
+                            // Set net option
+                            const buttons = document.querySelectorAll('#netOptionsContainer button');
+                            buttons.forEach(btn => {
+                                if (btn.getAttribute('data-value') === config.netOption) {
+                                    selectNetOption(btn);
+                                }
+                            });
+
+                            // Set coefficients
+                            if (config.weights) {
+                                document.getElementById('weight_turkce').value = config.weights.turkce || "4.0";
+                                document.getElementById('weight_matematik').value = config.weights.matematik || "4.0";
+                                document.getElementById('weight_fen').value = config.weights.fen || "3.0";
+                                document.getElementById('weight_sosyal').value = config.weights.sosyal || "2.0";
+                            }
+                        } else {
+                            // Reset to defaults if no config exists
+                            document.getElementById('minScore').value = 0;
+                            document.getElementById('maxScore').value = 100;
+                            document.getElementById('weight_turkce').value = "4.0";
+                            document.getElementById('weight_matematik').value = "4.0";
+                            document.getElementById('weight_fen').value = "3.0";
+                            document.getElementById('weight_sosyal').value = "2.0";
+                        }
+                    } catch (e) {
+                        console.error("Error loading scoring config:", e);
+                    }
+                }
+
+                window.saveScoringConfig = async function () {
+                    const examId = document.getElementById('examSelect').value;
+                    if (!examId) {
                         alert('Lütfen önce bir sınav seçiniz.');
                         return;
                     }
 
-                    const config = {
-                        minScore: document.getElementById('minScore').value,
-                        maxScore: document.getElementById('maxScore').value,
-                        netOption: selectedNetOption,
-                        weights: {
-                            turkce: document.getElementById('weight_turkce').value,
-                            matematik: document.getElementById('weight_matematik').value,
-                            fen: document.getElementById('weight_fen').value,
-                            sosyal: document.getElementById('weight_sosyal').value
-                        }
-                    };
+                    const btn = document.querySelector('button[onclick="saveScoringConfig()"]');
+                    const originalHTML = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> Kaydediliyor...';
 
-                    const configs = JSON.parse(localStorage.getItem('scoring_configs') || '{}');
-                    configs[examIndex] = config;
-                    localStorage.setItem('scoring_configs', JSON.stringify(configs));
+                    try {
+                        const exam = await getExamById(examId);
+                        if (!exam) throw new Error("Sınav bulunamadı.");
 
-                    window.history.back();
+                        const scoringConfig = {
+                            minScore: parseFloat(document.getElementById('minScore').value) || 0,
+                            maxScore: parseFloat(document.getElementById('maxScore').value) || 100,
+                            netOption: selectedNetOption,
+                            weights: {
+                                turkce: parseFloat(document.getElementById('weight_turkce').value) || 0,
+                                matematik: parseFloat(document.getElementById('weight_matematik').value) || 0,
+                                fen: parseFloat(document.getElementById('weight_fen').value) || 0,
+                                sosyal: parseFloat(document.getElementById('weight_sosyal').value) || 0
+                            },
+                            updatedAt: new Date().toISOString()
+                        };
+
+                        // Merge with existing exam data
+                        const updatedExam = {
+                            ...exam,
+                            scoring: scoringConfig
+                        };
+
+                        await saveExam(updatedExam);
+                        alert('Puanlama yapılandırması başarıyla kaydedildi.');
+                        window.history.back();
+                    } catch (e) {
+                        console.error("Error saving scoring config:", e);
+                        alert('Kaydedilirken bir hata oluştu.');
+                    } finally {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHTML;
+                    }
                 }
 
                 window.onload = loadExams;
