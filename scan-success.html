@@ -123,6 +123,25 @@
                             <p class="text-slate-900 text-sm font-bold" id="displayStudentClass">---</p>
                         </div>
                     </div>
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                            <span class="material-symbols-outlined text-xl">menu_book</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <p class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Kitapçık Türü</p>
+                            <p class="text-slate-900 text-sm font-bold" id="displayBooklet">---</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OMR Result Summary -->
+            <div id="omrResultSummary"
+                class="w-full bg-white rounded-2xl p-6 mb-8 border border-gray-100 shadow-sm hidden">
+                <h3 class="text-primary text-[10px] font-bold uppercase tracking-widest mb-5">OKUNAN BRANŞLAR</h3>
+                <div id="branchList" class="flex flex-wrap gap-2">
+                    <!-- Branch badges will be injected here -->
                 </div>
             </div>
 
@@ -201,6 +220,8 @@
             const studentNo = urlParams.get('studentNo') || '12345';
             const studentTc = urlParams.get('studentTc') || '12345678901';
             const studentClass = urlParams.get('studentClass') || '12/A';
+            const booklet = urlParams.get('booklet') || 'A';
+            const answersStr = urlParams.get('answers');
             const examId = urlParams.get('examId');
             const previewUrl = urlParams.get('previewUrl');
 
@@ -208,9 +229,32 @@
             document.getElementById('displayStudentNo').textContent = studentNo;
             document.getElementById('displayStudentTc').textContent = studentTc;
             document.getElementById('displayStudentClass').textContent = studentClass;
+            document.getElementById('displayBooklet').textContent = booklet;
 
             if (previewUrl) {
                 document.getElementById('previewImage').style.backgroundImage = `url('${previewUrl}')`;
+            }
+
+            if (answersStr) {
+                try {
+                    const answers = JSON.parse(decodeURIComponent(answersStr));
+                    const omrCard = document.getElementById('omrResultSummary');
+                    const branchList = document.getElementById('branchList');
+                    omrCard.classList.remove('hidden');
+
+                    Object.keys(answers).forEach(branch => {
+                        const count = answers[branch].length;
+                        const badge = document.createElement('div');
+                        badge.className = 'px-3 py-1.5 bg-purple-50 border border-purple-100 rounded-lg flex items-center gap-2 mb-2';
+                        badge.innerHTML = `
+                            <span class="text-[11px] font-bold text-slate-700">${branch}</span>
+                            <span class="px-1.5 py-0.5 bg-primary text-white text-[9px] rounded-md font-bold">${count}</span>
+                        `;
+                        branchList.appendChild(badge);
+                    });
+                } catch (e) {
+                    console.error("Error parsing answers:", e);
+                }
             }
 
             async function loadExamInfo() {

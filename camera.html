@@ -246,14 +246,17 @@
                     }
                 }
 
-                // Mock OMR Data structure for LGS
-                const mockLgsAnswers = {
-                    "Türkçe": "ABACADABACADABACDDA", // 20 
-                    "Sosyal Bilgiler İnkılap Tarihi ve Atatürkçülük": "ABCDABCDAB", // 10
-                    "Din Kültürü ve Ahlak Bilgisi": "DDDDCCCCCB", // 10
-                    "İngilizce": "AAAAABBBBB", // 10
-                    "Matematik": "ABCDABCDABCDABCDABCD", // 20
-                    "Fen Bilimleri": "DDDDCCCCBBBBAAAAABCD" // 20
+                // OMR Data Preparation (Mock for now, to be integrated with real pixel analysis)
+                const bookletTypes = ['A', 'B', 'C', 'D'];
+                const selectedBooklet = bookletTypes[Math.floor(Math.random() * bookletTypes.length)];
+
+                const mockAnswers = {
+                    "Türkçe": "ABACADABACADABACDDA",
+                    "Sosyal Bilgiler": "ABCDABCDAB",
+                    "Din Kültürü": "DDDDCCCCCB",
+                    "İngilizce": "AAAAABBBBB",
+                    "Matematik": "ABCDABCDABCDABCDABCD",
+                    "Fen Bilimleri": "DDDDCCCCBBBBAAAAABCD"
                 };
 
                 const randomScore = (Math.random() * 500).toFixed(2);
@@ -264,8 +267,8 @@
                     tcNo: studentData.tcNo || studentData.TCKimlikNo || "",
                     className: studentData.class || studentData.Sinifi || "",
                     score: randomScore,
-                    booklet: Math.random() > 0.5 ? 'A' : 'B', // From OMR
-                    rawAnswers: JSON.stringify(mockLgsAnswers), // Storing as JSON string
+                    booklet: selectedBooklet,
+                    rawAnswers: JSON.stringify(mockAnswers),
                 };
 
                 await addStudentResult(selectedExamId, resultData);
@@ -278,7 +281,8 @@
 
                 setTimeout(() => {
                     const encodedPreview = encodeURIComponent(previewUrl);
-                    window.location.href = `scan-success.html?examId=${selectedExamId}&studentName=${encodeURIComponent(resultData.name)}&studentNo=${encodeURIComponent(resultData.studentNo)}&studentTc=${encodeURIComponent(resultData.tcNo)}&studentClass=${encodeURIComponent(resultData.className)}&previewUrl=${encodedPreview}`;
+                    const encodedAnswers = encodeURIComponent(resultData.rawAnswers);
+                    window.location.href = `scan-success.html?examId=${selectedExamId}&studentName=${encodeURIComponent(resultData.name)}&studentNo=${encodeURIComponent(resultData.studentNo)}&studentTc=${encodeURIComponent(resultData.tcNo)}&studentClass=${encodeURIComponent(resultData.className)}&booklet=${resultData.booklet}&answers=${encodedAnswers}&previewUrl=${encodedPreview}`;
                 }, 1000);
 
             } catch (error) {
