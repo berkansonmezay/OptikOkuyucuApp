@@ -141,6 +141,14 @@
         const examId = urlParams.get('id');
 
         window.toggleStudentDetail = function (headerEl) {
+            // Check if any card is currently swiped
+            const swipedCard = document.querySelector('.swipe-content[style*="translateX"]');
+            if (swipedCard && swipedCard.style.transform !== 'translateX(0px)') {
+                // If this or another card is swiped, reset it instead of detailing
+                swipedCard.style.transform = 'translateX(0px)';
+                return;
+            }
+
             const card = headerEl.closest('.rounded-3xl');
             const detailSection = card.querySelector('[style*="display"]') || card.querySelector('.px-5.pb-5');
 
@@ -414,11 +422,13 @@
         let touchStartX = 0;
         let touchMoveX = 0;
         let activeSwipeElement = null;
+        let isMoving = false;
 
         window.handleTouchStart = function (e) {
             touchStartX = e.touches[0].clientX;
             activeSwipeElement = e.currentTarget;
             activeSwipeElement.style.transition = 'none';
+            isMoving = false;
         };
 
         window.handleTouchMove = function (e) {
@@ -427,10 +437,12 @@
             const diff = touchMoveX - touchStartX;
 
             // Only allow swipe to left (negative diff)
-            if (diff < 0) {
+            if (diff < -10) { // 10px threshold
+                isMoving = true;
                 const move = Math.max(diff, -100); // Max swipe 100px
                 activeSwipeElement.style.transform = `translateX(${move}px)`;
-            } else {
+            } else if (diff > 5) {
+                // Return to zero if swiping back
                 activeSwipeElement.style.transform = `translateX(0px)`;
             }
         };
@@ -440,7 +452,7 @@
             activeSwipeElement.style.transition = 'transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1)';
             const diff = touchMoveX - touchStartX;
 
-            if (diff < -50) {
+            if (isMoving && diff < -40) {
                 // Swipe successful
                 activeSwipeElement.style.transform = `translateX(-80px)`;
             } else {
@@ -451,6 +463,8 @@
             // Reset variables
             touchStartX = 0;
             touchMoveX = 0;
+            // Delay resetting isMoving slightly to prevent immediate click
+            setTimeout(() => { isMoving = false; }, 50);
         };
 
         window.handleDeleteStudent = async function (resultId) {

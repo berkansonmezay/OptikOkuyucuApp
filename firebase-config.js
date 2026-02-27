@@ -131,17 +131,22 @@ export async function getWeeklyScanStats(userId = null) {
     try {
         const exams = await getExams(userId);
         const now = new Date();
-        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        // Use midnight today as reference for last 7 days (today + 6 days back)
+        const currentWeekStart = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000);
+        const previousWeekStart = new Date(today.getTime() - 13 * 24 * 60 * 60 * 1000);
 
         const currentWeekExams = exams.filter(exam => {
             const date = new Date(exam.date || exam.createdAt);
-            return date >= oneWeekAgo && date <= now;
+            const examDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            return examDate >= currentWeekStart && examDate <= today;
         });
 
         const previousWeekExams = exams.filter(exam => {
             const date = new Date(exam.date || exam.createdAt);
-            return date >= twoWeeksAgo && date < oneWeekAgo;
+            const examDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            return examDate >= previousWeekStart && examDate < currentWeekStart;
         });
 
         const currentTotal = currentWeekExams.reduce((sum, e) => sum + (e.studentCount || 0), 0);
