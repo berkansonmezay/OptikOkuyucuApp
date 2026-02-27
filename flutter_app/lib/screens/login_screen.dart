@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
@@ -71,19 +72,19 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background blurred shapes (matching web's absolute divs)
+          // Background blurred shapes (matching web's login.html)
           Positioned(
             top: -100,
             right: -100,
             child: Container(
-              width: 256,
-              height: 256,
+              width: 300,
+              height: 300,
               decoration: BoxDecoration(
-                color: Colors.purple.shade100.withOpacity(0.5),
+                color: Colors.purple.shade50.withOpacity(0.5),
                 shape: BoxShape.circle,
               ),
               child: BackdropFilter(
-                filter: _BlurFilter(blurX: 60, blurY: 60),
+                filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
                 child: Container(color: Colors.transparent),
               ),
             ),
@@ -92,30 +93,30 @@ class _LoginScreenState extends State<LoginScreen> {
             bottom: -100,
             left: -100,
             child: Container(
-              width: 256,
-              height: 256,
+              width: 300,
+              height: 300,
               decoration: BoxDecoration(
-                color: Colors.blue.shade100.withOpacity(0.5),
+                color: Colors.blue.shade50.withOpacity(0.5),
                 shape: BoxShape.circle,
               ),
               child: BackdropFilter(
-                filter: _BlurFilter(blurX: 60, blurY: 60),
+                filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
                 child: Container(color: Colors.transparent),
               ),
             ),
           ),
           Positioned(
-            top: MediaQuery.of(context).size.height / 2 - 128,
-            left: MediaQuery.of(context).size.width / 2 - 128,
+            top: MediaQuery.of(context).size.height / 2 - 150,
+            left: MediaQuery.of(context).size.width / 2 - 150,
             child: Container(
-              width: 256,
-              height: 256,
+              width: 300,
+              height: 300,
               decoration: BoxDecoration(
-                color: Colors.pink.shade100.withOpacity(0.3),
+                color: Colors.pink.shade50.withOpacity(0.3),
                 shape: BoxShape.circle,
               ),
               child: BackdropFilter(
-                filter: _BlurFilter(blurX: 60, blurY: 60),
+                filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
                 child: Container(color: Colors.transparent),
               ),
             ),
@@ -385,15 +386,4 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-}
-
-// Utility class for backdrop filter to match HTML blur
-class _BlurFilter extends ColorFilter {
-  _BlurFilter({required double blurX, required double blurY})
-      : super.matrix(<double>[
-          1, 0, 0, 0, 0,
-          0, 1, 0, 0, 0,
-          0, 0, 1, 0, 0,
-          0, 0, 0, 1, 0,
-        ]); // A basic pass-through matrix; ImageFilter.blur is standard but BackdropFilter expects ImageFilter
 }
