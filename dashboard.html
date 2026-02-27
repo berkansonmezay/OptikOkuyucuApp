@@ -109,11 +109,11 @@
                     <p class="text-sm font-medium text-white/90 mb-1">Toplam Tarama</p>
                     <h3 id="totalScanCount" class="text-4xl font-bold tracking-tight">...</h3>
                 </div>
-                <div
-                    class="z-10 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 self-start mt-1">
+                <div id="growthBadge"
+                    class="z-10 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 self-start mt-1 hidden">
                     <div class="flex items-center gap-1">
-                        <span class="material-symbols-outlined text-sm">trending_up</span>
-                        <span class="text-xs font-semibold">+12%</span>
+                        <span id="trendingIcon" class="material-symbols-outlined text-sm">trending_up</span>
+                        <span id="growthRate" class="text-xs font-semibold">+0%</span>
                     </div>
                 </div>
             </section>
@@ -155,16 +155,37 @@
             </section>
 
             <script type="module">
-                import { getExams, deleteExam as deleteExamFromDb, getUserProfile, getCurrentUser, getTotalScanCount } from './firebase-config.js?v=3.2';
+                import { getExams, deleteExam as deleteExamFromDb, getUserProfile, getCurrentUser, getTotalScanCount, getWeeklyScanStats } from './firebase-config.js?v=3.2';
 
                 async function updateStats() {
                     const sessionUser = getCurrentUser();
                     const filterId = (sessionUser && sessionUser.role !== 'admin') ? sessionUser.id : null;
-                    const totalScans = await getTotalScanCount(filterId);
 
+                    // Total scans
+                    const totalScans = await getTotalScanCount(filterId);
                     const countEl = document.getElementById('totalScanCount');
                     if (countEl) {
                         countEl.textContent = new Intl.NumberFormat('tr-TR').format(totalScans);
+                    }
+
+                    // Weekly growth
+                    const stats = await getWeeklyScanStats(filterId);
+                    const growthEl = document.getElementById('growthRate');
+                    const badgeEl = document.getElementById('growthBadge');
+                    const iconEl = document.getElementById('trendingIcon');
+
+                    if (growthEl && badgeEl && iconEl) {
+                        badgeEl.classList.remove('hidden');
+                        const rate = stats.growthRate;
+                        growthEl.textContent = (rate >= 0 ? '+' : '') + rate + '%';
+
+                        if (rate < 0) {
+                            iconEl.textContent = 'trending_down';
+                            badgeEl.classList.add('bg-red-500/20');
+                        } else {
+                            iconEl.textContent = 'trending_up';
+                            badgeEl.classList.remove('bg-red-500/20');
+                        }
                     }
                 }
 

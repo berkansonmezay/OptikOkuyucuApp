@@ -127,6 +127,44 @@ export async function getTotalScanCount(userId = null) {
     }
 }
 
+export async function getWeeklyScanStats(userId = null) {
+    try {
+        const exams = await getExams(userId);
+        const now = new Date();
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+        const currentWeekExams = exams.filter(exam => {
+            const date = new Date(exam.date || exam.createdAt);
+            return date >= oneWeekAgo && date <= now;
+        });
+
+        const previousWeekExams = exams.filter(exam => {
+            const date = new Date(exam.date || exam.createdAt);
+            return date >= twoWeeksAgo && date < oneWeekAgo;
+        });
+
+        const currentTotal = currentWeekExams.reduce((sum, e) => sum + (e.studentCount || 0), 0);
+        const previousTotal = previousWeekExams.reduce((sum, e) => sum + (e.studentCount || 0), 0);
+
+        let growthRate = 0;
+        if (previousTotal > 0) {
+            growthRate = ((currentTotal - previousTotal) / previousTotal) * 100;
+        } else if (currentTotal > 0) {
+            growthRate = 100; // If there was nothing before, it's 100% growth
+        }
+
+        return {
+            currentTotal,
+            previousTotal,
+            growthRate: Math.round(growthRate)
+        };
+    } catch (e) {
+        console.error("Error calculating weekly stats:", e);
+        return { currentTotal: 0, previousTotal: 0, growthRate: 0 };
+    }
+}
+
 export async function deleteExam(examId) {
     try {
         const currentUser = getCurrentUser();
