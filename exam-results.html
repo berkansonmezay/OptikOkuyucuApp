@@ -311,6 +311,41 @@
                     </div>`;
                 }).join('');
 
+                // Add event listener to the dynamically created download button
+                document.getElementById('btnDownloadTxt')?.addEventListener('click', () => {
+                    const students = window.currentStudentsData;
+                    const exam = window.currentExamMeta;
+
+                    if (!students || students.length === 0) {
+                        alert("İndirilecek veri bulunamadı.");
+                        return;
+                    }
+
+                    let txtContent = "";
+
+                    students.forEach(std => {
+                        // Output: StudentNo TCNo Name Class Booklet Answers
+                        let row = `${(std.studentNo || '').padEnd(10)} ${(std.tcNo || '').padEnd(11)} ${(std.name || '').padEnd(25)} ${(std.className || '').padEnd(5)} ${(std.booklet || 'A')}`;
+
+                        try {
+                            const answers = JSON.parse(std.rawAnswers);
+                            Object.keys(answers).forEach(branch => {
+                                row += ` ${answers[branch]}`;
+                            });
+                        } catch (e) {
+                            row += ` ${std.rawAnswers || ''}`;
+                        }
+
+                        txtContent += row + "\r\n";
+                    });
+
+                    const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `${exam.name || 'sinav'}_sonuclari.txt`;
+                    link.click();
+                });
+
             } catch (e) {
                 console.error("Error loading exam data:", e);
                 document.getElementById('studentResultsContainer').innerHTML = "<p class='text-center text-red-500 py-10'>Veriler yüklenirken bir hata oluştu.</p>";
@@ -318,40 +353,6 @@
         }
 
         window.onload = loadExamData;
-
-        document.getElementById('btnDownloadTxt')?.addEventListener('click', () => {
-            const students = window.currentStudentsData;
-            const exam = window.currentExamMeta;
-
-            if (!students || students.length === 0) {
-                alert("İndirilecek veri bulunamadı.");
-                return;
-            }
-
-            let txtContent = `SINAV: ${exam.name}\nTARİH: ${exam.date}\n--------------------------------------------------\n`;
-
-            students.forEach(std => {
-                let row = `${std.studentNo || ''} ${std.tcNo || ''} ${std.name || ''} ${std.className || ''} ${std.booklet || ''}`;
-
-                // Add branch answers
-                try {
-                    const answers = JSON.parse(std.rawAnswers);
-                    Object.keys(answers).forEach(branch => {
-                        row += ` [${branch}: ${answers[branch]}]`;
-                    });
-                } catch (e) {
-                    row += ` ${std.rawAnswers || ''}`;
-                }
-
-                txtContent += row + "\n";
-            });
-
-            const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `${exam.name || 'sinav'}_sonuclari.txt`;
-            link.click();
-        });
     </script>
 </body>
 

@@ -246,8 +246,9 @@
                     }
                 }
 
-                // OMR Data Preparation (Simulating logic: Booklet 'A' and empty answers)
-                const selectedBooklet = 'A'; // Fixed to 'A' based on form sample
+                // OMR Data Preparation (Simulating logic: Booklet selection from 4 options)
+                const bookletOptions = ['A', 'B', 'C', 'D'];
+                const selectedBooklet = bookletOptions[Math.floor(Math.random() * bookletOptions.length)];
 
                 const mockAnswers = {
                     "Türkçe": "ABACADABAC D B CDDAE", // Example with spaces for unmarked questions
