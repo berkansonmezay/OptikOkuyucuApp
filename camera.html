@@ -234,10 +234,16 @@
                     // Try to parse if it's JSON
                     studentData = JSON.parse(qrData);
                 } catch (e) {
-                    // Fallback basic parsing if it's plain text like "Name: X, No: Y"
-                    // This is a placeholder for actual QR parsing logic depending on generation
-                    studentData.name = qrData;
-                    studentData.studentNo = Math.floor(10000 + Math.random() * 90000).toString();
+                    if (qrData.includes('-')) {
+                        const parts = qrData.split('-');
+                        studentData.name = parts[0] ? parts[0].trim() : qrData;
+                        studentData.studentNo = parts[1] ? parts[1].trim() : Math.floor(10000 + Math.random() * 90000).toString();
+                        studentData.tcNo = parts[2] ? parts[2].trim() : "";
+                        studentData.class = parts[3] ? parts[3].trim() : "";
+                    } else {
+                        studentData.name = qrData;
+                        studentData.studentNo = Math.floor(10000 + Math.random() * 90000).toString();
+                    }
                 }
 
                 // Mock OMR Data structure for LGS
@@ -272,7 +278,7 @@
 
                 setTimeout(() => {
                     const encodedPreview = encodeURIComponent(previewUrl);
-                    window.location.href = `scan-success.html?examId=${selectedExamId}&studentName=${encodeURIComponent(resultData.name)}&studentNo=${resultData.studentNo}&previewUrl=${encodedPreview}`;
+                    window.location.href = `scan-success.html?examId=${selectedExamId}&studentName=${encodeURIComponent(resultData.name)}&studentNo=${encodeURIComponent(resultData.studentNo)}&studentTc=${encodeURIComponent(resultData.tcNo)}&studentClass=${encodeURIComponent(resultData.className)}&previewUrl=${encodedPreview}`;
                 }, 1000);
 
             } catch (error) {
