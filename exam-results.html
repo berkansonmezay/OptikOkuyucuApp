@@ -330,7 +330,8 @@
                         try {
                             const answers = JSON.parse(std.rawAnswers);
                             Object.keys(answers).forEach(branch => {
-                                row += ` ${answers[branch]}`;
+                                // Add answer string with increased spacing (4 spaces)
+                                row += `    ${answers[branch]}`;
                             });
                         } catch (e) {
                             row += ` ${std.rawAnswers || ''}`;
