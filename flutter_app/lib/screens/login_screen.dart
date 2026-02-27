@@ -74,49 +74,49 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           // Background blurred shapes (matching web's login.html)
           Positioned(
-            top: -100,
-            right: -100,
+            top: -96, // -top-24 (24 * 4)
+            right: -96,
             child: Container(
-              width: 300,
-              height: 300,
+              width: 256, // w-64 (64 * 4)
+              height: 256,
               decoration: BoxDecoration(
-                color: Colors.purple.shade50.withOpacity(0.5),
+                color: const Color(0xFFF3E8FF), // purple-100
                 shape: BoxShape.circle,
               ),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
+                filter: ImageFilter.blur(sigmaX: 72, sigmaY: 72), // filter blur-3xl
                 child: Container(color: Colors.transparent),
               ),
             ),
           ),
           Positioned(
-            bottom: -100,
-            left: -100,
+            bottom: -96, // -bottom-24
+            left: -96,
             child: Container(
-              width: 300,
-              height: 300,
+              width: 256,
+              height: 256,
               decoration: BoxDecoration(
-                color: Colors.blue.shade50.withOpacity(0.5),
+                color: const Color(0xFFE0F2FE), // blue-100
                 shape: BoxShape.circle,
               ),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
+                filter: ImageFilter.blur(sigmaX: 72, sigmaY: 72),
                 child: Container(color: Colors.transparent),
               ),
             ),
           ),
           Positioned(
-            top: MediaQuery.of(context).size.height / 2 - 150,
-            left: MediaQuery.of(context).size.width / 2 - 150,
+            top: MediaQuery.of(context).size.height / 2 - 128,
+            left: MediaQuery.of(context).size.width / 2 - 128,
             child: Container(
-              width: 300,
-              height: 300,
+              width: 256,
+              height: 256,
               decoration: BoxDecoration(
-                color: Colors.pink.shade50.withOpacity(0.3),
+                color: const Color(0xFFFCE7F3), // pink-100
                 shape: BoxShape.circle,
               ),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
+                filter: ImageFilter.blur(sigmaX: 72, sigmaY: 72),
                 child: Container(color: Colors.transparent),
               ),
             ),
@@ -131,44 +131,25 @@ class _LoginScreenState extends State<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // Logo and Title
-                    Container(
-                      width: 112, // 28 * 4 (w-28)
-                      height: 112,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 15,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                        border: Border.all(color: Colors.white, width: 4),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(100),
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          fit: BoxFit.cover,
-                        ),
-                      ),
+                    Hero(
+                      tag: 'app_logo',
+                      child: const _LoginLogo(),
                     ),
                     const SizedBox(height: 24),
                     const Text(
                       'Optik Okuyucu',
                       style: TextStyle(
                         color: Color(0xFF1F2937),
-                        fontSize: 28,
+                        fontSize: 30, // text-3xl
                         fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
+                        letterSpacing: -0.75,
                       ),
                     ),
                     const SizedBox(height: 8),
                     const Text(
                       'Sınav Asistanınız',
                       style: TextStyle(
-                        color: Color(0xFF6B7280),
+                        color: Color(0xFF6B7280), // text-gray-500
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -182,10 +163,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24.0), // rounded-2xl
-                        border: Border.all(color: Colors.grey.shade100),
+                        border: Border.all(color: const Color(0xFFF3F4F6)), // border-gray-100
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
+                            color: Colors.black.withOpacity(0.04), // shadow-sm with 0.04
                             blurRadius: 30,
                             offset: const Offset(0, 8),
                           ),
@@ -219,25 +200,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           TextField(
                             controller: _institutionCodeController,
-                            decoration: InputDecoration(
-                              hintText: 'Kurum kodunu giriniz',
-                              hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                              prefixIcon: const Icon(Icons.home_work_outlined, color: Color(0xFF9CA3AF)),
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12), // rounded-xl
-                                borderSide: BorderSide(color: Colors.grey.shade200),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade200),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: AppColors.primary, width: 2),
-                              ),
+                            decoration: _inputDecoration(
+                              hint: 'Kurum kodunu giriniz',
+                              icon: Icons.home_work_outlined,
                             ),
                           ),
                           const SizedBox(height: 20),
@@ -256,74 +221,38 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           TextField(
                             controller: _usernameController,
-                            decoration: InputDecoration(
-                              hintText: 'E-posta veya kullanıcı adı giriniz',
-                              hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                              prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF9CA3AF)),
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade200),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade200),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: AppColors.primary, width: 2),
-                              ),
+                            decoration: _inputDecoration(
+                              hint: 'E-posta veya kullanıcı adı giriniz',
+                              icon: Icons.person_outline,
                             ),
                           ),
                           const SizedBox(height: 20),
 
                           // Password Field
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Padding(
-                                padding: EdgeInsets.only(left: 4.0, bottom: 6.0),
-                                child: Text(
-                                  'Şifre',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF374151),
-                                  ),
-                                ),
+                          const Padding(
+                            padding: EdgeInsets.only(left: 4.0, bottom: 6.0),
+                            child: Text(
+                              'Şifre',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF374151),
                               ),
-                            ],
+                            ),
                           ),
                           TextField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
-                            decoration: InputDecoration(
-                              hintText: '••••••••',
-                              hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                              prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF9CA3AF)),
+                            decoration: _inputDecoration(
+                              hint: '••••••••',
+                              icon: Icons.lock_outline,
+                            ).copyWith(
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                                   color: const Color(0xFF9CA3AF),
                                 ),
                                 onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade200),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade200),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: AppColors.primary, width: 2),
                               ),
                             ),
                           ),
@@ -356,8 +285,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12), // rounded-xl
                               ),
-                              elevation: 4, // shadow-lg
-                              shadowColor: Colors.deepPurpleAccent.withOpacity(0.4),
+                              elevation: 10, // shadow-lg
+                              shadowColor: AppColors.primary.withOpacity(0.3), // shadow-purple-200
                             ),
                             child: _isLoggingIn 
                                 ? const SizedBox(
@@ -365,9 +294,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     width: 24,
                                     child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                                   )
-                                : const Row(
+                                : Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
+                                    children: const [
                                       Text('Giriş Yap', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                                       SizedBox(width: 8),
                                       Icon(Icons.login_rounded, size: 18),
@@ -383,6 +312,60 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({required String hint, required IconData icon}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+      prefixIcon: Icon(icon, color: const Color(0xFF9CA3AF), size: 20),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      ),
+    );
+  }
+}
+
+class _LoginLogo extends StatelessWidget {
+  const _LoginLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 112, // w-28
+      height: 112,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1), // shadow-lg
+            blurRadius: 15,
+            spreadRadius: 2,
+          ),
+        ],
+        border: Border.all(color: Colors.white, width: 4), // ring-4 ring-white
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(100),
+        child: Image.asset(
+          'assets/images/logo.png',
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }

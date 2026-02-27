@@ -9,7 +9,7 @@ import '../providers/user_provider.dart';
 import '../models/user_profile.dart';
 import 'results_screen.dart';
 import 'settings_screen.dart';
-import 'scanner_screen.dart';
+import 'scan_select_screen.dart';
 import 'admin_panel_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -55,7 +55,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           index: _currentIndex,
           children: [
             _buildDashboardHome(userProvider, user),
-            const ScannerScreen(),
+            const ScanSelectScreen(),
             const ResultsScreen(),
             const SettingsScreen(),
           ],
