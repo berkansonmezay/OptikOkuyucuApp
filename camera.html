@@ -14,6 +14,7 @@
     <meta name="color-scheme" content="light">
     <script src="theme-manager.js"></script>
     <script type="module" src="firebase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -195,12 +196,24 @@
 
         let selectedExamId = null;
 
+        let scanning = true;
+        let canvasElement;
+        let canvasContext;
+
         window.simulateCapture = async function () {
+            // Keep this button but alert that it's automatic now
+            alert("Kamera otomatik tarama yapmaktadır. Lütfen formu okutun.");
+        }
+
+        async function processForm(qrData) {
             if (!selectedExamId) {
                 alert("Lütfen önce bir sınav seçin.");
                 window.location.href = 'scan-select.html';
                 return;
             }
+
+            if (!scanning) return;
+            scanning = false; // Prevent multiple scans
 
             const toast = document.getElementById('statusToast');
             toast.classList.remove('opacity-0', 'translate-y-4');
@@ -208,19 +221,45 @@
             toast.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">sync</span> KAYDEDİLİYOR...';
 
             try {
-                // Mock student data
-                const mockStudentNames = ["Ahmet Yılmaz", "Ayşe Kaya", "Mehmet Demir", "Fatma Çelik", "Ali Aslan"];
-                const randomName = mockStudentNames[Math.floor(Math.random() * mockStudentNames.length)];
-                const randomNo = Math.floor(10000 + Math.random() * 90000).toString();
+                // Parse QR Data (assuming JSON or specific format)
+                // Example format from the image:
+                // Name: NİSA NUR YILMAZ
+                // No: 70266
+                // TC: 22345234958
+                // Sınıf: 12
+
+                let studentData = { name: "Bilinmeyen", studentNo: "00000", tcNo: "", class: "" };
+
+                try {
+                    // Try to parse if it's JSON
+                    studentData = JSON.parse(qrData);
+                } catch (e) {
+                    // Fallback basic parsing if it's plain text like "Name: X, No: Y"
+                    // This is a placeholder for actual QR parsing logic depending on generation
+                    studentData.name = qrData;
+                    studentData.studentNo = Math.floor(10000 + Math.random() * 90000).toString();
+                }
+
+                // Mock OMR Data structure for LGS
+                const mockLgsAnswers = {
+                    "Türkçe": "ABACADABACADABACDDA", // 20 
+                    "Sosyal Bilgiler İnkılap Tarihi ve Atatürkçülük": "ABCDABCDAB", // 10
+                    "Din Kültürü ve Ahlak Bilgisi": "DDDDCCCCCB", // 10
+                    "İngilizce": "AAAAABBBBB", // 10
+                    "Matematik": "ABCDABCDABCDABCDABCD", // 20
+                    "Fen Bilimleri": "DDDDCCCCBBBBAAAAABCD" // 20
+                };
+
                 const randomScore = (Math.random() * 500).toFixed(2);
 
                 const resultData = {
-                    name: randomName,
-                    studentNo: randomNo,
+                    name: studentData.name || studentData.AdiSoyadi || "QR İsim",
+                    studentNo: studentData.studentNo || studentData.OgrenciNo || studentData.OgrenciNumarasi || "12345",
+                    tcNo: studentData.tcNo || studentData.TCKimlikNo || "",
+                    className: studentData.class || studentData.Sinifi || "",
                     score: randomScore,
-                    booklet: Math.random() > 0.5 ? 'A' : 'B',
-                    rawAnswers: "ABACADABACADABAC",
-                    tcNo: Math.floor(10000000000 + Math.random() * 90000000000).toString()
+                    booklet: Math.random() > 0.5 ? 'A' : 'B', // From OMR
+                    rawAnswers: JSON.stringify(mockLgsAnswers), // Storing as JSON string
                 };
 
                 await addStudentResult(selectedExamId, resultData);
@@ -228,7 +267,7 @@
                 toast.innerHTML = '<span class="material-symbols-outlined text-lg">check_circle</span> FORM TARANDI';
 
                 setTimeout(() => {
-                    window.location.href = `scan-success.html?examId=${selectedExamId}&studentName=${encodeURIComponent(randomName)}&studentNo=${randomNo}`;
+                    window.location.href = `scan-success.html?examId=${selectedExamId}&studentName=${encodeURIComponent(resultData.name)}&studentNo=${resultData.studentNo}`;
                 }, 1000);
 
             } catch (error) {
@@ -241,6 +280,7 @@
                     toast.classList.remove('opacity-100', 'translate-y-0');
                     toast.classList.add('bg-primary');
                     toast.classList.remove('bg-red-500');
+                    scanning = true; // allow scan again
                 }, 2000);
             }
         }
@@ -269,9 +309,39 @@
                 }
             }
 
+            // Create hidden canvas for jsQR
+            canvasElement = document.createElement("canvas");
+            canvasContext = canvasElement.getContext("2d", { willReadFrequently: true });
+
             // Initialize Camera
             await initCamera();
         };
+
+        function tick() {
+            const videoEl = document.getElementById('camera-feed');
+            if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA && scanning) {
+                canvasElement.height = videoEl.videoHeight;
+                canvasElement.width = videoEl.videoWidth;
+                canvasContext.drawImage(videoEl, 0, 0, canvasElement.width, canvasElement.height);
+                const imageData = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height);
+
+                // jsQR scanning
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+
+                if (code) {
+                    console.log("Found QR code", code.data);
+                    // Draw box around QR (optional, skipped for brevity)
+                    processForm(code.data);
+                } else {
+                    // Keep scanning
+                    requestAnimationFrame(tick);
+                }
+            } else {
+                requestAnimationFrame(tick);
+            }
+        }
 
         async function initCamera() {
             try {
@@ -286,6 +356,7 @@
                     document.getElementById('camera-placeholder').style.opacity = '0';
                     setTimeout(() => {
                         document.getElementById('camera-placeholder').style.display = 'none';
+                        requestAnimationFrame(tick); // start scanning loop
                     }, 500);
                 };
             } catch (err) {
