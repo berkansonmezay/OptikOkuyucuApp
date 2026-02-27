@@ -275,7 +275,21 @@
                                     Kitapçık Türü: ${std.booklet || '-'}
 
                                     // CEVAPLAR
-                                    <span class="font-bold text-gray-900">CVPLR: ${std.rawAnswers || 'Bulunamadı'}</span>
+                                    <div class="mt-2 space-y-1">
+                                        ${(() => {
+                            try {
+                                const answers = JSON.parse(std.rawAnswers);
+                                return Object.entries(answers).map(([branch, ans]) => `
+                                                    <div class="flex flex-col mb-2">
+                                                        <span class="text-[10px] font-black text-primary uppercase">${branch}</span>
+                                                        <span class="text-[11px] text-gray-900 font-bold tracking-widest break-all">${ans}</span>
+                                                    </div>
+                                                `).join('');
+                            } catch (e) {
+                                return `<span class="font-bold text-gray-900">CVPLR: ${std.rawAnswers || 'Bulunamadı'}</span>`;
+                            }
+                        })()}
+                                    </div>
                                 </div>
                             </div>
 

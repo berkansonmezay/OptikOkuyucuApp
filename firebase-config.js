@@ -167,21 +167,43 @@ export async function getExamById(examId) {
 export async function addStudentResult(examId, resultData) {
     try {
         const currentUser = getCurrentUser();
-        const exam = await getExamById(examId); // This already checks ownership
+        const exam = await getExamById(examId);
 
         if (!exam) throw new Error("Sınava erişim yetkiniz yok veya sınav bulunamadı.");
 
-        // We save student results in a subcollection 'results' under the specific exam
-        const docRef = await addDoc(collection(db, "exams", examId, "results"), {
-            ...resultData,
-            createdAt: new Date().toISOString()
-        });
+        // Check for existing result for this student in this exam to prevent duplicates
+        const resultsRef = collection(db, "exams", examId, "results");
+        const q = query(resultsRef, where("studentNo", "==", resultData.studentNo), limit(1));
+        const querySnapshot = await getDocs(q);
 
-        // Update the student count on the main exam document
-        const examDoc = doc(db, "exams", examId);
-        await updateDoc(examDoc, { studentCount: (exam.studentCount || 0) + 1 });
+        let docId;
+        let isNew = false;
 
-        return docRef.id;
+        if (!querySnapshot.empty) {
+            // Update existing result
+            docId = querySnapshot.docs[0].id;
+            const docRef = doc(db, "exams", examId, "results", docId);
+            await updateDoc(docRef, {
+                ...resultData,
+                updatedAt: new Date().toISOString()
+            });
+        } else {
+            // Create new result
+            const docRef = await addDoc(resultsRef, {
+                ...resultData,
+                createdAt: new Date().toISOString()
+            });
+            docId = docRef.id;
+            isNew = true;
+        }
+
+        // Update the student count on the main exam document only for new students
+        if (isNew) {
+            const examDoc = doc(db, "exams", examId);
+            await updateDoc(examDoc, { studentCount: (exam.studentCount || 0) + 1 });
+        }
+
+        return docId;
     } catch (e) {
         console.error("Error saving student result: ", e);
         throw e;
