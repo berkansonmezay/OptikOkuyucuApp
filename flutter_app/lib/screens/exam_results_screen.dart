@@ -16,6 +16,7 @@ class ExamResultsScreen extends StatefulWidget {
 class _ExamResultsScreenState extends State<ExamResultsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
+  int? _expandedIndex;
 
   @override
   void dispose() {
@@ -23,40 +24,80 @@ class _ExamResultsScreenState extends State<ExamResultsScreen> {
     super.dispose();
   }
 
+  double get _averageScore {
+    if (widget.exam.students.isEmpty) return 0.0;
+    double total = widget.exam.students.fold(0, (sum, item) => sum + item.score);
+    return total / widget.exam.students.length;
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Filter students based on search query
     final filteredStudents = widget.exam.students.where((student) {
-      return student.studentName.toLowerCase().contains(_searchQuery) ||
-          student.studentNumber.contains(_searchQuery);
+      return student.name.toLowerCase().contains(_searchQuery) ||
+          student.studentNo.contains(_searchQuery);
     }).toList();
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
+      body: CustomScrollView(
+        slivers: [
+          _buildSliverAppBar(),
+          SliverToBoxAdapter(child: _buildStatsBar()),
+          SliverToBoxAdapter(child: _buildSearchField()),
+          _buildStudentList(filteredStudents),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSliverAppBar() {
+    return SliverAppBar(
+      pinned: true,
+      expandedHeight: 120,
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Color(0xFF64748B)),
+        onPressed: () => Navigator.pop(context),
+      ),
+      actions: [
+        IconButton(
+          onPressed: () {},
+          icon: const Icon(Icons.download_rounded, color: AppColors.primary, size: 26),
+        ),
+        IconButton(
+          onPressed: () {},
+          icon: const Icon(Icons.ios_share_rounded, color: AppColors.primary, size: 26),
+        ),
+        const SizedBox(width: 8),
+      ],
+      flexibleSpace: FlexibleSpaceBar(
+        titlePadding: const EdgeInsets.only(left: 56, bottom: 16, right: 100),
         title: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(widget.exam.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            Text(
+              widget.exam.name,
+              style: const TextStyle(
+                color: Color(0xFF111827),
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
             Text(
               '${DateFormat('dd MMM, yyyy', 'tr_TR').format(widget.exam.date)} • ${widget.exam.type}',
-              style: const TextStyle(fontSize: 10, color: AppColors.textMuted, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Color(0xFF94A3B8),
+                fontWeight: FontWeight.w700,
+                fontSize: 9,
+                letterSpacing: 0.5,
+              ),
             ),
           ],
         ),
-        actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.download_outlined, color: AppColors.primary)),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.share_outlined, color: AppColors.primary)),
-        ],
-      ),
-      body: Column(
-        children: [
-          _buildStatsBar(),
-          _buildSearchField(),
-          Expanded(
-            child: _buildStudentList(filteredStudents),
-          ),
-        ],
       ),
     );
   }
@@ -64,34 +105,32 @@ class _ExamResultsScreenState extends State<ExamResultsScreen> {
   Widget _buildStatsBar() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       child: Row(
         children: [
-          _buildStatItem(Icons.groups_outlined, '${widget.exam.studentCount} Öğrenci', Colors.purple),
-          const SizedBox(width: 8),
-          _buildStatItem(Icons.equalizer_rounded, 'Ort: 385.50', Colors.blue),
-          const SizedBox(width: 8),
-          _buildStatItem(Icons.verified_outlined, '%100 Başarı', Colors.green),
+          _buildStatBadge(Icons.groups_rounded, '${widget.exam.students.length} Öğrenci', const Color(0xFFF5F3FF), AppColors.primary),
+          const SizedBox(width: 10),
+          _buildStatBadge(Icons.equalizer_rounded, 'Ort: ${_averageScore.toStringAsFixed(2)}', const Color(0xFFEFF6FF), const Color(0xFF2563EB)),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(IconData icon, String label, Color color) {
+  Widget _buildStatBadge(IconData icon, String label, Color bgColor, Color textColor) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: bgColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.1)),
+        border: Border.all(color: textColor.withOpacity(0.1)),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: color),
+          Icon(icon, size: 18, color: textColor),
           const SizedBox(width: 8),
           Text(
             label,
-            style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+            style: TextStyle(color: textColor, fontSize: 12, fontWeight: FontWeight.w800),
           ),
         ],
       ),
@@ -100,18 +139,18 @@ class _ExamResultsScreenState extends State<ExamResultsScreen> {
 
   Widget _buildSearchField() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: TextField(
         controller: _searchController,
         onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
         decoration: InputDecoration(
           hintText: 'İsim veya numara ile ara...',
-          prefixIcon: const Icon(Icons.search, size: 20),
-          hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+          prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF94A3B8), size: 20),
+          hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
           filled: true,
           fillColor: const Color(0xFFF1F5F9),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             borderSide: BorderSide.none,
           ),
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -122,143 +161,268 @@ class _ExamResultsScreenState extends State<ExamResultsScreen> {
 
   Widget _buildStudentList(List<StudentResult> students) {
     if (students.isEmpty) {
-      return Center(
-        child: Text(
-          _searchQuery.isEmpty ? 'Kayıtlı öğrenci yok.' : 'Öğrenci bulunamadı.',
-          style: const TextStyle(color: AppColors.textMuted),
+      return SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.document_scanner_outlined, size: 64, color: Colors.grey[200]),
+              const SizedBox(height: 16),
+              Text(
+                _searchQuery.isEmpty ? 'Henüz optik form taranmamış.' : 'Öğrenci bulunamadı.',
+                style: const TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return ListView.separated(
+    students.sort((a, b) => b.score.compareTo(a.score));
+
+    return SliverPadding(
       padding: const EdgeInsets.all(24),
-      itemCount: students.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final student = students[index];
-        return _buildStudentCard(student);
-      },
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final student = students[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _buildStudentCard(student, index),
+            );
+          },
+          childCount: students.length,
+        ),
+      ),
     );
   }
 
-  Widget _buildStudentCard(StudentResult student) {
-    final bool isWarning = student.status == 'warning';
-    
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => StudentReportScreen(
-              exam: widget.exam,
-              result: student,
-            ),
-          ),
-        );
-      },
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isWarning ? Colors.orange.withOpacity(0.05) : Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isWarning ? Colors.orange.withOpacity(0.3) : Colors.grey[100]!,
-            width: isWarning ? 2 : 1,
-          ),
-          boxShadow: [
+  Widget _buildStudentCard(StudentResult student, int index) {
+    final bool isExpanded = _expandedIndex == index;
+    final bool isWarning = student.score < 50.0;
+    final Color primaryColor = isWarning ? Colors.orange : AppColors.primary;
+    final Color bgColor = isWarning ? const Color(0xFFFFF7ED) : Colors.white;
+    final Color borderColor = isWarning ? const Color(0xFFFFEDD5) : const Color(0xFFF1F5F9);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        color: isExpanded && !isWarning ? const Color(0xFFF5F3FF).withOpacity(0.3) : bgColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isExpanded && !isWarning ? AppColors.primary.withOpacity(0.2) : borderColor,
+          width: isExpanded || isWarning ? 2 : 1,
+        ),
+        boxShadow: isExpanded ? AppColors.softShadow : [
             BoxShadow(
               color: Colors.black.withOpacity(0.02),
-              blurRadius: 10,
+              blurRadius: 8,
               offset: const Offset(0, 4),
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: isWarning ? Colors.orange[100] : AppColors.primary.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  student.initials,
-                  style: TextStyle(
-                    color: isWarning ? Colors.orange[800] : AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => setState(() => _expandedIndex = isExpanded ? null : index),
+            borderRadius: BorderRadius.circular(24),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
                 children: [
-                  Text(
-                    student.studentName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  const SizedBox(height: 4),
-                  if (isWarning)
-                    Row(
-                      children: [
-                        const Icon(Icons.warning_rounded, size: 14, color: Colors.orange),
-                        const SizedBox(width: 4),
-                        Text(
-                          'NO EKSİK',
-                          style: TextStyle(
-                            color: Colors.orange[800],
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ],
-                    )
-                  else
-                    Text(
-                      'ÖĞRENCİ NO: ${student.studentNumber} • 8-A',
-                      style: const TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.bold),
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: isWarning ? const Color(0xFFFFEDD5) : const Color(0xFFF5F3FF),
+                      shape: BoxShape.circle,
                     ),
+                    child: Center(
+                      child: Text(
+                        student.initials,
+                        style: TextStyle(
+                          color: isWarning ? const Color(0xFFEA580C) : AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          student.name.isEmpty ? 'İsimsiz Öğrenci' : student.name,
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF111827)),
+                        ),
+                        const SizedBox(height: 4),
+                        if (isWarning)
+                          Row(
+                            children: [
+                              const Icon(Icons.warning_rounded, size: 14, color: Color(0xFFEA580C)),
+                              const SizedBox(width: 4),
+                              const Text(
+                                'OKUMA HATASI',
+                                style: TextStyle(
+                                  color: Color(0xFFEA580C),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          Text(
+                            'Öğrenci No: ${student.studentNo} • Kitapçık ${student.booklet ?? "-"}',
+                            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w700),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        isWarning ? '---' : student.score.toStringAsFixed(2),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 20,
+                          color: isWarning ? const Color(0xFF94A3B8) : AppColors.primary,
+                        ),
+                      ),
+                      if (!isWarning && index < 3)
+                        const Text(
+                          'DERECE',
+                          style: TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.w900),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+          ),
+          if (isExpanded) _buildExpandedDetails(student, isWarning),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpandedDetails(StudentResult student, bool isWarning) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFF1F5F9)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  isWarning ? '---' : student.score.toStringAsFixed(2),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                    color: isWarning ? Colors.grey[400] : AppColors.primary,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'OPTİK OKUYUCU VERİSİ',
+                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.content_copy_rounded, size: 14),
+                      label: const Text('Kopyala', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        foregroundColor: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Öğrenci No: ${student.studentNo}\nAd Soyad: ${student.name}\nKitapçık: ${student.booklet ?? "-"}\nCevaplar: ${student.rawAnswers ?? "Bulunamadı"}',
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 11,
+                      color: Color(0xFF475569),
+                      height: 1.5,
+                    ),
                   ),
                 ),
-                if (!isWarning)
-                  const Text(
-                    'İLK %5',
-                    style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.w900),
-                  ),
-                if (isWarning)
-                   Container(
-                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                     decoration: BoxDecoration(
-                       color: Colors.orange[100],
-                       borderRadius: BorderRadius.circular(12),
-                     ),
-                     child: Text(
-                       'DÜZELT',
-                       style: TextStyle(color: Colors.orange[900], fontSize: 10, fontWeight: FontWeight.w900),
-                     ),
-                   ),
               ],
             ),
-          ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildActionButton(
+                  icon: Icons.edit_square,
+                  label: 'Veriyi Düzenle',
+                  color: const Color(0xFF1E293B),
+                  isSecondary: true,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionButton(
+                  icon: Icons.analytics_rounded,
+                  label: 'Karne',
+                  color: AppColors.primary,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => StudentReportScreen(
+                          exam: widget.exam,
+                          result: student,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    VoidCallback? onPressed,
+    bool isSecondary = false,
+  }) {
+    return ElevatedButton.icon(
+      onPressed: onPressed ?? () {},
+      icon: Icon(icon, size: 16),
+      label: Text(label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isSecondary ? Colors.white : color.withOpacity(0.1),
+        foregroundColor: isSecondary ? const Color(0xFF334155) : color,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: isSecondary ? const BorderSide(color: Color(0xFFE2E8F0)) : BorderSide.none,
         ),
       ),
     );

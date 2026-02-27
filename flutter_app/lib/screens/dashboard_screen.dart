@@ -6,6 +6,7 @@ import '../providers/exam_provider.dart';
 import '../models/exam.dart';
 import 'create_exam.dart';
 import '../providers/user_provider.dart';
+import '../models/user_profile.dart';
 import 'results_screen.dart';
 import 'settings_screen.dart';
 import 'scanner_screen.dart';
@@ -25,9 +26,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final user = context.read<UserProvider>().user;
-      if (user != null) {
-        context.read<ExamProvider>().loadExams(user.id, user.role);
+      final userProvider = context.read<UserProvider>();
+      final examProvider = context.read<ExamProvider>();
+      
+      final user = userProvider.user;
+      if (user != null && user.id != null) {
+        examProvider.initialize(user.id!, user.role);
+        userProvider.initializeStats(user.id!, user.role);
       }
     });
   }
@@ -49,62 +54,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: IndexedStack(
           index: _currentIndex,
           children: [
-            _buildDashboardHome(user),
+            _buildDashboardHome(userProvider, user),
             const ScannerScreen(),
             const ResultsScreen(),
             const SettingsScreen(),
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textMuted,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 10),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view_rounded, size: 22),
-            activeIcon: Icon(Icons.grid_view_rounded, size: 22),
-            label: 'Ana Sayfa',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.qr_code_scanner_rounded, size: 22),
-            label: 'Tara',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart_rounded, size: 22),
-            label: 'Sonuçlar',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings_outlined, size: 22),
-            label: 'Ayarlar',
-          ),
-        ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: Colors.grey[100]!, width: 1)),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          elevation: 0,
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: AppColors.textMuted,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 10),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 2),
+                child: Icon(Icons.grid_view_rounded, size: 24),
+              ),
+              label: 'Ana Sayfa',
+            ),
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 2),
+                child: Icon(Icons.qr_code_scanner_rounded, size: 24),
+              ),
+              label: 'Tara',
+            ),
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 2),
+                child: Icon(Icons.bar_chart_rounded, size: 24),
+              ),
+              label: 'Sonuçlar',
+            ),
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 2),
+                child: Icon(Icons.settings_rounded, size: 24),
+              ),
+              label: 'Ayarlar',
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildDashboardHome(user) {
+  Widget _buildDashboardHome(UserProvider userProvider, UserProfile user) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(user),
-          const SizedBox(height: 32),
-          _buildStatsCard(),
+          const SizedBox(height: 24),
+          _buildStatsCard(userProvider),
           const SizedBox(height: 32),
           _buildSectionHeader('YENİ SINAV OLUŞTUR'),
           const SizedBox(height: 16),
           Row(
             children: [
               _buildExamTypeButton('LGS', true),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               _buildExamTypeButton('TYT', false),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               _buildExamTypeButton('AYT', false),
             ],
           ),
@@ -122,13 +145,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     MaterialPageRoute(builder: (context) => const AdminPanelScreen()),
                   );
                 },
-                icon: const Icon(Icons.shield_person_rounded),
-                label: const Text('Admin Paneli (Kurum Ekle)'),
+                icon: const Icon(Icons.admin_panel_settings_rounded, size: 20),
+                label: const Text('ADMIN PANELI (KURUM EKLE)'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   side: BorderSide(color: AppColors.primary.withOpacity(0.2), width: 2),
-                  backgroundColor: AppColors.primary.withOpacity(0.05),
+                  backgroundColor: const Color(0xFFF5F3FF), // purple-50
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 0.5),
                 ),
               ),
             ),
@@ -139,19 +163,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               const Text(
                 'Son Sınavlar',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textMain),
               ),
               TextButton(
                 onPressed: () {
                   setState(() => _currentIndex = 2);
                 },
                 style: TextButton.styleFrom(
-                  backgroundColor: AppColors.primary.withOpacity(0.05),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  backgroundColor: const Color(0xFFF5F3FF),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
-                child: const Text('Tümünü Gör', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                child: const Text('Tümünü Gör', 
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary)),
               ),
             ],
           ),
@@ -162,40 +188,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildHeader(user) {
+  Widget _buildHeader(UserProfile user) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              user.name,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              user.email,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.grey[400]),
-            ),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                user.name,
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1E293B), letterSpacing: -0.5),
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                user.email,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
+        const SizedBox(width: 12),
         Row(
           children: [
             Container(
-              decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
               child: IconButton(
                 onPressed: () {},
-                icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF475569)),
+                icon: const Icon(Icons.notifications_rounded, color: Color(0xFF475569), size: 22),
+                padding: EdgeInsets.zero,
               ),
             ),
             const SizedBox(width: 12),
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: AppColors.primary.withOpacity(0.1),
-              child: Text(
-                user.initials,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFEDE9FE), width: 2),
+              ),
+              child: CircleAvatar(
+                backgroundColor: const Color(0xFFF5F3FF),
+                child: Text(
+                  user.initials,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.primary),
+                ),
               ),
             ),
           ],
@@ -204,42 +245,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStatsCard() {
+  Widget _buildStatsCard(UserProvider userProvider) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
-          BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+            spreadRadius: -5,
+          ),
         ],
       ),
       child: Stack(
         children: [
           Positioned(
             right: -20,
-            bottom: -20,
+            bottom: -30,
             child: Icon(Icons.analytics_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Bu Hafta Toplam Tarama', style: TextStyle(color: Colors.white70, fontSize: 13)),
-              const SizedBox(height: 6),
-              const Text('1,248', style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.trending_up, color: Colors.white, size: 14),
-                    SizedBox(width: 4),
-                    Text('+12%', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                  ],
-                ),
+              const Text('Toplam Tarama', 
+                style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Text(
+                NumberFormat.decimalPattern('tr_TR').format(userProvider.totalScans), 
+                style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900, letterSpacing: -1),
               ),
+              const SizedBox(height: 16),
+              if (userProvider.growthRate != 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2), 
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        userProvider.growthRate >= 0 ? Icons.trending_up : Icons.trending_down, 
+                        color: Colors.white, 
+                        size: 16,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${userProvider.growthRate >= 0 ? '+' : ''}${userProvider.growthRate}%', 
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ],
@@ -299,93 +362,149 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Consumer<ExamProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: Padding(
+            padding: EdgeInsets.all(40),
+            child: CircularProgressIndicator(),
+          ));
         }
 
         if (provider.exams.isEmpty) {
           return Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(40),
+            padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.grey[100]!, width: 2),
+              border: Border.all(color: const Color(0xFFF1F5F9)),
             ),
             child: Column(
               children: [
-                Icon(Icons.assignment_outlined, size: 48, color: Colors.grey[200]),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(color: Color(0xFFF8FAFC), shape: BoxShape.circle),
+                  child: const Icon(Icons.assignment_rounded, size: 32, color: Color(0xFFCBD5E1)),
+                ),
                 const SizedBox(height: 16),
-                const Text('Henüz kaydedilmiş sınav yok.', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                const Text('Henüz Sınav Bulunmuyor', style: TextStyle(color: AppColors.textMain, fontSize: 15, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                const Text('İlk sınavınızı oluşturarak başlayın.', style: TextStyle(color: AppColors.textMuted, fontSize: 13, fontWeight: FontWeight.w500)),
               ],
             ),
           );
         }
 
         final recentExams = provider.exams.take(5).toList();
-        return ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: recentExams.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (context, index) => _buildExamCard(context, recentExams[index], provider),
+        return Column(
+          children: recentExams.map((exam) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildExamCard(context, exam, provider),
+          )).toList(),
         );
       },
     );
   }
 
   Widget _buildExamCard(BuildContext context, Exam exam, ExamProvider provider) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey[50]!),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), shape: BoxShape.circle),
-            child: Icon(Icons.assignment_outlined, color: AppColors.primary, size: 24),
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CreateExamScreen(editExam: exam),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(exam.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    _buildTag(Icons.calendar_today_rounded, DateFormat('dd MMM', 'tr_TR').format(exam.date)),
-                    const SizedBox(width: 8),
-                    _buildTag(Icons.group_rounded, '${exam.studentCount} Öğrenci'),
-                  ],
-                ),
-              ],
+        );
+      },
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFF1F5F9)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
-          ),
-        ],
+          ],
+        ),
+        child: Row(
+          children: [
+            Builder(
+              builder: (context) {
+                Color statusColor = AppColors.primary;
+                Color bgColor = const Color(0xFFF5F3FF);
+                
+                if (exam.type == 'LGS') {
+                  statusColor = AppColors.green;
+                  bgColor = AppColors.green.withOpacity(0.1);
+                } else if (exam.type == 'TYT') {
+                  statusColor = AppColors.orange;
+                  bgColor = AppColors.orange.withOpacity(0.1);
+                }
+                
+                return Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.analytics_rounded,
+                      color: statusColor,
+                      size: 24,
+                    ),
+                  ),
+                );
+              }
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    exam.name, 
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.textMain),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      _buildTag(Icons.calendar_today_rounded, DateFormat('dd MMM', 'tr_TR').format(exam.date)),
+                      const SizedBox(width: 8),
+                      _buildTag(Icons.group_rounded, '${exam.studentCount} Öğrenci'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1), size: 24),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildTag(IconData icon, String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(6)),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: Colors.grey[500]),
+          Icon(icon, size: 12, color: const Color(0xFF64748B)),
           const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey[600])),
+          Text(
+            label, 
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+          ),
         ],
       ),
     );

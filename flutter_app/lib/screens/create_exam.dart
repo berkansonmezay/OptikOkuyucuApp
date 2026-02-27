@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../core/app_colors.dart';
 import '../models/exam.dart';
 import '../providers/exam_provider.dart';
+import '../providers/user_provider.dart';
 
 class CreateExamScreen extends StatefulWidget {
   final Exam? editExam;
@@ -72,31 +73,36 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(widget.editExam != null ? 'Sınavı Güncelle' : 'Yeni Sınav Oluştur'),
+        title: Text(widget.editExam != null ? 'Sınavı Güncelle' : 'Yeni Sınav Oluştur', 
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left_rounded, size: 32),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSectionLabel('SINAV TÜRÜ SEÇİN'),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _buildTypeSelector(),
             const SizedBox(height: 32),
             _buildSectionLabel('SINAV ADI'),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _buildTextField(_nameController, 'Örn: 1. Dönem Genel Deneme'),
             const SizedBox(height: 32),
             _buildSectionLabel('SINAV TARİHİ'),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _buildDatePicker(),
             const SizedBox(height: 32),
             _buildCevapAnahtariHeader(),
             const SizedBox(height: 16),
             if (_isManualMode) _buildSubjectsList() else _buildExcelPlaceholder(),
-            const SizedBox(height: 100), // Space for fixed button
+            const SizedBox(height: 120), // Space for bottom button
           ],
         ),
       ),
@@ -107,64 +113,79 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
   Widget _buildSectionLabel(String text) {
     return Text(
       text,
-      style: TextStyle(
+      style: const TextStyle(
         fontSize: 11,
-        fontWeight: FontWeight.w800,
-        color: Colors.grey[500],
-        letterSpacing: 1.2,
+        fontWeight: FontWeight.w900,
+        color: Color(0xFF94A3B8),
+        letterSpacing: 1.5,
       ),
     );
   }
 
   Widget _buildTypeSelector() {
-    return Row(
-      children: ['LGS', 'TYT', 'AYT'].map((type) {
-        bool isSelected = _selectedType == type;
-        return Expanded(
-          child: GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedType = type;
-                _loadDefaultSubjects();
-              });
-            },
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              height: 50,
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary.withOpacity(0.05) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isSelected ? AppColors.primary : Colors.grey[200]!,
-                  width: 2,
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: ['LGS', 'TYT', 'AYT'].map((type) {
+          bool isSelected = _selectedType == type;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedType = type;
+                  _loadDefaultSubjects();
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                height: 48,
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: isSelected ? [
+                    BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))
+                  ] : null,
                 ),
-              ),
-              child: Center(
-                child: Text(
-                  type,
-                  style: TextStyle(
-                    color: isSelected ? AppColors.primary : Colors.grey[600],
-                    fontWeight: FontWeight.bold,
+                child: Center(
+                  child: Text(
+                    type,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : const Color(0xFF64748B),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 
   Widget _buildTextField(TextEditingController controller, String hint) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 2),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 8)),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFFCBD5E1), fontWeight: FontWeight.w500),
+          contentPadding: const EdgeInsets.all(20),
+          border: InputBorder.none,
         ),
       ),
     );
@@ -178,20 +199,35 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
           initialDate: _selectedDate,
           firstDate: DateTime(2020),
           lastDate: DateTime(2030),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: const ColorScheme.light(primary: AppColors.primary),
+              ),
+              child: child!,
+            );
+          },
         );
         if (date != null) setState(() => _selectedDate = date);
       },
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFF1F5F9), width: 2),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 8)),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(DateFormat('dd MMMM yyyy', 'tr_TR').format(_selectedDate)),
-            const Icon(Icons.calendar_month_outlined, color: Colors.grey),
+            Text(
+              DateFormat('dd MMMM yyyy', 'tr_TR').format(_selectedDate),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF1E293B)),
+            ),
+            const Icon(Icons.calendar_today_rounded, color: AppColors.primary, size: 20),
           ],
         ),
       ),
@@ -203,12 +239,18 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _buildSectionLabel('CEVAP ANAHTARI'),
-        Row(
-          children: [
-            _buildTabButton('EXCEL', !_isManualMode, () => setState(() => _isManualMode = false)),
-            const SizedBox(width: 8),
-            _buildTabButton('MANUEL', _isManualMode, () => setState(() => _isManualMode = true)),
-          ],
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              _buildTabButton('EXCEL', !_isManualMode, () => setState(() => _isManualMode = false)),
+              _buildTabButton('MANUEL', _isManualMode, () => setState(() => _isManualMode = true)),
+            ],
+          ),
         ),
       ],
     );
@@ -217,18 +259,22 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
   Widget _buildTabButton(String title, bool active, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? AppColors.primary : Colors.grey[100],
+          color: active ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
+          boxShadow: active ? [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))
+          ] : null,
         ),
         child: Text(
           title,
           style: TextStyle(
             fontSize: 10,
-            fontWeight: FontWeight.bold,
-            color: active ? Colors.white : Colors.grey[500],
+            fontWeight: FontWeight.w900,
+            color: active ? AppColors.primary : const Color(0xFF94A3B8),
           ),
         ),
       ),
@@ -237,19 +283,26 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
 
   Widget _buildExcelPlaceholder() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      width: double.infinity,
+      padding: const EdgeInsets.all(40),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey[200]!, width: 2),
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 2),
       ),
       child: Column(
         children: [
-          Icon(Icons.upload_file_rounded, size: 48, color: AppColors.primary.withOpacity(0.5)),
-          const SizedBox(height: 16),
-          const Text('Excel Yükleme henüz hazır değil', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          const Text('Lütfen Manuel Giriş seçeneğini kullanın', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey)),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+            child: const Icon(Icons.upload_file_rounded, size: 40, color: Color(0xFFCBD5E1)),
+          ),
+          const SizedBox(height: 20),
+          const Text('Excel Yükleme', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF1E293B))),
+          const SizedBox(height: 8),
+          const Text('Excel dosyası ile cevap anahtarı yükleme mobil sürümde yakında eklenecektir.', 
+            textAlign: TextAlign.center, 
+            style: TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
         ],
       ),
     );
@@ -266,17 +319,20 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
               _subjects.add(Subject(
                 id: DateTime.now().millisecondsSinceEpoch.toString(),
                 name: '',
-                questionCount: 20,
-                answers: List.filled(20, ''),
+                questionCount: 0,
+                answers: [],
               ));
             });
           },
-          icon: const Icon(Icons.add_circle_outline),
+          icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
           label: const Text('YENİ DERS EKLE'),
           style: OutlinedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 50),
-            side: BorderSide(color: AppColors.primary.withOpacity(0.2), width: 2),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            minimumSize: const Size(double.infinity, 56),
+            foregroundColor: AppColors.primary,
+            side: const BorderSide(color: Color(0xFFDDD6FE), width: 2),
+            backgroundColor: const Color(0xFFF5F3FF),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 0.5),
           ),
         ),
       ],
@@ -284,52 +340,78 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
   }
 
   Widget _buildSubjectCard(Subject s) {
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey[100]!),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 2),
       ),
+      clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
-        title: Text(s.name.isEmpty ? 'Yeni Seçilen Ders' : s.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        subtitle: Text('${s.questionCount} SORU TANIMLI', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-        leading: Icon(Icons.menu_book_rounded, color: AppColors.primary.withOpacity(0.6)),
-        childrenPadding: const EdgeInsets.all(16),
+        title: Text(s.name.isEmpty ? 'Yeni Seçilen Ders' : s.name.toUpperCase(), 
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF1E293B))),
+        subtitle: Text('${s.questionCount} SORU TANIMLI', 
+          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8), letterSpacing: 0.5)),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
+          child: const Icon(Icons.menu_book_rounded, color: Color(0xFF64748B), size: 20),
+        ),
+        trailing: const Icon(Icons.expand_more_rounded, color: Color(0xFFCBD5E1)),
+        shape: const Border.fromBorderSide(BorderSide.none),
+        childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         children: [
-          // Basic Subject Settings
           Row(
             children: [
               Expanded(
-                child: _buildTextField(TextEditingController(text: s.name)..addListener(() { s.name = _nameController.text; }), 'Ders Adı'),
+                child: Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TextField(
+                    onChanged: (val) => setState(() => s.name = val),
+                    decoration: const InputDecoration(
+                      hintText: 'Ders Adı',
+                      hintStyle: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
-              SizedBox(
-                width: 80,
+              Container(
+                width: 70,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: TextField(
                   keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: 'Soru',
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  ),
                   onChanged: (val) {
-                    int count = int.tryParse(val) ?? 0;
-                    if (count > 0 && count <= 100) {
-                      setState(() {
-                        s.questionCount = count;
-                        s.answers = List.filled(count, '');
-                      });
-                    }
+                    final q = int.tryParse(val) ?? 0;
+                    setState(() {
+                      s.questionCount = q;
+                      s.answers = List.filled(q, '');
+                    });
                   },
+                  textAlign: TextAlign.center,
+                  decoration: const InputDecoration(
+                    hintText: 'Soru',
+                    hintStyle: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                    border: InputBorder.none,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          // Here would be the answer bank, simplified for now
-          const Text('Cevap anahtarı girişi mobil ekranda yakında geliştirilecektir.', style: TextStyle(fontSize: 11, color: Colors.grey)),
+          const Text('Cevap anahtarı girişi web üzerinden yapılmalıdır.', 
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8))),
         ],
       ),
     );
@@ -337,42 +419,55 @@ class _CreateExamScreenState extends State<CreateExamScreen> {
 
   Widget _buildSaveButton() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
+        border: Border(top: BorderSide(color: Color(0xFFF1F5F9), width: 1)),
       ),
       child: SizedBox(
         width: double.infinity,
-        child: ElevatedButton.icon(
+        height: 60,
+        child: ElevatedButton(
           onPressed: _saveExam,
-          icon: const Icon(Icons.check_circle_rounded),
-          label: const Text('Kaydet'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            elevation: 8,
+            shadowColor: AppColors.primary.withOpacity(0.4),
+          ),
+          child: const Text('KAYDET VE DEVAM ET', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
         ),
       ),
     );
   }
 
-  void _saveExam() {
+  void _saveExam() async {
     if (_nameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lütfen sınav adı giriniz')));
       return;
     }
 
     final exam = Exam(
-      id: widget.editExam?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      id: widget.editExam?.id ?? '',
       name: _nameController.text,
       type: _selectedType,
       date: _selectedDate,
       subjects: _subjects,
     );
 
-    if (widget.editExam != null) {
-      context.read<ExamProvider>().updateExam(exam.id, exam);
-    } else {
-      context.read<ExamProvider>().addExam(exam);
+    try {
+      if (widget.editExam != null && widget.editExam!.id.isNotEmpty) {
+        await context.read<ExamProvider>().updateExam(exam.id, exam);
+      } else {
+        final creatorId = context.read<UserProvider>().user?.id ?? '';
+        await context.read<ExamProvider>().addExam(exam, creatorId);
+      }
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hata: $e')));
+      }
     }
-
-    Navigator.pop(context);
   }
 }

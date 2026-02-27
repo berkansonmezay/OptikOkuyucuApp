@@ -21,10 +21,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
     final user = Provider.of<UserProvider>(context, listen: false).user;
-    _nameController = TextEditingController(text: user.name);
-    _emailController = TextEditingController(text: user.email);
-    _phoneController = TextEditingController(text: user.phone);
-    _profileImageUrl = user.profileImageUrl;
+    _nameController = TextEditingController(text: user?.name ?? '');
+    _emailController = TextEditingController(text: user?.email ?? '');
+    _phoneController = TextEditingController(text: user?.phone ?? '');
+    _profileImageUrl = user?.profileImageUrl ?? '';
 
     _nameController.addListener(() {
       if (mounted) setState(() {});
@@ -78,11 +78,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void _saveProfile() {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final updatedUser = UserProfile(
+      id: userProvider.user?.id,
       name: _nameController.text,
       email: _emailController.text,
       phone: _phoneController.text,
       profileImageUrl: _profileImageUrl,
-      institution: userProvider.user.institution,
+      institution: userProvider.user?.institution ?? 'Bilinmiyor',
+      role: userProvider.user?.role ?? 'user',
     );
     userProvider.updateUser(updatedUser);
     Navigator.pop(context);

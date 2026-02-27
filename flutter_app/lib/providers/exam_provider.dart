@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/exam.dart';
@@ -5,138 +6,124 @@ import '../models/exam.dart';
 class ExamProvider with ChangeNotifier {
   List<Exam> _exams = [];
   bool _isLoading = true;
+  StreamSubscription? _examsSubscription;
 
   List<Exam> get exams => _exams;
   bool get isLoading => _isLoading;
 
-  ExamProvider() {
-    loadExams();
-  }
-
-  Future<void> loadExams([String? userId, String? role]) async {
+  void initialize(String? userId, String? role) {
+    _examsSubscription?.cancel();
+    
     _isLoading = true;
     notifyListeners();
 
-    try {
-      Query query = FirebaseFirestore.instance.collection('exams').orderBy('date', descending: true);
-      
-      // Role-based filtering
-      if (role != 'admin' && userId != null) {
-        query = query.where('creatorId', isEqualTo: userId);
-      }
-
-      final snapshot = await query.get();
-      _exams = snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
-        return Exam.fromJson(data);
-      }).toList();
-
-      // Fetch results for each exam
-      for (var exam in _exams) {
-        final resultsSnap = await FirebaseFirestore.instance.collection('exams').doc(exam.id).collection('results').get();
-        exam.students = resultsSnap.docs.map((rDoc) {
-          final rData = rDoc.data();
-          return StudentResult(
-            id: rDoc.id,
-            studentName: rData['name'] ?? 'Bilinmeyen',
-            studentNumber: rData['studentNo'] ?? '',
-            score: (rData['score'] as num?)?.toDouble() ?? 0.0,
-            status: 'success',
-            bookType: rData['booklet'] ?? 'A',
-            rawStats: rData,
-          );
-        }).toList();
-        exam.studentCount = exam.students.length;
-      }
-
-    } catch (e) {
-      debugPrint('Error loading exams: $e');
+    Query query = FirebaseFirestore.instance.collection('exams');
+    
+    if (role != 'admin' && userId != null) {
+      query = query.where('creatorId', isEqualTo: userId);
     }
 
-    _isLoading = false;
-    notifyListeners();
+    _examsSubscription = query.snapshots().listen((snapshot) {
+      final unsortedExams = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return Exam.fromJson(data, doc.id);
+      }).toList();
+      
+      // Sort in memory to match web version and avoid composite index requirement
+      unsortedExams.sort((a, b) {
+        final dateCompare = b.date.compareTo(a.date);
+        if (dateCompare != 0) return dateCompare;
+        // Fallback to ID or creating time if you had one, else just return 0
+        return 0;
+      });
+      
+      _exams = unsortedExams;
+      _isLoading = false;
+      notifyListeners();
+    }, onError: (e) {
+      debugPrint('Error in exams stream: $e');
+      _isLoading = false;
+      notifyListeners();
+    });
+  }
+
+  @override
+  void dispose() {
+    _examsSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> addExam(Exam exam, String creatorId) async {
     try {
-      final docRef = FirebaseFirestore.instance.collection('exams').doc();
       final examData = exam.toJson();
-      examData['id'] = docRef.id;
       examData['creatorId'] = creatorId;
       examData['createdAt'] = DateTime.now().toIso8601String();
-      examData.remove('students'); 
       
-      await docRef.set(examData);
-      
-      final finalExam = Exam.fromJson(examData);
-      _exams.insert(0, finalExam);
-      notifyListeners();
+      await FirebaseFirestore.instance.collection('exams').add(examData);
     } catch (e) {
        debugPrint('Error adding exam: $e');
+       rethrow;
     }
   }
 
   Future<void> updateExam(String id, Exam updatedExam) async {
     try {
       final examData = updatedExam.toJson();
-      examData.remove('students');
       examData['updatedAt'] = DateTime.now().toIso8601String();
       
-      await FirebaseFirestore.instance.collection('exams').doc(id).set(examData, SetOptions(merge: true));
-      
-      final index = _exams.indexWhere((e) => e.id == id);
-      if (index != -1) {
-        _exams[index] = updatedExam;
-        notifyListeners();
-      }
+      await FirebaseFirestore.instance.collection('exams').doc(id).update(examData);
     } catch (e) {
       debugPrint('Error updating exam: $e');
+      rethrow;
     }
   }
 
   Future<void> deleteExam(String id) async {
     try {
       await FirebaseFirestore.instance.collection('exams').doc(id).delete();
-      _exams.removeWhere((e) => e.id == id);
-      notifyListeners();
     } catch (e) {
       debugPrint('Error deleting exam: $e');
+      rethrow;
     }
+  }
+
+  Stream<List<StudentResult>> getStudentResultsStream(String examId) {
+    return FirebaseFirestore.instance
+        .collection('exams')
+        .doc(examId)
+        .collection('results')
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return StudentResult.fromJson(doc.data(), doc.id);
+      }).toList();
+    });
   }
 
   Future<void> saveStudentResult(String examId, StudentResult result) async {
      try {
-        final resultDoc = FirebaseFirestore.instance.collection('exams').doc(examId).collection('results').doc();
-        final resultData = {
-           'name': result.studentName,
-           'studentNo': result.studentNumber,
-           'score': result.score,
-           'booklet': result.bookType,
-           'createdAt': DateTime.now().toIso8601String(),
-        };
+        final resultRef = FirebaseFirestore.instance.collection('exams').doc(examId).collection('results');
         
-        await resultDoc.set(resultData);
+        // Prevent duplicate student numbers if necessary (matching web logic in addStudentResult)
+        final existing = await resultRef.where('studentNo', isEqualTo: result.studentNo).limit(1).get();
         
-        // Update exam student count
-        final examRef = FirebaseFirestore.instance.collection('exams').doc(examId);
-        await FirebaseFirestore.instance.runTransaction((transaction) async {
-          final snapshot = await transaction.get(examRef);
-          if (snapshot.exists) {
-            final currentCount = snapshot.data()?['studentCount'] ?? 0;
-            transaction.update(examRef, {'studentCount': currentCount + 1});
-          }
-        });
-
-        // Update local state
-        final index = _exams.indexWhere((e) => e.id == examId);
-        if (index != -1) {
-           _exams[index].students.add(result);
-           _exams[index].studentCount++;
-           notifyListeners();
+        final resultData = result.toJson();
+        
+        if (existing.docs.isNotEmpty) {
+          resultData['updatedAt'] = DateTime.now().toIso8601String();
+          await existing.docs.first.reference.update(resultData);
+        } else {
+          resultData['createdAt'] = DateTime.now().toIso8601String();
+          await resultRef.add(resultData);
+          
+          // Increment student count
+          await FirebaseFirestore.instance.collection('exams').doc(examId).update({
+            'studentCount': FieldValue.increment(1)
+          });
         }
      } catch (e) {
         debugPrint('Error saving student result: $e');
+        rethrow;
      }
   }
 }

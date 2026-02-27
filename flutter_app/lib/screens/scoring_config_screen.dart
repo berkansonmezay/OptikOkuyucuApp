@@ -16,7 +16,7 @@ class ScoringConfigScreen extends StatefulWidget {
 class _ScoringConfigScreenState extends State<ScoringConfigScreen> {
   Exam? _selectedExam;
   final _minScoreController = TextEditingController(text: '0');
-  final _maxScoreController = TextEditingController(text: '100');
+  final _maxScoreController = TextEditingController(text: '500');
   String _netOption = '3y1d';
   final Map<String, TextEditingController> _weightControllers = {
     'Türkçe': TextEditingController(text: '4.0'),
@@ -55,7 +55,6 @@ class _ScoringConfigScreenState extends State<ScoringConfigScreen> {
           });
         }
       } else {
-        // Set defaults for LGS if type is LGS
         if (exam.type == 'LGS') {
            _maxScoreController.text = '500';
            _weightControllers['Türkçe']!.text = '4.0';
@@ -69,11 +68,9 @@ class _ScoringConfigScreenState extends State<ScoringConfigScreen> {
     });
   }
 
-  void _saveConfig() {
+  void _saveConfig() async {
     if (_selectedExam == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen bir sınav seçiniz')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lütfen bir sınav seçiniz')));
       return;
     }
 
@@ -85,70 +82,86 @@ class _ScoringConfigScreenState extends State<ScoringConfigScreen> {
     };
 
     _selectedExam!.scoring = scoringData;
-    context.read<ExamProvider>().updateExam(_selectedExam!.id, _selectedExam!);
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Yapılandırma kaydedildi')),
-    );
-    Navigator.pop(context);
+    try {
+      await context.read<ExamProvider>().updateExam(_selectedExam!.id, _selectedExam!);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Yapılandırma başarıyla kaydedildi')));
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hata: $e')));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDFDFF),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Puanlama Yapılandırması'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
+        title: const Text('Puanlama Yapılandırması', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left_rounded, size: 32),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSectionHeader('SINAV SEÇİN'),
+            const SizedBox(height: 12),
             _buildExamSelector(),
-            const SizedBox(height: 28),
-            _buildSectionHeader('PUANLAMA İŞLEMLERİ'),
-            _buildScoreInputs(),
-            const SizedBox(height: 28),
-            _buildSectionHeader('NET HESAPLAMA'),
-            _buildNetOptions(),
-            const SizedBox(height: 28),
-            _buildSectionHeader('DERS KATSAYILARI (AĞIRLIK)'),
-            _buildWeightsList(),
             const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _saveConfig,
-                icon: const Icon(Icons.save_rounded),
-                label: const Text('Kaydet'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-                ),
-              ),
-            ),
+            _buildSectionHeader('PUANLAMA ARALIĞI'),
+            const SizedBox(height: 12),
+            _buildScoreInputs(),
+            const SizedBox(height: 32),
+            _buildSectionHeader('NET HESAPLAMA SEÇENEĞİ'),
+            const SizedBox(height: 12),
+            _buildNetOptions(),
+            const SizedBox(height: 32),
+            _buildSectionHeader('DERS KATSAYILARI'),
+            const SizedBox(height: 12),
+            _buildWeightsList(),
+            const SizedBox(height: 120),
           ],
+        ),
+      ),
+      bottomSheet: Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Color(0xFFF1F5F9), width: 1)),
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          height: 60,
+          child: ElevatedButton.icon(
+            onPressed: _saveConfig,
+            icon: const Icon(Icons.check_circle_rounded),
+            label: const Text('YAPILANDIRMAYI KAYDET', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              elevation: 8,
+              shadowColor: AppColors.primary.withOpacity(0.4),
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 12),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-          color: Colors.black26,
-          letterSpacing: 1.5,
-        ),
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w900,
+        color: Color(0xFF94A3B8),
+        letterSpacing: 1.5,
       ),
     );
   }
@@ -161,21 +174,21 @@ class _ScoringConfigScreenState extends State<ScoringConfigScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.black.withOpacity(0.04)),
+            border: Border.all(color: const Color(0xFFF1F5F9), width: 2),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 8)),
+              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 8)),
             ],
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<Exam>(
               isExpanded: true,
-              hint: const Text('Bir sınav seçiniz...', style: TextStyle(color: Colors.black26, fontSize: 14, fontWeight: FontWeight.bold)),
+              hint: const Text('Bir sınav seçiniz...', style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 14, fontWeight: FontWeight.w700)),
               value: _selectedExam,
-              icon: const Icon(Icons.unfold_more_rounded, color: Colors.black12),
+              icon: const Icon(Icons.unfold_more_rounded, color: AppColors.primary),
               items: examProvider.exams.map((exam) {
                 return DropdownMenuItem(
                   value: exam,
-                  child: Text('${exam.name} (${exam.type})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  child: Text('${exam.name} (${exam.type})', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF1E293B))),
                 );
               }).toList(),
               onChanged: _onExamChanged,
@@ -187,75 +200,50 @@ class _ScoringConfigScreenState extends State<ScoringConfigScreen> {
   }
 
   Widget _buildScoreInputs() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.black.withOpacity(0.04)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 8)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              children: [
-                const Text('MİNİMUM PUAN', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.black26)),
-                const SizedBox(height: 8),
-                _buildScoreField(_minScoreController),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              children: [
-                const Text('MAKSİMUM PUAN', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.black26)),
-                const SizedBox(height: 8),
-                _buildScoreField(_maxScoreController),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return Row(
+      children: [
+        Expanded(child: _buildScoreField(_minScoreController, 'MİN')),
+        const SizedBox(width: 16),
+        Expanded(child: _buildScoreField(_maxScoreController, 'MAKS')),
+      ],
     );
   }
 
-  Widget _buildScoreField(TextEditingController controller) {
+  Widget _buildScoreField(TextEditingController controller, String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 0),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1),
       ),
-      child: TextField(
-        controller: controller,
-        textAlign: TextAlign.center,
-        keyboardType: TextInputType.number,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-        decoration: const InputDecoration(border: InputBorder.none),
+      child: Column(
+        children: [
+          Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF94A3B8))),
+          TextField(
+            controller: controller,
+            textAlign: TextAlign.center,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.primary, letterSpacing: -1),
+            decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildNetOptions() {
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.black.withOpacity(0.04)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 8)),
-        ],
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
         children: [
-          _buildNetChip('3 Yanlış 1 Doğru', '3y1d'),
-          _buildNetChip('4 Yanlış 1 Doğru', '4y1d'),
-          _buildNetChip('- Yanlış - Doğru', 'yd'),
+          _buildNetChip('3Y 1D', '3y1d'),
+          _buildNetChip('4Y 1D', '4y1d'),
+          _buildNetChip('Yok', 'yd'),
         ],
       ),
     );
@@ -266,20 +254,23 @@ class _ScoringConfigScreenState extends State<ScoringConfigScreen> {
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _netOption = value),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: isSelected ? [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))] : null,
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: isSelected ? [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4))
+            ] : null,
           ),
           child: Text(
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w900,
-              color: isSelected ? Colors.white : Colors.black26,
+              color: isSelected ? AppColors.primary : const Color(0xFF94A3B8),
             ),
           ),
         ),
@@ -291,24 +282,22 @@ class _ScoringConfigScreenState extends State<ScoringConfigScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.black.withOpacity(0.04)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 8)),
-        ],
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 2),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
           _buildWeightItem('Türkçe', Icons.menu_book_rounded),
-          const Divider(height: 1, color: Color(0xFFF8FAFC)),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
           _buildWeightItem('Matematik', Icons.calculate_rounded),
-          const Divider(height: 1, color: Color(0xFFF8FAFC)),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
           _buildWeightItem('Fen Bilimleri', Icons.science_rounded),
-          const Divider(height: 1, color: Color(0xFFF8FAFC)),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
           _buildWeightItem('Sosyal Bilgiler', Icons.public_rounded),
-          const Divider(height: 1, color: Color(0xFFF8FAFC)),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
           _buildWeightItem('Din Kültürü', Icons.mosque_rounded),
-          const Divider(height: 1, color: Color(0xFFF8FAFC)),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
           _buildWeightItem('İngilizce', Icons.language_rounded),
         ],
       ),
@@ -322,22 +311,26 @@ class _ScoringConfigScreenState extends State<ScoringConfigScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: const Color(0xFFF5F3FF), borderRadius: BorderRadius.circular(16)),
-            child: Icon(icon, color: AppColors.primary, size: 20),
+            decoration: const BoxDecoration(color: Color(0xFFF8FAFC), shape: BoxShape.circle),
+            child: Icon(icon, color: const Color(0xFF64748B), size: 18),
           ),
           const SizedBox(width: 16),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF475569))),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF475569))),
           const Spacer(),
           Container(
-            width: 60,
-            padding: const EdgeInsets.symmetric(vertical: 0),
-            decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
+            width: 70,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F3FF),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFDDD6FE), width: 1),
+            ),
             child: TextField(
               controller: _weightControllers[label],
               textAlign: TextAlign.center,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: AppColors.primary),
-              decoration: const InputDecoration(border: InputBorder.none),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.primary),
+              decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 10)),
             ),
           ),
         ],
