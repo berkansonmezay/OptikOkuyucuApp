@@ -227,6 +227,26 @@ export async function getStudentResults(examId) {
     }
 }
 
+export async function deleteStudentResult(examId, resultId) {
+    try {
+        const exam = await getExamById(examId);
+        if (!exam) throw new Error("Sınav bulunamadı.");
+
+        const resultRef = doc(db, "exams", examId, "results", resultId);
+        await deleteDoc(resultRef);
+
+        // Update the student count on the main exam document
+        const examDoc = doc(db, "exams", examId);
+        const newCount = Math.max(0, (exam.studentCount || 0) - 1);
+        await updateDoc(examDoc, { studentCount: newCount });
+
+        return true;
+    } catch (e) {
+        console.error("Error deleting student result: ", e);
+        return false;
+    }
+}
+
 // Authentication and User Management
 export async function loginUser(username, password) {
     try {

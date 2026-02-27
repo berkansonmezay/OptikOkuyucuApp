@@ -59,6 +59,40 @@
             white-space: pre-wrap;
             word-break: break-all;
         }
+
+        /* Swipe to Delete Styles */
+        .swipe-container {
+            position: relative;
+            overflow: hidden;
+            touch-action: pan-y;
+        }
+
+        .swipe-content {
+            position: relative;
+            z-index: 10;
+            background: white;
+            transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+
+        .swipe-action {
+            position: absolute;
+            top: 1px;
+            bottom: 1px;
+            right: 1px;
+            width: 80px;
+            background: #ef4444;
+            /* red-500 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 5;
+            border-top-right-radius: 1.5rem;
+            border-bottom-right-radius: 1.5rem;
+            font-weight: 800;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 
@@ -218,34 +252,9 @@
 
                 container.innerHTML = students.map((std, i) => {
                     const initials = std.name ? std.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '??';
-                    const hasError = std.hasError || false; // Assume data might flag errors
+                    const hasError = std.hasError || false;
 
-                    if (hasError) {
-                        return `
-                        <div class="rounded-3xl border-2 border-orange-200 bg-orange-50/30 p-5 flex items-center justify-between shadow-card">
-                            <div class="flex items-center gap-4">
-                                <div class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-extrabold text-sm uppercase">
-                                    ${initials}
-                                </div>
-                                <div>
-                                    <h3 class="font-extrabold text-[#111827] text-sm">${std.name || 'Bilinmeyen Öğrenci'}</h3>
-                                    <div class="flex items-center gap-1 text-orange-600 mt-0.5">
-                                        <span class="material-symbols-outlined text-[14px] filled">warning</span>
-                                        <span class="text-[10px] font-bold uppercase tracking-wider">${std.errorMessage || 'Okuma Hatası'}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex flex-col items-end gap-2">
-                                <span class="text-base font-extrabold text-gray-400 block">---</span>
-                                <button class="bg-orange-100 text-orange-600 text-[10px] font-black uppercase px-4 py-1.5 rounded-full hover:bg-orange-200 transition-colors">
-                                    Düzelt
-                                </button>
-                            </div>
-                        </div>`;
-                    }
-
-                    return `
-                    <div class="rounded-3xl border border-gray-100 bg-white overflow-hidden shadow-card hover:border-purple-100 transition-all">
+                    const studentCardHtml = `
                         <div class="p-5 flex items-center justify-between cursor-pointer" onclick="toggleStudentDetail(this)">
                             <div class="flex items-center gap-4">
                                 <div class="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-primary font-extrabold text-sm uppercase">
@@ -308,6 +317,53 @@
                                 </button>
                             </div>
                         </div>
+                    `;
+
+                    if (hasError) {
+                        return `
+                        <div class="swipe-container rounded-3xl mb-4">
+                            <div class="swipe-action" onclick="handleDeleteStudent('${std.id}')">
+                                <span class="material-symbols-outlined">delete</span>
+                            </div>
+                            <div class="swipe-content rounded-3xl border-2 border-orange-200 bg-orange-50/30 p-5 flex items-center justify-between shadow-card" 
+                                 data-id="${std.id}"
+                                 ontouchstart="handleTouchStart(event)" 
+                                 ontouchmove="handleTouchMove(event)" 
+                                 ontouchend="handleTouchEnd(event)">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-extrabold text-sm uppercase">
+                                        ${initials}
+                                    </div>
+                                    <div>
+                                        <h3 class="font-extrabold text-[#111827] text-sm">${std.name || 'Bilinmeyen Öğrenci'}</h3>
+                                        <div class="flex items-center gap-1 text-orange-600 mt-0.5">
+                                            <span class="material-symbols-outlined text-[14px] filled">warning</span>
+                                            <span class="text-[10px] font-bold uppercase tracking-wider">${std.errorMessage || 'Okuma Hatası'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2">
+                                    <span class="text-base font-extrabold text-gray-400 block">---</span>
+                                    <button class="bg-orange-100 text-orange-600 text-[10px] font-black uppercase px-4 py-1.5 rounded-full hover:bg-orange-200 transition-colors">
+                                        Düzelt
+                                    </button>
+                                </div>
+                            </div>
+                        </div>`;
+                    }
+
+                    return `
+                    <div class="swipe-container rounded-3xl mb-4">
+                        <div class="swipe-action" onclick="handleDeleteStudent('${std.id}')">
+                            <span class="material-symbols-outlined">delete</span>
+                        </div>
+                        <div class="swipe-content rounded-3xl border border-gray-100 bg-white overflow-hidden shadow-card hover:border-purple-100 transition-all"
+                             data-id="${std.id}"
+                             ontouchstart="handleTouchStart(event)" 
+                             ontouchmove="handleTouchMove(event)" 
+                             ontouchend="handleTouchEnd(event)">
+                            ${studentCardHtml}
+                        </div>
                     </div>`;
                 }).join('');
 
@@ -353,6 +409,70 @@
                 document.getElementById('studentResultsContainer').innerHTML = "<p class='text-center text-red-500 py-10'>Veriler yüklenirken bir hata oluştu.</p>";
             }
         }
+
+        // Swipe Functionality
+        let touchStartX = 0;
+        let touchMoveX = 0;
+        let activeSwipeElement = null;
+
+        window.handleTouchStart = function (e) {
+            touchStartX = e.touches[0].clientX;
+            activeSwipeElement = e.currentTarget;
+            activeSwipeElement.style.transition = 'none';
+        };
+
+        window.handleTouchMove = function (e) {
+            if (!activeSwipeElement) return;
+            touchMoveX = e.touches[0].clientX;
+            const diff = touchMoveX - touchStartX;
+
+            // Only allow swipe to left (negative diff)
+            if (diff < 0) {
+                const move = Math.max(diff, -100); // Max swipe 100px
+                activeSwipeElement.style.transform = `translateX(${move}px)`;
+            } else {
+                activeSwipeElement.style.transform = `translateX(0px)`;
+            }
+        };
+
+        window.handleTouchEnd = function (e) {
+            if (!activeSwipeElement) return;
+            activeSwipeElement.style.transition = 'transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1)';
+            const diff = touchMoveX - touchStartX;
+
+            if (diff < -50) {
+                // Swipe successful
+                activeSwipeElement.style.transform = `translateX(-80px)`;
+            } else {
+                // Reset
+                activeSwipeElement.style.transform = `translateX(0px)`;
+            }
+
+            // Reset variables
+            touchStartX = 0;
+            touchMoveX = 0;
+        };
+
+        window.handleDeleteStudent = async function (resultId) {
+            if (!confirm('Bu öğrenci sonucunu silmek istediğinizden emin misiniz?')) {
+                if (activeSwipeElement) activeSwipeElement.style.transform = 'translateX(0px)';
+                return;
+            }
+
+            try {
+                const { deleteStudentResult } = await import('./firebase-config.js?v=3.2');
+                const success = await deleteStudentResult(examId, resultId);
+
+                if (success) {
+                    loadExamData(); // Reload list
+                } else {
+                    alert('Silme işlemi başarısız oldu.');
+                }
+            } catch (e) {
+                console.error("Delete error:", e);
+                alert('Bir hata oluştu.');
+            }
+        };
 
         window.onload = loadExamData;
     </script>
