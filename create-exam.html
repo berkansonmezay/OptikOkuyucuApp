@@ -6,6 +6,7 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>Yeni Sınav Oluştur</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
         rel="stylesheet" />
     <link
@@ -89,26 +90,27 @@
 
                 <!-- CEVAP ANAHTARI SEÇENEKLERİ -->
                 <section>
-                    <div class="flex justify-between items-center mb-4">
-                        <label class="text-[13px] font-bold text-[#64748b] tracking-wider uppercase">CEVAP
+                    <div class="flex justify-between items-start mb-4">
+                        <label class="text-[13px] font-bold text-[#64748b] tracking-wider uppercase mt-1">CEVAP
                             ANAHTARI</label>
-                        <div class="flex gap-2">
-                            <button onclick="toggleEntryMode('excel')" id="excelTab"
-                                class="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-primary text-white transition-all">EXCEL</button>
-                            <button onclick="toggleEntryMode('manual')" id="manualTab"
-                                class="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-gray-100 text-[#64748b] transition-all">MANUEL</button>
-                        </div>
-                    </div>
-
-                    <!-- Excel Yükleme Alanı -->
-                    <div id="excelEntryArea" class="space-y-3">
-                        <div class="flex justify-end mb-1">
+                        <div class="flex flex-col items-end gap-2">
+                            <div class="flex gap-2">
+                                <button onclick="toggleEntryMode('excel')" id="excelTab"
+                                    class="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-primary text-white transition-all">EXCEL</button>
+                                <button onclick="toggleEntryMode('manual')" id="manualTab"
+                                    class="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-gray-100 text-[#64748b] transition-all">MANUEL</button>
+                            </div>
+                            <!-- Şablon İndir Linki -->
                             <button onclick="downloadTemplate()"
                                 class="text-[11px] font-bold text-primary hover:underline flex items-center gap-1">
                                 <span class="material-symbols-outlined text-sm">download</span>
                                 Şablon İndir
                             </button>
                         </div>
+                    </div>
+
+                    <!-- Excel Yükleme Alanı -->
+                    <div id="excelEntryArea" class="space-y-3">
                         <input type="file" id="examExcelFile" class="hidden" accept=".xlsx, .xls, .csv"
                             onchange="handleFileSelect(this)" />
                         <div onclick="document.getElementById('examExcelFile').click()"
@@ -148,6 +150,30 @@
                                 class="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">add_circle</span>
                             YENİ DERS EKLE
                         </button>
+
+                        <!-- Kitapçık Türü Seçimi -->
+                        <div class="bg-white border-2 border-[#f1f5f9] rounded-2xl p-4 shadow-sm">
+                            <label
+                                class="text-[10px] font-bold text-[#64748b] tracking-wider uppercase mb-3 block">KİTAPÇIK
+                                TÜRÜ</label>
+                            <div class="flex gap-3">
+                                <button onclick="selectBookletType('A')" id="bookletA"
+                                    class="booklet-btn flex-1 py-3 rounded-xl text-sm font-bold transition-all border-2 bg-primary border-primary text-white shadow-glow">A</button>
+                                <button onclick="selectBookletType('B')" id="bookletB"
+                                    class="booklet-btn flex-1 py-3 rounded-xl text-sm font-bold transition-all border-2 bg-white border-[#e2e8f0] text-[#64748b] hover:border-primary/30">B</button>
+                                <button onclick="selectBookletType('C')" id="bookletC"
+                                    class="booklet-btn flex-1 py-3 rounded-xl text-sm font-bold transition-all border-2 bg-white border-[#e2e8f0] text-[#64748b] hover:border-primary/30">C</button>
+                                <button onclick="selectBookletType('D')" id="bookletD"
+                                    class="booklet-btn flex-1 py-3 rounded-xl text-sm font-bold transition-all border-2 bg-white border-[#e2e8f0] text-[#64748b] hover:border-primary/30">D</button>
+                            </div>
+                            <div class="mt-3 flex justify-end">
+                                <button onclick="downloadAnswerKey()"
+                                    class="text-[11px] font-bold text-primary hover:underline flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-sm">download</span>
+                                    Cevap Anahtarlarını İndir
+                                </button>
+                            </div>
+                        </div>
 
                         <div id="subjectsList" class="space-y-4">
                             <!-- Subjects will be dynamically added here -->
@@ -190,8 +216,11 @@
         window.updateAnswer = updateAnswer;
         window.updateAllAnswers = updateAllAnswers;
         window.removeSubject = removeSubject;
+        window.selectBookletType = selectBookletType;
+        window.downloadAnswerKey = downloadAnswerKey;
 
         let selectedType = 'LGS';
+        let selectedBookletType = 'A';
         let subjects = [];
         let editIndex = null;
 
@@ -229,6 +258,11 @@
 
                 // Sınav Türünü Ayarla (Global değişkeni güncelle)
                 selectedType = exam.type;
+
+                // Kitapçık Türünü Ayarla
+                if (exam.bookletType) {
+                    selectBookletType(exam.bookletType);
+                }
 
                 // Dersleri ve Cevap Anahtarını Yükle
                 if (exam.subjects && exam.subjects.length > 0) {
@@ -274,7 +308,194 @@
                 document.getElementById('uploadTitle').textContent = 'Dosya Hazır';
                 document.getElementById('uploadSubtitle').textContent = 'Değiştirmek için tıklayın';
                 document.getElementById('uploadActionIcon').textContent = 'published_with_changes';
+
+                // Parse Excel file with SheetJS
+                parseExcelFile(file);
             }
+        }
+
+        // Store all booklet data globally: { 'A': subjects[], 'B': subjects[], ... }
+        let allBookletData = {};
+
+        function parseExcelFile(file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+                    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                    if (rows.length < 2) {
+                        alert('Excel dosyasında veri bulunamadı.');
+                        return;
+                    }
+
+                    // Find column indices from header row
+                    const headers = rows[0].map(h => String(h || '').trim());
+                    const colMap = {
+                        kitapcikTuru: headers.findIndex(h => h.toLowerCase().includes('kitapçık') || h.toLowerCase().includes('kitapcik')),
+                        soruNo: headers.findIndex(h => h.toLowerCase().includes('soru no')),
+                        dersGrubu: headers.findIndex(h => h.toLowerCase().includes('ders grubu')),
+                        ders: headers.findIndex(h => h.toLowerCase() === 'ders'),
+                        dersSoruNo: headers.findIndex(h => h.toLowerCase().includes('ders soru')),
+                        bKarsiligi: headers.findIndex(h => h.toLowerCase().includes('b karşılığı') || h.toLowerCase().includes('b karsiligi')),
+                        cevap: headers.findIndex(h => h.toLowerCase() === 'cevap'),
+                        konuKodu: headers.findIndex(h => h.toLowerCase().includes('konu kodu')),
+                        yayindanGelenKazanim: headers.findIndex(h => h.toLowerCase().includes('yayından') || h.toLowerCase().includes('kazanım')),
+                        iptal: headers.findIndex(h => h.toLowerCase().includes('iptal')),
+                        zorlukSeviyesi: headers.findIndex(h => h.toLowerCase().includes('zorluk')),
+                        soruTipi: headers.findIndex(h => h.toLowerCase().includes('soru tipi')),
+                        videoLink: headers.findIndex(h => h.toLowerCase().includes('video') || h.toLowerCase().includes('deneme')),
+                        konu: headers.findIndex(h => h.toLowerCase() === 'konu'),
+                        dosyaAdi: headers.findIndex(h => h.toLowerCase().includes('dosya')),
+                        aiOnerilenKonuKodu: headers.findIndex(h => h.toLowerCase().includes('önerilen konu') || h.toLowerCase().includes('onerilen konu')),
+                        aiKontrolDurumu: headers.findIndex(h => h.toLowerCase().includes('kontrol durumu')),
+                        aiGuvenSeviyesi: headers.findIndex(h => h.toLowerCase().includes('güven') || h.toLowerCase().includes('guven')),
+                    };
+
+                    const dataRows = rows.slice(1).filter(row => row.length > 0 && row.some(cell => cell !== undefined && cell !== ''));
+
+                    // Collect all booklet types found in column A
+                    const bookletTypes = new Set();
+                    // Group rows by booklet type and subject
+                    // Structure: { bookletType: { dersAdi: [questionData, ...] } }
+                    const bookletSubjectMap = {};
+
+                    dataRows.forEach(row => {
+                        // Get booklet type from column A
+                        let kitapcik = 'A';
+                        if (colMap.kitapcikTuru >= 0) {
+                            kitapcik = String(row[colMap.kitapcikTuru] || 'A').trim().toUpperCase();
+                        }
+                        bookletTypes.add(kitapcik);
+
+                        // Extract subject name from Ders column
+                        let dersAdi = '';
+                        if (colMap.ders >= 0) {
+                            dersAdi = String(row[colMap.ders] || '').trim();
+                        }
+                        if (!dersAdi) return;
+
+                        // Get answer
+                        let cevap = '';
+                        if (colMap.cevap >= 0) {
+                            const rawCevap = String(row[colMap.cevap] || '').trim().toUpperCase();
+                            const numMap = { '1': 'A', '2': 'B', '3': 'C', '4': 'D', '5': 'E' };
+                            cevap = numMap[rawCevap] || rawCevap;
+                        }
+
+                        // Check if cancelled
+                        let iptalMi = false;
+                        if (colMap.iptal >= 0) {
+                            const iptalVal = String(row[colMap.iptal] || '').trim().toUpperCase();
+                            iptalMi = iptalVal === 'X';
+                        }
+
+                        // Build question data
+                        const questionData = {
+                            soruNo: colMap.soruNo >= 0 ? row[colMap.soruNo] : null,
+                            dersSoruNo: colMap.dersSoruNo >= 0 ? row[colMap.dersSoruNo] : null,
+                            kitapcikTuru: kitapcik,
+                            bKarsiligi: colMap.bKarsiligi >= 0 ? String(row[colMap.bKarsiligi] || '').trim() : '',
+                            cevap: iptalMi ? 'X' : cevap,
+                            konuKodu: colMap.konuKodu >= 0 ? String(row[colMap.konuKodu] || '').trim() : '',
+                            yayindanGelenKazanim: colMap.yayindanGelenKazanim >= 0 ? String(row[colMap.yayindanGelenKazanim] || '').trim() : '',
+                            zorlukSeviyesi: colMap.zorlukSeviyesi >= 0 ? String(row[colMap.zorlukSeviyesi] || '').trim() : '',
+                            soruTipi: colMap.soruTipi >= 0 ? String(row[colMap.soruTipi] || '').trim() : '',
+                            videoLink: colMap.videoLink >= 0 ? String(row[colMap.videoLink] || '').trim() : '',
+                            konu: colMap.konu >= 0 ? String(row[colMap.konu] || '').trim() : '',
+                            dosyaAdi: colMap.dosyaAdi >= 0 ? String(row[colMap.dosyaAdi] || '').trim() : '',
+                        };
+
+                        if (!bookletSubjectMap[kitapcik]) bookletSubjectMap[kitapcik] = {};
+                        if (!bookletSubjectMap[kitapcik][dersAdi]) bookletSubjectMap[kitapcik][dersAdi] = [];
+                        bookletSubjectMap[kitapcik][dersAdi].push(questionData);
+                    });
+
+                    // If B booklet doesn't exist, auto-generate from A using B karşılığı
+                    if (!bookletTypes.has('B') && bookletSubjectMap['A']) {
+                        bookletSubjectMap['B'] = {};
+                        Object.keys(bookletSubjectMap['A']).forEach(dersAdi => {
+                            const aQuestions = bookletSubjectMap['A'][dersAdi];
+                            // Create empty array with same length
+                            const bQuestions = new Array(aQuestions.length).fill(null);
+
+                            aQuestions.forEach(q => {
+                                const bSoruNo = parseInt(q.bKarsiligi);
+                                if (bSoruNo && bSoruNo >= 1 && bSoruNo <= aQuestions.length) {
+                                    // Place this answer at the B position (1-indexed)
+                                    bQuestions[bSoruNo - 1] = {
+                                        ...q,
+                                        kitapcikTuru: 'B',
+                                        soruNo: bSoruNo,
+                                        dersSoruNo: bSoruNo,
+                                        bKarsiligi: '',
+                                    };
+                                }
+                            });
+
+                            // Fill any gaps (questions without B karşılığı) 
+                            for (let i = 0; i < bQuestions.length; i++) {
+                                if (!bQuestions[i]) {
+                                    bQuestions[i] = {
+                                        ...aQuestions[i],
+                                        kitapcikTuru: 'B',
+                                        soruNo: i + 1,
+                                        dersSoruNo: i + 1,
+                                        cevap: '',
+                                        bKarsiligi: '',
+                                    };
+                                }
+                            }
+
+                            bookletSubjectMap['B'][dersAdi] = bQuestions;
+                        });
+                        bookletTypes.add('B');
+                        console.log('B kitapçığı otomatik oluşturuldu (B karşılığı sütunundan).');
+                    }
+
+                    // Convert all booklet data to subjects format and store globally
+                    allBookletData = {};
+                    bookletTypes.forEach(bt => {
+                        const subjectData = bookletSubjectMap[bt];
+                        if (!subjectData) return;
+                        let idx = 0;
+                        allBookletData[bt] = [];
+                        Object.keys(subjectData).forEach(dersAdi => {
+                            const questions = subjectData[dersAdi];
+                            allBookletData[bt].push({
+                                id: Date.now() + idx + (bt.charCodeAt(0) * 1000),
+                                name: dersAdi,
+                                questionCount: questions.length,
+                                answers: questions.map(q => q.cevap),
+                                questions: questions,
+                                isExpanded: false
+                            });
+                            idx++;
+                        });
+                    });
+
+                    // Set active booklet to A (or first available)
+                    const firstBooklet = bookletTypes.has('A') ? 'A' : [...bookletTypes][0];
+                    selectBookletType(firstBooklet);
+                    subjects = allBookletData[firstBooklet] || [];
+
+                    // Show success summary
+                    const bookletList = [...bookletTypes].sort().join(', ');
+                    const summaryText = subjects.map(s => `${s.name}: ${s.questionCount} soru`).join(', ');
+                    document.getElementById('uploadSubtitle').textContent = `Kitapçık: ${bookletList} | ${summaryText}`;
+                    document.getElementById('uploadTitle').textContent = `${subjects.length} Ders Yüklendi`;
+
+                    console.log('Excel parsed successfully. Booklet types:', [...bookletTypes], 'Data:', allBookletData);
+
+                } catch (err) {
+                    console.error('Excel parse hatası:', err);
+                    alert('Excel dosyası okunamadı. Lütfen şablon formatına uygun bir dosya yükleyin.');
+                }
+            };
+            reader.readAsArrayBuffer(file);
         }
 
         function removeFile(event) {
@@ -356,25 +577,127 @@
                 "B karşılığı", "Cevap", "Konu kodu", "Yayından Gelen Kazanım",
                 "İptal için X yazınız", "Zorluk seviyesi", "Soru tipi",
                 "Deneme video çözüm linki", "Konu", "Dosya Adı",
-                "AI Önerilen Konu Kodu", "AI Kontrol Durumu", "AI Güven Seviyesi"
+                "Aİ Önerilen Konu Kodu", "Aİ Kontrol Durumu", "Aİ Güven Seviyesi"
             ];
 
-            let csvContent = "\uFEFF" + headers.join(";") + "\n";
-            csvContent += "A;1;SÖZEL;TÜRKÇE;1;;A;;;;;;;;;;;\n";
+            // Build worksheet data
+            const wsData = [headers];
+            // Add example row
+            wsData.push(["A", 1, "LGS-TÜRKÇE", "Türkçe", 1, "", "B", "", "", "", "", "", "", "", "", "", "None", ""]);
 
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-            link.setAttribute("href", url);
-            link.setAttribute("download", "Cevap_Anahtari_Sablonu.csv");
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 14 }, // A - Kitapçık türü
+                { wch: 8 },  // B - Soru no
+                { wch: 16 }, // C - [Ders grubu]
+                { wch: 16 }, // D - Ders
+                { wch: 18 }, // E - Ders soru numarası
+                { wch: 12 }, // F - B karşılığı
+                { wch: 8 },  // G - Cevap
+                { wch: 12 }, // H - Konu kodu
+                { wch: 24 }, // I - Yayından Gelen Kazanım
+                { wch: 18 }, // J - İptal için X yazınız
+                { wch: 14 }, // K - Zorluk seviyesi
+                { wch: 12 }, // L - Soru tipi
+                { wch: 28 }, // M - Deneme video çözüm linki
+                { wch: 14 }, // N - Konu
+                { wch: 14 }, // O - Dosya Adı
+                { wch: 20 }, // P - Aİ Önerilen Konu Kodu
+                { wch: 16 }, // Q - Aİ Kontrol Durumu
+                { wch: 14 }, // R - Aİ Güven Seviyesi
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Cevap Anahtarı');
+            XLSX.writeFile(wb, 'Cevap_Anahtari_Sablonu.xlsx');
+        }
+
+        function downloadAnswerKey() {
+            if (!subjects || subjects.length === 0) {
+                alert('İndirilecek cevap anahtarı bulunamadı. Lütfen önce ders ve cevapları giriniz.');
+                return;
+            }
+
+            const headers = [
+                "Kitapçık türü", "Soru no", "[Ders grubu]", "Ders", "Ders soru numarası",
+                "B karşılığı", "Cevap", "Konu kodu", "Yayından Gelen Kazanım",
+                "İptal için X yazınız", "Zorluk seviyesi", "Soru tipi",
+                "Deneme video çözüm linki", "Konu", "Dosya Adı",
+                "Aİ Önerilen Konu Kodu", "Aİ Kontrol Durumu", "Aİ Güven Seviyesi"
+            ];
+
+            const wsData = [headers];
+            let globalSoruNo = 1;
+
+            subjects.forEach(s => {
+                s.answers.forEach((ans, i) => {
+                    wsData.push([
+                        selectedBookletType,
+                        globalSoruNo,
+                        '',
+                        s.name,
+                        i + 1,
+                        '',
+                        ans || '',
+                        '', '', '', '', '', '', '', '', '', '', ''
+                    ]);
+                    globalSoruNo++;
+                });
+            });
+
+            // If we have allBookletData, iterate over all booklets
+            if (Object.keys(allBookletData).length > 0) {
+                wsData.length = 1; // Clear previous and keep headers
+
+                Object.keys(allBookletData).sort().forEach(bookletType => {
+                    let bookletGlobalSoruNo = 1;
+                    allBookletData[bookletType].forEach(s => {
+                        s.answers.forEach((ans, i) => {
+                            wsData.push([
+                                bookletType,
+                                bookletGlobalSoruNo,
+                                '',
+                                s.name,
+                                i + 1,
+                                '',
+                                ans || '',
+                                '', '', '', '', '', '', '', '', '', '', ''
+                            ]);
+                            bookletGlobalSoruNo++;
+                        });
+                    });
+                });
+            }
+
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Cevap Anahtarı');
+
+            const examName = document.getElementById('examName').value || 'Sinav';
+            XLSX.writeFile(wb, `${examName}_Tum_Cevap_Anahtarlari.xlsx`);
         }
 
         // Manual Entry Functions
+        function selectBookletType(type) {
+            selectedBookletType = type;
+            document.querySelectorAll('.booklet-btn').forEach(b => {
+                b.classList.remove('bg-primary', 'border-primary', 'text-white', 'shadow-glow');
+                b.classList.add('bg-white', 'border-[#e2e8f0]', 'text-[#64748b]');
+            });
+            const btn = document.getElementById('booklet' + type);
+            if (btn) {
+                btn.classList.add('bg-primary', 'border-primary', 'text-white', 'shadow-glow');
+                btn.classList.remove('bg-white', 'border-[#e2e8f0]', 'text-[#64748b]');
+            }
+            // Switch subjects to selected booklet data (if loaded from Excel)
+            if (allBookletData[type]) {
+                subjects = allBookletData[type];
+                renderSubjects();
+            }
+        }
+
         function addSubject() {
             const id = Date.now();
             subjects.push({
@@ -418,7 +741,14 @@
             subjects = subjects.map(s => {
                 if (s.id === subjectId) {
                     const newAnswers = [...s.answers];
-                    newAnswers[qIndex] = value;
+                    const current = newAnswers[qIndex] || '';
+                    // Toggle: if already selected, remove; otherwise add
+                    if (current.includes(value)) {
+                        newAnswers[qIndex] = current.replace(value, '');
+                    } else {
+                        // Add and sort alphabetically (A before B before C...)
+                        newAnswers[qIndex] = (current + value).split('').sort().join('');
+                    }
                     return { ...s, answers: newAnswers };
                 }
                 return s;
@@ -514,7 +844,7 @@
                                     <div class="flex gap-2">
                                         ${['A', 'B', 'C', 'D', 'E'].map(opt => `
                                             <button onclick="updateAnswer(${s.id}, ${i}, '${opt}')" 
-                                                class="w-8 h-8 rounded-lg text-xs font-bold transition-all border-2 ${ans === opt ? 'bg-primary border-primary text-white scale-110 shadow-glow' : 'bg-white border-gray-100 text-gray-400 hover:border-primary/30'}">
+                                                class="w-8 h-8 rounded-lg text-xs font-bold transition-all border-2 ${(ans || '').includes(opt) ? 'bg-primary border-primary text-white scale-110 shadow-glow' : 'bg-white border-gray-100 text-gray-400 hover:border-primary/30'}">
                                                 ${opt}
                                             </button>
                                         `).join('')}
@@ -543,12 +873,13 @@
 
             try {
                 const examData = {
-                    id: examIdToEdit || '', // Pass existing ID if editing
+                    id: examIdToEdit || '',
                     name: name,
                     type: selectedType,
+                    bookletType: selectedBookletType,
                     date: date,
                     subjects: subjects,
-                    studentCount: 0, // In real scenario, if editing we should preserve this, but firestore rules usually handle that separately if needed, or we fetch it first. For simple edit, we'll keep it as 0 for new or keep existing if handled in getExamById.
+                    studentCount: 0,
                 };
 
                 // If editing, preserve the previous studentCount and createdAt if we want, but our getExamById doesn't store them globally here. 
