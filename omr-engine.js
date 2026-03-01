@@ -1,13 +1,13 @@
 /**
  * OMR Engine - Optical Mark Recognition using OpenCV.js
  * Handles image processing to detect marked bubbles on optical forms.
- * Features: Performance downscaling, Aspect Ratio verification, Extreme point recovery.
+ * Features: Performance downscaling, Aspect Ratio verification, Extreme point recovery, Debug Overlays.
  */
 
 export class OMREngine {
     constructor(config = {}) {
-        this.bubbleRadius = config.bubbleRadius || 10; // Increased from 5 to 10
-        this.detectionThreshold = config.detectionThreshold || 0.55; // Increased from 0.4 to 0.55
+        this.bubbleRadius = config.bubbleRadius || 10;
+        this.detectionThreshold = config.detectionThreshold || 0.55;
         this.targetWidth = 800;
         this.targetHeight = 1100;
     }
@@ -69,6 +69,25 @@ export class OMREngine {
             if (small) small.delete();
             if (paperContour) paperContour.delete();
             if (src) src.delete();
+        }
+    }
+
+    /**
+     * Helper to visualize the OMR grid for debugging
+     */
+    drawDebugGrid(canvas, grid) {
+        const ctx = canvas.getContext('2d');
+        ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
+        ctx.lineWidth = 1;
+
+        for (const subject in grid) {
+            grid[subject].forEach(q => {
+                q.options.forEach(opt => {
+                    ctx.beginPath();
+                    ctx.arc(opt.x, opt.y, this.bubbleRadius, 0, Math.PI * 2);
+                    ctx.stroke();
+                });
+            });
         }
     }
 

@@ -140,6 +140,14 @@
                 id="examTypeLabel">
                 LGS DENEME
             </div>
+            <button id="debugToggle" onclick="toggleDebug()"
+                class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white">
+                <span class="material-symbols-outlined">bug_report</span>
+            </button>
+            <div class="px-4 py-2 rounded-full bg-black/40 backdrop-blur-md text-[10px] font-bold tracking-[0.1em] text-white uppercase border border-white/10"
+                id="examTypeLabel">
+                LGS DENEME
+            </div>
             <button
                 class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white">
                 <span class="material-symbols-outlined">flash_on</span>
@@ -153,6 +161,10 @@
             class="absolute inset-0 flex items-center justify-center bg-[#111] z-0 transition-opacity duration-500">
             <span class="material-symbols-outlined text-white/20 text-[120px]">photo_camera</span>
         </div>
+
+        <!-- Debug View (Warped Image) -->
+        <canvas id="debug-canvas"
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] aspect-[800/1100] bg-black/80 border-2 border-primary z-30 hidden pointer-events-none"></canvas>
 
         <!-- Scanner Overlay -->
         <div class="scanner-overlay">
@@ -198,8 +210,20 @@
         import { OMREngine } from './omr-engine.js';
 
         const omr = new OMREngine();
-        let selectedExamId = null;
-        let selectedExamData = null;
+        let isDebug = false;
+
+        window.toggleDebug = function () {
+            isDebug = !isDebug;
+            const debugCanvas = document.getElementById('debug-canvas');
+            const debugBtn = document.getElementById('debugToggle');
+            if (isDebug) {
+                debugCanvas.classList.remove('hidden');
+                debugBtn.classList.replace('bg-black/40', 'bg-primary');
+            } else {
+                debugCanvas.classList.add('hidden');
+                debugBtn.classList.replace('bg-primary', 'bg-black/40');
+            }
+        }
 
         let scanning = true;
         let canvasElement;
@@ -252,13 +276,22 @@
                 console.log("processForm: Generating fixed grid...");
                 const fixedGrid = _generateFixedGrid(selectedExamData);
 
+                // DEBUG VIEW: Draw the warped frame and grid
+                if (isDebug) {
+                    const debugCanvas = document.getElementById('debug-canvas');
+                    debugCanvas.width = omr.targetWidth;
+                    debugCanvas.height = omr.targetHeight;
+                    cv.imshow('debug-canvas', cvResult.warpedImage);
+                    omr.drawDebugGrid(debugCanvas, fixedGrid);
+                }
+
                 // 3. Read Marks
                 console.log("processForm: Reading marks...");
                 const realAnswers = omr.readMarks(cvResult.processedOMR, fixedGrid);
 
                 // Booklet & Score
                 const bookletResult = realAnswers['KITAPCIK'] ? realAnswers['KITAPCIK'][0] : 'A';
-                const selectedBooklet = bookletResult.trim() === '' ? 'A' : bookletResult;
+                const selectedBooklet = (bookletResult === " " || bookletResult === "*") ? 'A' : bookletResult;
 
                 // Cleanup
                 cvResult.warpedImage.delete();
@@ -317,7 +350,7 @@
         function _generateFixedGrid(exam) {
             const grid = {};
 
-            // 1. Booklet (KITAPCIK) - Slightly adjusted to the right
+            // 1. Booklet (KITAPCIK) - Calibrated for LGS Form
             grid['KITAPCIK'] = [{
                 options: [
                     { label: 'A', x: 550, y: 238 },
@@ -329,12 +362,11 @@
 
             if (!exam || !exam.subjects) return grid;
 
-            // 2. Subjects Grid - Calibrated for Sözəl and Sayısal blocks
-            const startY = 385; // Adjusted down slightly
-            const rowHeight = 33.5; // Fine-tuned row spacing
-            const optStep = 24.5;   // Fine-tuned option spacing
+            // 2. Subjects Grid - Aligned for Sözel (4) and Sayısal (2) blocks
+            const startY = 385;
+            const rowHeight = 33.5;
+            const optStep = 24.5;
 
-            // X-coordinates with gap between Sözəl (first 4) and Sayısal (last 2)
             const columns = [
                 { name: 'Türkçe', x: 64 },
                 { name: 'İnkılap', x: 184 },
@@ -345,7 +377,7 @@
             ];
 
             columns.forEach((col) => {
-                const subject = exam.subjects.find(s => s.name.toLowerCase().includes(col.name.toLowerCase()));
+                const subject = exam.subjects.find(s => s.name.toLowerCase().includes(col.name.toLowerCase()) || col.name.toLowerCase().includes(s.name.toLowerCase()));
                 if (subject) {
                     const questions = [];
                     const qCount = subject.questionCount || 20;
