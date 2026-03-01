@@ -14,6 +14,7 @@
     <meta name="color-scheme" content="light">
     <script src="theme-manager.js"></script>
     <script type="module" src="firebase-config.js"></script>
+    <script src="https://docs.opencv.org/4.5.2/opencv.js" type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script>
         tailwind.config = {
@@ -210,133 +211,100 @@
         }
 
         async function processForm(qrData, imageData) {
-            if (!selectedExamId) {
-                alert("Lütfen önce bir sınav seçin.");
-                window.location.href = 'scan-select.html';
-                return;
-            }
-
-            if (!scanning) return;
-            scanning = false; // Prevent multiple scans
+            if (!selectedExamId || !scanning) return;
+            scanning = false; // Pause scanning
 
             const toast = document.getElementById('statusToast');
             toast.classList.remove('opacity-0', 'translate-y-4');
             toast.classList.add('opacity-100', 'translate-y-0');
-            toast.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">sync</span> KAYDEDİLİYOR...';
+            toast.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">sync</span> FORM ANALİZ EDİLİYOR...';
 
             try {
-                // Parse QR Data (assuming JSON or specific format)
-                // Example format from the image:
-                // Name: NİSA NUR YILMAZ
-                // No: 70266
-                // TC: 22345234958
-                // Sınıf: 12
-
-                let studentData = { name: "Bilinmeyen", studentNo: "00000", tcNo: "", class: "" };
-
-                try {
-                    // Try to parse if it's JSON
-                    studentData = JSON.parse(qrData);
-                } catch (e) {
-                    if (qrData.includes('-')) {
-                        const parts = qrData.split('-');
-                        studentData.name = parts[0] ? parts[0].trim() : qrData;
-                        studentData.studentNo = parts[1] ? parts[1].trim() : Math.floor(10000 + Math.random() * 90000).toString();
-                        studentData.tcNo = parts[2] ? parts[2].trim() : "";
-                        studentData.class = parts[3] ? parts[3].trim() : "";
-                    } else {
-                        studentData.name = qrData;
-                        studentData.studentNo = Math.floor(10000 + Math.random() * 90000).toString();
-                    }
+                // 1. Process with OpenCV
+                const cvResult = omr.processFrame(canvasElement);
+                if (!cvResult) {
+                    toast.innerHTML = '<span class="material-symbols-outlined text-lg">error</span> KAĞIT ALGILANAMADI';
+                    setTimeout(() => {
+                        toast.classList.add('opacity-0', 'translate-y-4');
+                        scanning = true;
+                    }, 1000);
+                    return;
                 }
 
-                // Real OMR Processing
-                const gridDefinition = _generateGrid(selectedExamData, imageData.width, imageData.height);
-                const realAnswers = omr.processImage(imageData, gridDefinition);
+                // 2. Generate Fixed Grid (for 800x1100 warped image)
+                const fixedGrid = _generateFixedGrid(selectedExamData);
 
-                // Booklet detection
+                // 3. Read Marks
+                const realAnswers = omr.readMarks(cvResult.processedOMR, fixedGrid);
+
+                // Booklet & Score
                 const bookletResult = realAnswers['KITAPCIK'] ? realAnswers['KITAPCIK'][0] : 'A';
                 const selectedBooklet = bookletResult.trim() === '' ? 'A' : bookletResult;
 
-                const randomScore = (Math.random() * 500).toFixed(2); // Score still needs a calculator
+                // Cleanup
+                cvResult.warpedImage.delete();
+                cvResult.processedOMR.delete();
 
+                // Save results
                 const resultData = {
-                    name: studentData.name || "QR İsim",
-                    studentNo: studentData.studentNo || "12345",
-                    tcNo: studentData.tcNo || "",
-                    className: studentData.class || "",
-                    score: randomScore,
+                    name: qrData.split('-')[0] || "QR İsim",
+                    studentNo: qrData.split('-')[1] || "12345",
+                    tcNo: qrData.split('-')[2] || "",
+                    className: qrData.split('-')[3] || "",
+                    score: "0",
                     booklet: selectedBooklet,
                     rawAnswers: JSON.stringify(realAnswers),
                 };
 
                 await addStudentResult(selectedExamId, resultData);
 
-                toast.innerHTML = '<span class="material-symbols-outlined text-lg">check_circle</span> FORM TARANDI';
-
-                // Get preview image data URL to pass to next screen
-                // Reduce size for URL parameter (taking a smaller quality jpeg from canvas)
-                const previewUrl = canvasElement ? canvasElement.toDataURL('image/jpeg', 0.5) : '';
-                // Save large data to sessionStorage to avoid URI_TOO_LONG
-                sessionStorage.setItem('lastScanPreview', previewUrl);
-                sessionStorage.setItem('lastScanAnswers', resultData.rawAnswers);
+                toast.classList.replace('bg-primary', 'bg-green-500');
+                toast.innerHTML = '<span class="material-symbols-outlined text-lg">check_circle</span> BAŞARILI';
 
                 setTimeout(() => {
                     const params = new URLSearchParams({
                         examId: selectedExamId,
                         studentName: resultData.name,
                         studentNo: resultData.studentNo,
-                        studentTc: resultData.tcNo,
-                        studentClass: resultData.className,
                         booklet: resultData.booklet
                     });
                     window.location.href = `scan-success.html?${params.toString()}`;
                 }, 1000);
 
             } catch (error) {
-                console.error("Error saving scan result:", error);
-                toast.classList.remove('bg-primary');
+                console.error("OMR Error:", error);
                 toast.classList.add('bg-red-500');
-                toast.innerHTML = '<span class="material-symbols-outlined text-lg">error</span> HATA OLUŞTU';
+                toast.innerHTML = 'HATA: ' + error.message;
                 setTimeout(() => {
                     toast.classList.add('opacity-0', 'translate-y-4');
-                    toast.classList.remove('opacity-100', 'translate-y-0');
-                    toast.classList.add('bg-primary');
-                    toast.classList.remove('bg-red-500');
-                    scanning = true; // allow scan again
+                    scanning = true;
                 }, 2000);
             }
         }
 
         /**
-         * Generates expected bubble coordinates based on exam subjects.
-         * This targets the central area of the frame.
+         * Generates FIXED bubble coordinates for the warped 800x1100 image.
          */
-        function _generateGrid(exam, width, height) {
+        function _generateFixedGrid(exam) {
             const grid = {};
 
-            // 1. Booklet (KITAPCIK) - Expanded UI (Top: 12%, Bottom: 15%)
-            // Looking for booklet around 18% down (inside the 12% top frame)
-            const bkX = width * 0.40;
-            const bkY = height * 0.18;
-            const bkStep = (width * 0.20) / 4;
-
+            // 1. Booklet (KITAPCIK) - Fixed coordinates on 800x1100
             grid['KITAPCIK'] = [{
                 options: [
-                    { label: 'A', x: Math.round(bkX + bkStep * 0.5), y: Math.round(bkY + height * 0.04) },
-                    { label: 'B', x: Math.round(bkX + bkStep * 1.5), y: Math.round(bkY + height * 0.04) },
-                    { label: 'C', x: Math.round(bkX + bkStep * 2.5), y: Math.round(bkY + height * 0.04) },
-                    { label: 'D', x: Math.round(bkX + bkStep * 3.5), y: Math.round(bkY + height * 0.04) }
+                    { label: 'A', x: 350, y: 154 },
+                    { label: 'B', x: 390, y: 154 },
+                    { label: 'C', x: 430, y: 154 },
+                    { label: 'D', x: 470, y: 154 }
                 ]
             }];
 
             if (!exam || !exam.subjects) return grid;
 
-            // 2. Subjects Grid - Maximized area (roughly 35% to 80% depth)
-            const startX = width * 0.05; // Matches 4% left margin
-            const areaWidth = width * 0.90; // Matches side margins
-            const startY = height * 0.35;
-            const colWidth = areaWidth / 6;
+            // 2. Subjects Grid - Calibration based on LGS form layout
+            const startX = 64;
+            const startY = 328;
+            const colWidth = 118;
+            const rowHeight = 36;
 
             const subjectNames = ['Türkçe', 'İnkılap', 'Din', 'İngilizce', 'Matematik', 'Fen'];
 
@@ -345,19 +313,18 @@
                 if (subject) {
                     const questions = [];
                     const qCount = subject.questionCount || 20;
-                    const colX = startX + (sIdx * colWidth) + (colWidth * 0.1);
-                    const qStepY = (height * 0.48) / qCount; // available vertical space ~48% (83% - 35%)
+                    const curX = startX + (sIdx * colWidth);
 
                     for (let i = 0; i < qCount; i++) {
-                        const qY = startY + (i * qStepY);
-                        const optStep = colWidth / 6;
+                        const curY = startY + (i * rowHeight);
+                        const optStep = 21;
                         questions.push({
                             options: [
-                                { label: 'A', x: Math.round(colX + optStep * 1), y: Math.round(qY) },
-                                { label: 'B', x: Math.round(colX + optStep * 2), y: Math.round(qY) },
-                                { label: 'C', x: Math.round(colX + optStep * 3), y: Math.round(qY) },
-                                { label: 'D', x: Math.round(colX + optStep * 4), y: Math.round(qY) },
-                                { label: 'E', x: Math.round(colX + optStep * 5), y: Math.round(qY) }
+                                { label: 'A', x: curX + optStep * 0, y: curY },
+                                { label: 'B', x: curX + optStep * 1, y: curY },
+                                { label: 'C', x: curX + optStep * 2, y: curY },
+                                { label: 'D', x: curX + optStep * 3, y: curY },
+                                { label: 'E', x: curX + optStep * 4, y: curY }
                             ]
                         });
                     }
@@ -367,6 +334,7 @@
 
             return grid;
         }
+
 
         window.onload = async () => {
             // Get selected exam from URL params

@@ -1,98 +1,133 @@
 /**
- * OMR Engine - Optical Mark Recognition
+ * OMR Engine - Optical Mark Recognition using OpenCV.js
  * Handles image processing to detect marked bubbles on optical forms.
+ * Features: Perspective correction, Adaptive thresholding, Contour detection.
  */
 
 export class OMREngine {
     constructor(config = {}) {
-        this.threshold = config.threshold || 128; // Binarization threshold
-        this.bubbleRadius = config.bubbleRadius || 14; // Increased from 10 for closer shots
-        this.detectionThreshold = config.detectionThreshold || 0.12; // Lowered from 0.25 for better sensitivity
+        this.bubbleRadius = config.bubbleRadius || 5;
+        this.detectionThreshold = config.detectionThreshold || 0.6; // Dark pixel ratio
+        this.targetWidth = 800;
+        this.targetHeight = 1100;
     }
 
     /**
-     * Processes an image (ImageData) and returns detected marks.
-     * @param {ImageData} imageData 
-     * @param {Object} gridDefinition - Mapping of bubbles to coordinates
+     * Main entry point: Process raw camera frame
      */
-    processImage(imageData, gridDefinition) {
-        const grayscale = this._toGrayscale(imageData);
-        const binarized = this._binarize(grayscale);
+    processFrame(canvas) {
+        if (!window.cv) return null;
 
-        const results = {};
+        let src = cv.imread(canvas);
+        let processed = new cv.Mat();
 
-        for (const [subject, questions] of Object.entries(gridDefinition)) {
-            results[subject] = questions.map(q => {
-                return this._detectMark(binarized, q.options, imageData.width);
-            });
-        }
+        // 1. Pre-process for contour detection
+        cv.cvtColor(src, processed, cv.COLOR_RGBA2GRAY);
+        cv.GaussianBlur(processed, processed, new cv.Size(5, 5), 0);
+        cv.adaptiveThreshold(processed, processed, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
 
-        return results;
-    }
+        // 2. Find contours (look for the paper rectangle)
+        let contours = new cv.MatVector();
+        let hierarchy = new cv.Mat();
+        cv.findContours(processed, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-    /**
-     * Converts RGBA ImageData to single-channel Grayscale
-     */
-    _toGrayscale(imageData) {
-        const data = imageData.data;
-        const gray = new Uint8ClampedArray(data.length / 4);
-        for (let i = 0; i < data.length; i += 4) {
-            // Standard Luminance formula: 0.299R + 0.587G + 0.114B
-            gray[i / 4] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-        }
-        return gray;
-    }
+        let paperContour = null;
+        let maxArea = 0;
 
-    /**
-     * Simple threshold binarization
-     */
-    _binarize(grayData) {
-        return grayData.map(v => v < this.threshold ? 0 : 255);
-    }
+        for (let i = 0; i < contours.size(); ++i) {
+            let contour = contours.get(i);
+            let area = cv.contourArea(contour);
+            if (area > 50000) { // Minimum area to be a paper
+                let peri = cv.arcLength(contour, true);
+                let approx = new cv.Mat();
+                cv.approxPolyDP(contour, approx, 0.02 * peri, true);
 
-    /**
-     * Detects which option is marked for a specific question
-     * @param {Uint8ClampedArray} binarized 
-     * @param {Array} options - List of {label, x, y} coordinates for bubbles
-     * @param {number} width - Image width
-     */
-    _detectMark(binarized, options, width) {
-        let markedOptions = [];
-
-        for (const option of options) {
-            const density = this._calculateDensity(binarized, option.x, option.y, width);
-            if (density > this.detectionThreshold) {
-                markedOptions.push(option.label);
-            }
-        }
-
-        if (markedOptions.length > 1) return "*"; // Multi-mark
-        return markedOptions.length === 1 ? markedOptions[0] : " "; // Space for unmarked
-    }
-
-    /**
-     * Calculates the ratio of dark pixels in a circular area around (x, y)
-     */
-    _calculateDensity(binarized, centerX, centerY, width) {
-        let darkPixels = 0;
-        let totalProcessed = 0;
-        const radius = this.bubbleRadius;
-
-        for (let y = centerY - radius; y <= centerY + radius; y++) {
-            for (let x = centerX - radius; x <= centerX + radius; x++) {
-                // Check if point is inside circle
-                const dx = x - centerX;
-                const dy = y - centerY;
-                if (dx * dx + dy * dy <= radius * radius) {
-                    const idx = y * width + x;
-                    if (binarized[idx] === 0) { // Dark pixel
-                        darkPixels++;
-                    }
-                    totalProcessed++;
+                if (approx.rows === 4 && area > maxArea) {
+                    paperContour = approx;
+                    maxArea = area;
                 }
             }
         }
 
-        return totalProcessed > 0 ? darkPixels / totalProcessed : 0;
+        if (!paperContour) {
+            src.delete(); processed.delete(); contours.delete(); hierarchy.delete();
+            return null;
+        }
+
+        // 3. Perspective Warp (Straighten the paper)
+        let warped = this._warpPerspective(src, paperContour);
+
+        // 4. Final Processing for OMR
+        let finalGray = new cv.Mat();
+        cv.cvtColor(warped, finalGray, cv.COLOR_RGBA2GRAY);
+        cv.adaptiveThreshold(finalGray, finalGray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 15, 5);
+
+        // Cleanup intermediate
+        src.delete(); processed.delete(); contours.delete(); hierarchy.delete(); paperContour.delete();
+
+        return {
+            warpedImage: warped,
+            processedOMR: finalGray
+        };
+    }
+
+    _warpPerspective(src, contour) {
+        let corners = [];
+        for (let i = 0; i < 4; i++) {
+            corners.push({ x: contour.data32S[i * 2], y: contour.data32S[i * 2 + 1] });
+        }
+
+        // Sort corners: TL, TR, BR, BL
+        corners.sort((a, b) => a.y - b.y);
+        let top = corners.slice(0, 2).sort((a, b) => a.x - b.x);
+        let bottom = corners.slice(2, 4).sort((a, b) => a.x - b.x);
+
+        let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+            top[0].x, top[0].y, top[1].x, top[1].y,
+            bottom[1].x, bottom[1].y, bottom[0].x, bottom[0].y
+        ]);
+
+        let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+            0, 0, this.targetWidth, 0,
+            this.targetWidth, this.targetHeight, 0, this.targetHeight
+        ]);
+
+        let M = cv.getPerspectiveTransform(srcTri, dstTri);
+        let warped = new cv.Mat();
+        cv.warpPerspective(src, warped, M, new cv.Size(this.targetWidth, this.targetHeight));
+
+        srcTri.delete(); dstTri.delete(); M.delete();
+        return warped;
+    }
+
+    /**
+     * Reads marks from warped/processed image
+     */
+    readMarks(processedOMR, grid) {
+        const results = {};
+        for (const [subject, questions] of Object.entries(grid)) {
+            results[subject] = questions.map(q => {
+                let markedOptions = [];
+                q.options.forEach(opt => {
+                    let rect = new cv.Rect(
+                        Math.max(0, opt.x - this.bubbleRadius),
+                        Math.max(0, opt.y - this.bubbleRadius),
+                        this.bubbleRadius * 2,
+                        this.bubbleRadius * 2
+                    );
+                    let roi = processedOMR.roi(rect);
+                    let n = cv.countNonZero(roi);
+                    let total = rect.width * rect.height;
+                    if (n / total > this.detectionThreshold) {
+                        markedOptions.push(opt.label);
+                    }
+                    roi.delete();
+                });
+
+                if (markedOptions.length > 1) return "*";
+                return markedOptions.length === 1 ? markedOptions[0] : " ";
+            });
+        }
+        return results;
     }
 }
