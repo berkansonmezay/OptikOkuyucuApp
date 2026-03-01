@@ -228,6 +228,8 @@
         let scanning = true;
         let canvasElement;
         let canvasContext;
+        let selectedExamId = null;
+        let selectedExamData = null;
 
         window.simulateCapture = async function () {
             // Keep this button but alert that it's automatic now
@@ -236,27 +238,25 @@
 
         async function processForm(qrData, imageData) {
             console.log("processForm: Starting with QR data:", qrData);
-            if (!selectedExamId || !scanning) {
-                console.log("processForm: Early return (No exam or already scanning)");
-                return;
-            }
-            scanning = false; // Pause scanning
 
             const toast = document.getElementById('statusToast');
-            toast.classList.remove('opacity-0', 'translate-y-4');
-            toast.classList.add('opacity-100', 'translate-y-0');
-            toast.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">sync</span> FORM ANALİZ EDİLİYOR...';
+            if (!toast) return;
 
             try {
+                if (!selectedExamId || !scanning) {
+                    console.log("processForm: Early return (No examId or already scanning)");
+                    return;
+                }
+                scanning = false; // Pause scanning
+
+                toast.classList.remove('opacity-0', 'translate-y-4');
+                toast.classList.add('opacity-100', 'translate-y-0');
+                toast.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">sync</span> FORM ANALİZ EDİLİYOR...';
+
                 // 0. Check if OpenCV is ready
                 if (!window.cv || !cv.Mat) {
                     console.log("processForm: OpenCV not ready");
-                    toast.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">sync</span> KÜTÜPHANE YÜKLENİYOR...';
-                    setTimeout(() => {
-                        toast.classList.add('opacity-0', 'translate-y-4');
-                        scanning = true;
-                    }, 2000);
-                    return;
+                    throw new Error("Kütüphane henüz yüklenmedi");
                 }
 
                 // 1. Process with OpenCV
@@ -264,12 +264,7 @@
                 const cvResult = omr.processFrame(canvasElement);
                 if (!cvResult) {
                     console.log("processForm: Paper not detected");
-                    toast.innerHTML = '<span class="material-symbols-outlined text-lg">error</span> KAĞIT ALGILANAMADI<br/><span class="text-xs">Lütfen 4 köşeyi de gösterin</span>';
-                    setTimeout(() => {
-                        toast.classList.add('opacity-0', 'translate-y-4');
-                        scanning = true;
-                    }, 1500);
-                    return;
+                    throw new Error("KAĞIT ALGILANAMADI. Lütfen 4 köşeyi de gösterin.");
                 }
 
                 // 2. Generate Fixed Grid
@@ -340,7 +335,7 @@
                     toast.classList.add('opacity-0', 'translate-y-4');
                     toast.classList.replace('bg-red-500', 'bg-primary');
                     scanning = true;
-                }, 3000);
+                }, 1500); // Shorter retry time for paper not detected
             }
         }
 
