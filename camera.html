@@ -156,43 +156,37 @@
         <!-- Scanner Overlay -->
         <div class="scanner-overlay">
             <div class="scanner-frame">
-                <!-- QR Code Guide (Top Left) -->
+                <!-- QR Code Guide -->
                 <div
-                    class="absolute top-[15%] left-[10%] w-[30%] h-[15%] border-2 border-dashed border-white/30 rounded-lg flex items-center justify-center">
-                    <span class="text-[8px] font-bold text-white/40 uppercase">QR KOD</span>
+                    class="absolute top-[21%] left-[17%] w-[20%] h-[12%] border-2 border-dashed border-white/40 rounded-lg flex items-center justify-center">
+                    <span class="text-[7px] font-bold text-white/50 uppercase">QR</span>
                 </div>
 
-                <!-- Booklet Guide (Top Center) -->
+                <!-- Booklet Guide -->
                 <div
-                    class="absolute top-[35%] left-[35%] w-[30%] h-[8%] border-2 border-dashed border-primary/40 rounded-lg flex items-center justify-center">
-                    <span class="text-[8px] font-bold text-primary/60 uppercase">KİTAPÇIK</span>
+                    class="absolute top-[37%] left-[43%] w-[22%] h-[6%] border-2 border-dashed border-primary/50 rounded-lg flex items-center justify-center">
+                    <span class="text-[7px] font-bold text-primary/70 uppercase">KİTAPÇIK</span>
                 </div>
 
-                <!-- Subjects Columns Guide (Bottom) -->
-                <div class="absolute top-[45%] left-[5%] right-[5%] bottom-[15%] flex gap-2 pointer-events-none">
+                <!-- Subjects Columns Guide -->
+                <div class="absolute top-[52%] left-[12%] right-[12%] bottom-[12%] flex gap-2 pointer-events-none">
                     <div class="flex-1 border-x border-dashed border-white/20 relative">
-                        <span
-                            class="absolute top-2 left-1/2 -translate-x-1/2 text-[7px] text-white/20 vertical-text">TÜRKÇE</span>
+                        <span class="absolute -top-4 left-1/2 -translate-x-1/2 text-[6px] text-white/30">TR</span>
                     </div>
                     <div class="flex-1 border-x border-dashed border-white/20 relative">
-                        <span
-                            class="absolute top-2 left-1/2 -translate-x-1/2 text-[7px] text-white/20 vertical-text">İNKILAP</span>
+                        <span class="absolute -top-4 left-1/2 -translate-x-1/2 text-[6px] text-white/30">İNK</span>
                     </div>
                     <div class="flex-1 border-x border-dashed border-white/20 relative">
-                        <span
-                            class="absolute top-2 left-1/2 -translate-x-1/2 text-[7px] text-white/20 vertical-text">DİN</span>
+                        <span class="absolute -top-4 left-1/2 -translate-x-1/2 text-[6px] text-white/30">DİN</span>
                     </div>
                     <div class="flex-1 border-x border-dashed border-white/20 relative">
-                        <span
-                            class="absolute top-2 left-1/2 -translate-x-1/2 text-[7px] text-white/20 vertical-text">İNGİLİZCE</span>
+                        <span class="absolute -top-4 left-1/2 -translate-x-1/2 text-[6px] text-white/30">İNG</span>
                     </div>
                     <div class="flex-1 border-x border-dashed border-white/20 relative">
-                        <span
-                            class="absolute top-2 left-1/2 -translate-x-1/2 text-[7px] text-white/20 vertical-text">MAT</span>
+                        <span class="absolute -top-4 left-1/2 -translate-x-1/2 text-[6px] text-white/30">MAT</span>
                     </div>
                     <div class="flex-1 border-x border-dashed border-white/20 relative">
-                        <span
-                            class="absolute top-2 left-1/2 -translate-x-1/2 text-[7px] text-white/20 vertical-text">FEN</span>
+                        <span class="absolute -top-4 left-1/2 -translate-x-1/2 text-[6px] text-white/30">FEN</span>
                     </div>
                 </div>
 
@@ -298,7 +292,7 @@
                 }
 
                 // Real OMR Processing
-                const gridDefinition = _generateGrid(selectedExamData);
+                const gridDefinition = _generateGrid(selectedExamData, imageData.width, imageData.height);
                 const realAnswers = omr.processImage(imageData, gridDefinition);
 
                 // Booklet detection
@@ -359,46 +353,51 @@
          * Generates expected bubble coordinates based on exam subjects.
          * This targets the central area of the frame.
          */
-        function _generateGrid(exam) {
+        function _generateGrid(exam, width, height) {
             const grid = {};
 
-            // 1. Booklet (KITAPCIK) - Location: Middle-top area
+            // 1. Booklet (KITAPCIK) - Matches UI top-[37%] left-[43%] w-[22%] h-[6%]
+            const bkX = width * 0.43;
+            const bkY = height * 0.37;
+            const bkStep = (width * 0.22) / 4;
+
             grid['KITAPCIK'] = [{
                 options: [
-                    { label: 'A', x: 215, y: 385 },
-                    { label: 'B', x: 235, y: 385 },
-                    { label: 'C', x: 255, y: 385 },
-                    { label: 'D', x: 275, y: 385 }
+                    { label: 'A', x: Math.round(bkX + bkStep * 0.5), y: Math.round(bkY + height * 0.03) },
+                    { label: 'B', x: Math.round(bkX + bkStep * 1.5), y: Math.round(bkY + height * 0.03) },
+                    { label: 'C', x: Math.round(bkX + bkStep * 2.5), y: Math.round(bkY + height * 0.03) },
+                    { label: 'D', x: Math.round(bkX + bkStep * 3.5), y: Math.round(bkY + height * 0.03) }
                 ]
             }];
 
             if (!exam || !exam.subjects) return grid;
 
-            // 2. Subjects Grid - Aligned with the physical form columns
-            // Based on LGS image: SÖZEL (Left 4 cols) & SAYISAL (Right 2 cols)
-            const columns = [
-                { name: 'Türkçe', x: 85, y: 475 },
-                { name: 'İnkılap', x: 175, y: 475 },
-                { name: 'Din', x: 265, y: 475 },
-                { name: 'İngilizce', x: 355, y: 475 },
-                { name: 'Matematik', x: 445, y: 475 },
-                { name: 'Fen', x: 535, y: 475 }
-            ];
+            // 2. Subjects Grid - Aligned with UI top-[52%] left-[12%] right-[12%]
+            const startX = width * 0.12;
+            const areaWidth = width * 0.76;
+            const startY = height * 0.52;
+            const colWidth = areaWidth / 6;
 
-            columns.forEach(col => {
-                const subject = exam.subjects.find(s => s.name.toLowerCase().includes(col.name.toLowerCase()));
+            const subjectNames = ['Türkçe', 'İnkılap', 'Din', 'İngilizce', 'Matematik', 'Fen'];
+
+            subjectNames.forEach((name, sIdx) => {
+                const subject = exam.subjects.find(s => s.name.toLowerCase().includes(name.toLowerCase()));
                 if (subject) {
                     const questions = [];
                     const qCount = subject.questionCount || 20;
+                    const colX = startX + (sIdx * colWidth) + (colWidth * 0.1); // Small offset within column
+                    const qStepY = (height * 0.36) / qCount; // Vertical space available ~36%
+
                     for (let i = 0; i < qCount; i++) {
-                        const qY = col.y + (i * 15.5); // Vertical spacing between rows
+                        const qY = startY + (i * qStepY);
+                        const optStep = colWidth / 6;
                         questions.push({
                             options: [
-                                { label: 'A', x: col.x, y: qY },
-                                { label: 'B', x: col.x + 18, y: qY },
-                                { label: 'C', x: col.x + 36, y: qY },
-                                { label: 'D', x: col.x + 54, y: qY },
-                                { label: 'E', x: col.x + 72, y: qY }
+                                { label: 'A', x: Math.round(colX + optStep * 1), y: Math.round(qY) },
+                                { label: 'B', x: Math.round(colX + optStep * 2), y: Math.round(qY) },
+                                { label: 'C', x: Math.round(colX + optStep * 3), y: Math.round(qY) },
+                                { label: 'D', x: Math.round(colX + optStep * 4), y: Math.round(qY) },
+                                { label: 'E', x: Math.round(colX + optStep * 5), y: Math.round(qY) }
                             ]
                         });
                     }
