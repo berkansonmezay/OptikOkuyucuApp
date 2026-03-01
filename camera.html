@@ -64,13 +64,13 @@
         .scanner-frame::before {
             content: '';
             position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
-            bottom: 20px;
+            top: 80px;
+            left: 30px;
+            right: 30px;
+            bottom: 120px;
             border: 4px solid #7C3AED;
-            border-radius: 24px;
-            opacity: 0.5;
+            border-radius: 20px;
+            opacity: 0.6;
             clip-path: polygon(0 0, 25% 0, 25% 4px, 4px 4px, 4px 25%, 0 25%, 0 0, 75% 0, 100% 0, 100% 25%, calc(100% - 4px) 25%, calc(100% - 4px) 4px, 75% 4px, 75% 0, 100% 75%, 100% 100%, 75% 100%, 75% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 75%, 100% 75%, 25% 100%, 0 100%, 0 75%, 4px 75%, 4px calc(100% - 4px), 25% calc(100% - 4px), 25% 100%);
         }
 
@@ -156,20 +156,21 @@
         <!-- Scanner Overlay -->
         <div class="scanner-overlay">
             <div class="scanner-frame">
-                <!-- QR Code Guide -->
+                <!-- QR Code Guide (Focused & Higher) -->
                 <div
-                    class="absolute top-[21%] left-[17%] w-[20%] h-[12%] border-2 border-dashed border-white/40 rounded-lg flex items-center justify-center">
-                    <span class="text-[7px] font-bold text-white/50 uppercase">QR</span>
+                    class="absolute top-[12%] left-[12%] w-[28%] h-[15%] border-2 border-dashed border-white/40 rounded-lg flex flex-col items-center justify-center bg-black/5 backdrop-blur-[1px]">
+                    <span class="text-[8px] font-bold text-white/50 uppercase">QR KOD</span>
+                    <span class="text-[6px] text-white/30 uppercase mt-0.5">YAKLAŞTIR</span>
                 </div>
 
-                <!-- Booklet Guide -->
+                <!-- Booklet Guide (Higher) -->
                 <div
-                    class="absolute top-[37%] left-[43%] w-[22%] h-[6%] border-2 border-dashed border-primary/50 rounded-lg flex items-center justify-center">
+                    class="absolute top-[30%] left-[45%] w-[22%] h-[8%] border-2 border-dashed border-primary/50 rounded-lg flex items-center justify-center bg-primary/5">
                     <span class="text-[7px] font-bold text-primary/70 uppercase">KİTAPÇIK</span>
                 </div>
 
-                <!-- Subjects Columns Guide -->
-                <div class="absolute top-[52%] left-[12%] right-[12%] bottom-[12%] flex gap-2 pointer-events-none">
+                <!-- Subjects Columns Guide (Higher) -->
+                <div class="absolute top-[42%] left-[10%] right-[10%] bottom-[15%] flex gap-2 pointer-events-none">
                     <div class="flex-1 border-x border-dashed border-white/20 relative">
                         <span class="absolute -top-4 left-1/2 -translate-x-1/2 text-[6px] text-white/30">TR</span>
                     </div>
@@ -189,6 +190,7 @@
                         <span class="absolute -top-4 left-1/2 -translate-x-1/2 text-[6px] text-white/30">FEN</span>
                     </div>
                 </div>
+                <div class="absolute top-[41%] left-0 right-0 h-px bg-white/10"></div>
 
                 <style>
                     .vertical-text {
@@ -356,26 +358,26 @@
         function _generateGrid(exam, width, height) {
             const grid = {};
 
-            // 1. Booklet (KITAPCIK) - Matches UI top-[37%] left-[43%] w-[22%] h-[6%]
-            const bkX = width * 0.43;
-            const bkY = height * 0.37;
+            // 1. Booklet (KITAPCIK) - Matches UI top-[30%] left-[45%] w-[22%] h-[8%]
+            const bkX = width * 0.45;
+            const bkY = height * 0.30;
             const bkStep = (width * 0.22) / 4;
 
             grid['KITAPCIK'] = [{
                 options: [
-                    { label: 'A', x: Math.round(bkX + bkStep * 0.5), y: Math.round(bkY + height * 0.03) },
-                    { label: 'B', x: Math.round(bkX + bkStep * 1.5), y: Math.round(bkY + height * 0.03) },
-                    { label: 'C', x: Math.round(bkX + bkStep * 2.5), y: Math.round(bkY + height * 0.03) },
-                    { label: 'D', x: Math.round(bkX + bkStep * 3.5), y: Math.round(bkY + height * 0.03) }
+                    { label: 'A', x: Math.round(bkX + bkStep * 0.5), y: Math.round(bkY + height * 0.04) },
+                    { label: 'B', x: Math.round(bkX + bkStep * 1.5), y: Math.round(bkY + height * 0.04) },
+                    { label: 'C', x: Math.round(bkX + bkStep * 2.5), y: Math.round(bkY + height * 0.04) },
+                    { label: 'D', x: Math.round(bkX + bkStep * 3.5), y: Math.round(bkY + height * 0.04) }
                 ]
             }];
 
             if (!exam || !exam.subjects) return grid;
 
-            // 2. Subjects Grid - Aligned with UI top-[52%] left-[12%] right-[12%]
-            const startX = width * 0.12;
-            const areaWidth = width * 0.76;
-            const startY = height * 0.52;
+            // 2. Subjects Grid - Aligned with UI top-[42%] left-[10%] right-[10%] bottom-[15%]
+            const startX = width * 0.10;
+            const areaWidth = width * 0.80;
+            const startY = height * 0.42;
             const colWidth = areaWidth / 6;
 
             const subjectNames = ['Türkçe', 'İnkılap', 'Din', 'İngilizce', 'Matematik', 'Fen'];
@@ -385,8 +387,8 @@
                 if (subject) {
                     const questions = [];
                     const qCount = subject.questionCount || 20;
-                    const colX = startX + (sIdx * colWidth) + (colWidth * 0.1); // Small offset within column
-                    const qStepY = (height * 0.36) / qCount; // Vertical space available ~36%
+                    const colX = startX + (sIdx * colWidth) + (colWidth * 0.15);
+                    const qStepY = (height * 0.43) / qCount; // available vertical space ~43% (85-42)
 
                     for (let i = 0; i < qCount; i++) {
                         const qY = startY + (i * qStepY);

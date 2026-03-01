@@ -6,8 +6,8 @@
 export class OMREngine {
     constructor(config = {}) {
         this.threshold = config.threshold || 128; // Binarization threshold
-        this.bubbleRadius = config.bubbleRadius || 10;
-        this.detectionThreshold = config.detectionThreshold || 0.25; // Ratio of dark pixels to consider "marked"
+        this.bubbleRadius = config.bubbleRadius || 14; // Increased from 10 for closer shots
+        this.detectionThreshold = config.detectionThreshold || 0.12; // Lowered from 0.25 for better sensitivity
     }
 
     /**
