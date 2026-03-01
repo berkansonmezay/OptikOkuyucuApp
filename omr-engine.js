@@ -98,22 +98,21 @@ export class OMREngine {
 
         try {
             if (mode === "canny") {
-                cv.GaussianBlur(gray, processed, new cv.Size(5, 5), 0);
-                cv.Canny(processed, processed, 40, 100);
-                let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
+                cv.GaussianBlur(gray, processed, new cv.Size(7, 7), 0);
+                cv.Canny(processed, processed, 30, 80); // More sensitive Canny
+                let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(7, 7));
+                cv.morphologyEx(processed, processed, cv.MORPH_CLOSE, kernel); // Bridge gaps
                 cv.dilate(processed, processed, kernel);
                 kernel.delete();
             } else {
-                cv.adaptiveThreshold(gray, processed, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 5);
-                let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+                cv.adaptiveThreshold(gray, processed, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 31, 10);
+                let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
+                cv.morphologyEx(processed, processed, cv.MORPH_CLOSE, kernel);
                 cv.dilate(processed, processed, kernel);
                 kernel.delete();
             }
 
             cv.findContours(processed, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-            let maxArea = 0;
-            let bestCnt = null;
 
             for (let i = 0; i < contours.size(); ++i) {
                 let cnt = contours.get(i);
@@ -121,7 +120,8 @@ export class OMREngine {
                 let rect = cv.boundingRect(cnt);
                 let aspectRatio = Math.max(rect.width, rect.height) / Math.min(rect.width, rect.height);
 
-                if (area > 20000 && aspectRatio > 0.8 && aspectRatio < 2.5 && area > maxArea) {
+                // Robust filtering: Lower area threshold (15000) and wider aspect ratio (0.7 to 3.0)
+                if (area > 15000 && aspectRatio > 0.7 && aspectRatio < 3.0 && area > maxArea) {
                     maxArea = area;
                     bestCnt = cnt;
                 }
