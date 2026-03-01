@@ -7,7 +7,7 @@
 export class OMREngine {
     constructor(config = {}) {
         this.bubbleRadius = config.bubbleRadius || 5;
-        this.detectionThreshold = config.detectionThreshold || 0.6; // Dark pixel ratio
+        this.detectionThreshold = config.detectionThreshold || 0.4; // Dark pixel ratio
         this.targetWidth = 800;
         this.targetHeight = 1100;
     }
@@ -16,20 +16,32 @@ export class OMREngine {
      * Main entry point: Process raw camera frame
      */
     processFrame(canvas) {
-        if (!window.cv) return null;
+        if (!window.cv || !cv.imread) {
+            console.warn("OpenCV.js not ready");
+            return null;
+        }
 
         let src = cv.imread(canvas);
-        let processed = new cv.Mat();
+        let gray = new cv.Mat();
+        let blurred = new cv.Mat();
+        let edged = new cv.Mat();
 
-        // 1. Pre-process for contour detection
-        cv.cvtColor(src, processed, cv.COLOR_RGBA2GRAY);
-        cv.GaussianBlur(processed, processed, new cv.Size(5, 5), 0);
-        cv.adaptiveThreshold(processed, processed, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
+        // 1. Better Pre-processing for edge detection
+        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+        cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
 
-        // 2. Find contours (look for the paper rectangle)
+        // Canny is more robust for finding the paper boundary than simple threshold
+        cv.Canny(blurred, edged, 75, 200);
+
+        // Dilation to bridge small gaps in the paper border
+        let M = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+        cv.dilate(edged, edged, M);
+        M.delete();
+
+        // 2. Find contours
         let contours = new cv.MatVector();
         let hierarchy = new cv.Mat();
-        cv.findContours(processed, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+        cv.findContours(edged, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
 
         let paperContour = null;
         let maxArea = 0;
@@ -37,20 +49,29 @@ export class OMREngine {
         for (let i = 0; i < contours.size(); ++i) {
             let contour = contours.get(i);
             let area = cv.contourArea(contour);
-            if (area > 50000) { // Minimum area to be a paper
+
+            // Lowered from 50000 to 25000 for better distance range
+            if (area > 25000) {
                 let peri = cv.arcLength(contour, true);
                 let approx = new cv.Mat();
                 cv.approxPolyDP(contour, approx, 0.02 * peri, true);
 
+                // If we find a 4-point polygon, it's highly likely the paper
                 if (approx.rows === 4 && area > maxArea) {
+                    if (paperContour) paperContour.delete();
                     paperContour = approx;
                     maxArea = area;
+                } else {
+                    approx.delete();
                 }
             }
         }
 
+        // Cleanup intermediate mats
+        gray.delete(); blurred.delete(); edged.delete(); contours.delete(); hierarchy.delete();
+
         if (!paperContour) {
-            src.delete(); processed.delete(); contours.delete(); hierarchy.delete();
+            src.delete();
             return null;
         }
 
@@ -62,8 +83,8 @@ export class OMREngine {
         cv.cvtColor(warped, finalGray, cv.COLOR_RGBA2GRAY);
         cv.adaptiveThreshold(finalGray, finalGray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 15, 5);
 
-        // Cleanup intermediate
-        src.delete(); processed.delete(); contours.delete(); hierarchy.delete(); paperContour.delete();
+        // Cleanup
+        src.delete(); paperContour.delete();
 
         return {
             warpedImage: warped,

@@ -220,14 +220,24 @@
             toast.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">sync</span> FORM ANALİZ EDİLİYOR...';
 
             try {
-                // 1. Process with OpenCV
-                const cvResult = omr.processFrame(canvasElement);
-                if (!cvResult) {
-                    toast.innerHTML = '<span class="material-symbols-outlined text-lg">error</span> KAĞIT ALGILANAMADI';
+                // 0. Check if OpenCV is ready
+                if (!window.cv || !cv.Mat) {
+                    toast.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">sync</span> KÜTÜPHANE YÜKLENİYOR...';
                     setTimeout(() => {
                         toast.classList.add('opacity-0', 'translate-y-4');
                         scanning = true;
-                    }, 1000);
+                    }, 2000);
+                    return;
+                }
+
+                // 1. Process with OpenCV
+                const cvResult = omr.processFrame(canvasElement);
+                if (!cvResult) {
+                    toast.innerHTML = '<span class="material-symbols-outlined text-lg">error</span> KAĞIT ALGILANAMADI<br/><span class="text-xs">Lütfen 4 köşeyi de gösterin</span>';
+                    setTimeout(() => {
+                        toast.classList.add('opacity-0', 'translate-y-4');
+                        scanning = true;
+                    }, 1500);
                     return;
                 }
 
