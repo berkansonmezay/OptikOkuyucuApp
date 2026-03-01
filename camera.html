@@ -317,31 +317,31 @@
         function _generateFixedGrid(exam) {
             const grid = {};
 
-            // 1. Booklet (KITAPCIK) - Positioned in the middle-top area
+            // 1. Booklet (KITAPCIK) - Slightly adjusted to the right
             grid['KITAPCIK'] = [{
                 options: [
-                    { label: 'A', x: 580, y: 238 },
-                    { label: 'B', x: 610, y: 238 },
-                    { label: 'C', x: 640, y: 238 },
-                    { label: 'D', x: 670, y: 238 }
+                    { label: 'A', x: 550, y: 238 },
+                    { label: 'B', x: 580, y: 238 },
+                    { label: 'C', x: 610, y: 238 },
+                    { label: 'D', x: 640, y: 238 }
                 ]
             }];
 
             if (!exam || !exam.subjects) return grid;
 
-            // 2. Subjects Grid - Aligned with the bottom highlighted boxes
-            const startY = 378;
-            const rowHeight = 34; // Spacing between question rows
-            const optStep = 24;   // Spacing between A-B-C-D bubbles
+            // 2. Subjects Grid - Calibrated for Sözəl and Sayısal blocks
+            const startY = 385; // Adjusted down slightly
+            const rowHeight = 33.5; // Fine-tuned row spacing
+            const optStep = 24.5;   // Fine-tuned option spacing
 
-            // X-coordinates for the start of each subject column
+            // X-coordinates with gap between Sözəl (first 4) and Sayısal (last 2)
             const columns = [
-                { name: 'Türkçe', x: 65 },
-                { name: 'İnkılap', x: 203 },
-                { name: 'Din', x: 341 },
-                { name: 'İngilizce', x: 479 },
-                { name: 'Matematik', x: 617 },
-                { name: 'Fen', x: 755 }
+                { name: 'Türkçe', x: 64 },
+                { name: 'İnkılap', x: 184 },
+                { name: 'Din', x: 304 },
+                { name: 'İngilizce', x: 424 },
+                { name: 'Matematik', x: 578 },
+                { name: 'Fen', x: 698 }
             ];
 
             columns.forEach((col) => {

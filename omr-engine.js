@@ -6,8 +6,8 @@
 
 export class OMREngine {
     constructor(config = {}) {
-        this.bubbleRadius = config.bubbleRadius || 5;
-        this.detectionThreshold = config.detectionThreshold || 0.4;
+        this.bubbleRadius = config.bubbleRadius || 10; // Increased from 5 to 10
+        this.detectionThreshold = config.detectionThreshold || 0.55; // Increased from 0.4 to 0.55
         this.targetWidth = 800;
         this.targetHeight = 1100;
     }
@@ -24,7 +24,7 @@ export class OMREngine {
         let gray = null;
 
         try {
-            // 1. Performance: Downscale for detection (target ~500px width/height)
+            // 1. Performance: Downscale for detection
             let ratio = Math.max(src.rows, src.cols) / 600;
             small = new cv.Mat();
             cv.resize(src, small, new cv.Size(Math.round(src.cols / ratio), Math.round(src.rows / ratio)), 0, 0, cv.INTER_AREA);
@@ -57,7 +57,7 @@ export class OMREngine {
             // 4. Final Processing for OMR
             let finalGray = new cv.Mat();
             cv.cvtColor(warped, finalGray, cv.COLOR_RGBA2GRAY);
-            cv.adaptiveThreshold(finalGray, finalGray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 15, 5);
+            cv.adaptiveThreshold(finalGray, finalGray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 7);
 
             return { warpedImage: warped, processedOMR: finalGray };
 
@@ -96,14 +96,12 @@ export class OMREngine {
             let maxArea = 0;
             let bestCnt = null;
 
-            // Filter by Area and Aspect Ratio (LGS paper is ~1.4 ratio)
             for (let i = 0; i < contours.size(); ++i) {
                 let cnt = contours.get(i);
                 let area = cv.contourArea(cnt);
                 let rect = cv.boundingRect(cnt);
                 let aspectRatio = Math.max(rect.width, rect.height) / Math.min(rect.width, rect.height);
 
-                // Area must be significant, and Aspect Ratio must be realistic (0.8 to 2.2 for slanted 1.4 ratio)
                 if (area > 20000 && aspectRatio > 0.8 && aspectRatio < 2.5 && area > maxArea) {
                     maxArea = area;
                     bestCnt = cnt;
@@ -112,7 +110,6 @@ export class OMREngine {
 
             if (!bestCnt) return null;
 
-            // Extreme Points Strategy to handle noisy background (like keyboards)
             let pts = [];
             let hull = new cv.Mat();
             cv.convexHull(bestCnt, hull, false, true);
@@ -123,7 +120,7 @@ export class OMREngine {
 
             if (pts.length < 4) return null;
 
-            // Find TL, TR, BR, BL by sorting
+            // Sorting for corners: TL, TR, BR, BL
             let tl = pts.reduce((p, c) => (p.x + p.y < c.x + c.y) ? p : c);
             let br = pts.reduce((p, c) => (p.x + p.y > c.x + c.y) ? p : c);
             let tr = pts.reduce((p, c) => (c.y - c.x < p.y - p.x) ? p : c);
@@ -188,7 +185,9 @@ export class OMREngine {
                         let roi = processedOMR.roi(rect);
                         let n = cv.countNonZero(roi);
                         let total = rect.width * rect.height;
-                        if (n / total > this.detectionThreshold) markedOptions.push(opt.label);
+                        if (n / total > this.detectionThreshold) {
+                            markedOptions.push(opt.label);
+                        }
                         roi.delete();
                     } catch (e) { }
                 });
