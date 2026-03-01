@@ -81,8 +81,8 @@ export class OMREngine {
 
         // Canny + Dilation is extremely robust
         cv.GaussianBlur(gray, processed, new cv.Size(5, 5), 0);
-        cv.Canny(processed, processed, 50, 150);
-        let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+        cv.Canny(processed, processed, 30, 100); // Lowered thresholds
+        let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
         cv.dilate(processed, processed, kernel);
         kernel.delete();
 
@@ -94,16 +94,36 @@ export class OMREngine {
         for (let i = 0; i < contours.size(); ++i) {
             let cnt = contours.get(i);
             let area = cv.contourArea(cnt);
-            if (area > 15000) { // On the 500px small image
+            if (area > 10000) { // On the 500px small image
                 let peri = cv.arcLength(cnt, true);
                 let approx = new cv.Mat();
                 cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
 
-                // Check if it's rectangular (4 corners)
-                if (approx.rows === 4 && area > maxArea) {
-                    if (bestContour) bestContour.delete();
-                    bestContour = approx;
-                    maxArea = area;
+                // Be more lenient: if 4-6 points, it's likely a rectangle with noise
+                if (approx.rows >= 4 && approx.rows <= 6 && area > maxArea) {
+                    let hull = new cv.Mat();
+                    cv.convexHull(approx, hull, false, true);
+
+                    // Now approximate the hull to exactly 4 points
+                    let hullPeri = cv.arcLength(hull, true);
+                    let finalApprox = new cv.Mat();
+
+                    // Iteratively try to get 4 points
+                    for (let epsilon = 0.01; epsilon < 0.1; epsilon += 0.01) {
+                        cv.approxPolyDP(hull, finalApprox, epsilon * hullPeri, true);
+                        if (finalApprox.rows === 4) break;
+                    }
+
+                    if (finalApprox.rows === 4) {
+                        console.log(`Paper detected! Area: ${Math.round(area)}, Corners: ${finalApprox.rows}`);
+                        if (bestContour) bestContour.delete();
+                        bestContour = finalApprox.clone();
+                        maxArea = area;
+                    }
+
+                    hull.delete();
+                    finalApprox.delete();
+                    approx.delete();
                 } else {
                     approx.delete();
                 }
