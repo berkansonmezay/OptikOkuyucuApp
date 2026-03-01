@@ -154,8 +154,12 @@
         <video id="camera-feed" autoplay playsinline muted
             class="absolute inset-0 w-full h-full object-cover z-0"></video>
         <div id="camera-placeholder"
-            class="absolute inset-0 flex items-center justify-center bg-[#111] z-0 transition-opacity duration-500">
-            <span class="material-symbols-outlined text-white/20 text-[120px]">photo_camera</span>
+            class="absolute inset-0 flex flex-col items-center justify-center bg-[#111] z-0 transition-opacity duration-500 p-8 text-center">
+            <span class="material-symbols-outlined text-white/20 text-[120px] mb-4"
+                id="placeholder-icon">photo_camera</span>
+            <div id="camera-status" class="text-white/40 text-sm font-medium mb-6 uppercase tracking-widest">Kamera
+                Hazırlanıyor...</div>
+            <div id="manual-start-container"></div>
         </div>
 
         <!-- Debug View (Warped Image) -->
@@ -466,36 +470,40 @@
         }
 
         async function initCamera() {
-            console.log("initCamera: Requesting camera access...");
             const videoEl = document.getElementById('camera-feed');
             const placeholder = document.getElementById('camera-placeholder');
+            const statusText = document.getElementById('camera-status');
+            const container = document.getElementById('manual-start-container');
 
-            const startStream = (stream) => {
-                console.log("initCamera: Stream obtained, setting srcObject");
-                videoEl.srcObject = stream;
-
-                // Explicitly call play for mobile browsers
-                videoEl.play().then(() => {
-                    console.log("initCamera: Playback started successfully");
-                }).catch(err => {
-                    console.warn("initCamera: Playback failed (browser policy?):", err);
-                });
-
-                const hidePlaceholder = () => {
-                    console.log("initCamera: Video ready, hiding placeholder");
-                    placeholder.style.opacity = '0';
-                    setTimeout(() => {
-                        placeholder.style.display = 'none';
-                    }, 500);
-                };
-
-                videoEl.onplaying = hidePlaceholder;
-                videoEl.onloadeddata = hidePlaceholder;
-                videoEl.onloadedmetadata = hidePlaceholder;
+            const updateStatus = (text) => {
+                console.log("initCamera Status:", text);
+                if (statusText) statusText.innerText = text;
             };
 
+            const hidePlaceholder = () => {
+                console.log("initCamera: Hiding placeholder");
+                placeholder.classList.add('opacity-0');
+                setTimeout(() => {
+                    placeholder.classList.add('hidden');
+                }, 500);
+            };
+
+            const showManualButton = () => {
+                if (container) {
+                    container.innerHTML = `
+                        <button onclick="document.getElementById('camera-feed').play(); hidePlaceholder();" 
+                                class="bg-primary hover:bg-primary/80 px-10 py-4 rounded-2xl text-white font-bold transition-all shadow-glow flex items-center gap-2">
+                            <span class="material-symbols-outlined">play_arrow</span>
+                            KAMERAYI BAŞLAT
+                        </button>`;
+                }
+            };
+
+            window.hidePlaceholder = hidePlaceholder; // Make it global for the button
+
+            updateStatus("Kamera İzni Bekleniyor...");
+
             try {
-                // Optimal resolution for OMR
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
                         facingMode: 'environment',
@@ -503,30 +511,45 @@
                         height: { ideal: 720 }
                     }
                 });
-                startStream(stream);
-            } catch (err) {
-                console.warn("initCamera: Ideal constraints failed, falling back to simple video:", err);
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: 'environment' }
+
+                videoEl.srcObject = stream;
+                updateStatus("Video Yükleniyor...");
+
+                // Handle events for different browsers
+                videoEl.onplaying = hidePlaceholder;
+                videoEl.onloadedmetadata = () => {
+                    updateStatus("Başlatılıyor...");
+                    videoEl.play().catch(e => {
+                        console.warn("Autoplay blocked:", e);
+                        updateStatus("Dokunuş Gerekiyor");
+                        showManualButton();
                     });
-                    startStream(stream);
-                } catch (e) {
-                    console.error("initCamera: Camera access completely failed:", e);
-                    placeholder.innerHTML = `
-                        <div class="text-center p-6 bg-black/80 rounded-3xl border border-red-500/30">
-                            <span class="material-symbols-outlined text-red-500 text-6xl mb-4">no_photography</span>
-                            <h2 class="text-xl font-bold mb-2">Kamera Açılamadı</h2>
-                            <p class="text-white/60 text-sm mb-6">Lütfen kamera izinlerini kontrol edin veya sayfayı yenileyin.</p>
-                            <button onclick="location.reload()" class="bg-primary hover:bg-primary/80 px-8 py-3 rounded-2xl text-white font-bold transition-all shadow-glow">
-                                TEKRAR DENE
-                            </button>
-                        </div>
-                    `;
+                };
+
+                // Fail-safe for hiding placeholder
+                setTimeout(() => {
+                    if (videoEl.currentTime > 0) hidePlaceholder();
+                    else if (videoEl.srcObject) showManualButton();
+                    else if (!videoEl.srcObject) updateStatus("İzin Bekleniyor...");
+                }, 4000);
+
+            } catch (err) {
+                console.error("Camera error:", err);
+                const icon = document.getElementById('placeholder-icon');
+                if (icon) {
+                    icon.innerText = "no_photography";
+                    icon.classList.replace('text-white/20', 'text-red-500/50');
+                }
+                updateStatus("Kamera Açılamadı");
+                if (container) {
+                    container.innerHTML = `
+                        <div class="text-white/60 text-xs mb-4">Tarayıcı ayarlarından kamera iznini kontrol edin.</div>
+                        <button onclick="location.reload()" class="bg-white/10 hover:bg-white/20 px-8 py-3 rounded-2xl text-white font-bold transition-all">
+                            TEKRAR DENE
+                        </button>`;
                 }
             }
 
-            // Ensure scanning loop starts (only once)
             if (!window.scanningInitialized) {
                 window.scanningInitialized = true;
                 requestAnimationFrame(tick);
