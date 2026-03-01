@@ -144,10 +144,6 @@
                 class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white">
                 <span class="material-symbols-outlined">bug_report</span>
             </button>
-            <div class="px-4 py-2 rounded-full bg-black/40 backdrop-blur-md text-[10px] font-bold tracking-[0.1em] text-white uppercase border border-white/10"
-                id="examTypeLabel">
-                LGS DENEME
-            </div>
             <button
                 class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white">
                 <span class="material-symbols-outlined">flash_on</span>
@@ -435,25 +431,34 @@
 
         function tick() {
             const videoEl = document.getElementById('camera-feed');
-            if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
+            if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA && videoEl.videoWidth > 0) {
+                // Resize detection canvas
+                const targetW = 1280;
+                const scale = targetW / videoEl.videoWidth;
+                canvasElement.width = targetW;
+                canvasElement.height = videoEl.videoHeight * scale;
+                canvasContext.drawImage(videoEl, 0, 0, canvasElement.width, canvasElement.height);
+
                 if (scanning) {
-                    // PERFORMANCE FIX: Use a fixed detection resolution instead of full camera res
-                    const targetDetectWidth = 1280;
-                    const scale = targetDetectWidth / videoEl.videoWidth;
-                    canvasElement.width = targetDetectWidth;
-                    canvasElement.height = videoEl.videoHeight * scale;
-
-                    canvasContext.drawImage(videoEl, 0, 0, canvasElement.width, canvasElement.height);
                     const imageData = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height);
-
-                    // jsQR scanning
-                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                        inversionAttempts: "dontInvert",
-                    });
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
 
                     if (code) {
-                        console.log("Found QR code", code.data);
                         processForm(code.data, imageData);
+                    } else if (isDebug) {
+                        // REAL-TIME TRACKING: Show grid even without QR
+                        const cvResult = omr.processFrame(canvasElement);
+                        if (cvResult) {
+                            const debugCanvas = document.getElementById('debug-canvas');
+                            debugCanvas.width = omr.targetWidth;
+                            debugCanvas.height = omr.targetHeight;
+                            cv.imshow('debug-canvas', cvResult.warpedImage);
+                            const fixedGrid = _generateFixedGrid(selectedExamData);
+                            omr.drawDebugGrid(debugCanvas, fixedGrid);
+
+                            cvResult.warpedImage.delete();
+                            cvResult.processedOMR.delete();
+                        }
                     }
                 }
             }
@@ -461,31 +466,39 @@
         }
 
         async function initCamera() {
-            console.log("initCamera: Requesting environment camera...");
+            console.log("initCamera: Requesting camera...");
+            const videoEl = document.getElementById('camera-feed');
             try {
+                // Try high resolution first
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
                         facingMode: 'environment',
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
                     }
                 });
-                const videoEl = document.getElementById('camera-feed');
                 videoEl.srcObject = stream;
-
-                videoEl.onplaying = () => {
-                    console.log("initCamera: Video playing, resolution:", videoEl.videoWidth, "x", videoEl.videoHeight);
-                    document.getElementById('camera-placeholder').style.opacity = '0';
-                    setTimeout(() => {
-                        document.getElementById('camera-placeholder').style.display = 'none';
-                        requestAnimationFrame(tick);
-                    }, 500);
-                };
             } catch (err) {
-                console.error("Camera access error:", err);
-                const placeholder = document.getElementById('camera-placeholder');
-                placeholder.innerHTML = `<div class="text-center text-red-400 p-4"><span class="material-symbols-outlined text-[64px] mb-2">no_photography</span><br/>Kamera erişimi reddedildi veya bulunamadı. Lütfen izin verin.</div>`;
+                console.warn("High-res failed, falling back...", err);
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                    videoEl.srcObject = stream;
+                } catch (e) {
+                    console.error("Camera completely failed", e);
+                    document.getElementById('camera-placeholder').innerHTML =
+                        `<div class="text-center text-red-500 p-4 font-bold">KAMERA HATASI<br/><span class="text-xs">Lütfen izinleri kontrol edin</span></div>`;
+                }
             }
+
+            videoEl.onplaying = () => {
+                document.getElementById('camera-placeholder').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('camera-placeholder').style.display = 'none';
+                }, 500);
+            };
+
+            // Start the loop regardless of error (it will just skip if no data)
+            requestAnimationFrame(tick);
         }
     </script>
 </body>
