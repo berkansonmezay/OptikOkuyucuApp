@@ -14,8 +14,10 @@ export class OMREngine {
 
     /**
      * Main entry point: Process raw camera frame
+     * @param {HTMLCanvasElement} canvas
+     * @param {Object} qrResult - Optional jsQR result for assisted localization
      */
-    processFrame(canvas) {
+    processFrame(canvas, qrResult = null) {
         if (!window.cv || !cv.imread) return null;
 
         let src = cv.imread(canvas);
@@ -38,15 +40,27 @@ export class OMREngine {
                 paperContour = this._findPaperContour(gray, "adaptive");
             }
 
+            // Fallback: If no contour found but we have QR coordinates
+            if (!paperContour && qrResult && qrResult.location) {
+                console.log("OMR: Contour failed, attempting QR-assisted localization");
+                paperContour = this._estimateContourFromQR(qrResult.location, { width: canvas.width, height: canvas.height }, ratio);
+            }
+
             if (paperContour) {
-                // Upscale points back to high res
-                let upscaled = new cv.Mat(4, 1, cv.CV_32SC2);
-                for (let i = 0; i < 4; i++) {
-                    upscaled.data32S[i * 2] = Math.round(paperContour.data32S[i * 2] * ratio);
-                    upscaled.data32S[i * 2 + 1] = Math.round(paperContour.data32S[i * 2 + 1] * ratio);
+                // Upscale points back to high res (if not already high-res from QR estimation)
+                if (paperContour.rows === 4 && paperContour.type() === cv.CV_32SC2) {
+                    // Check if they need scaling (QR result is already high-res)
+                    const isHighRes = paperContour.data32S[0] > 600 || paperContour.data32S[1] > 600;
+                    if (!isHighRes) {
+                        let upscaled = new cv.Mat(4, 1, cv.CV_32SC2);
+                        for (let i = 0; i < 4; i++) {
+                            upscaled.data32S[i * 2] = Math.round(paperContour.data32S[i * 2] * ratio);
+                            upscaled.data32S[i * 2 + 1] = Math.round(paperContour.data32S[i * 2 + 1] * ratio);
+                        }
+                        paperContour.delete();
+                        paperContour = upscaled;
+                    }
                 }
-                paperContour.delete();
-                paperContour = upscaled;
             }
 
             if (!paperContour) return null;
@@ -70,6 +84,42 @@ export class OMREngine {
             if (paperContour) paperContour.delete();
             if (src) src.delete();
         }
+    }
+
+    /**
+     * Estimates paper corners based on QR code position and LGS form layout.
+     * Calculated for LGS form where QR is ~140px from top and ~245px from left on 800x1100 target.
+     */
+    _estimateContourFromQR(qrLoc, frameSize, ratio) {
+        // Find QR center and approximate size
+        const center = {
+            x: (qrLoc.topLeftCorner.x + qrLoc.bottomRightCorner.x) / 2,
+            y: (qrLoc.topLeftCorner.y + qrLoc.bottomRightCorner.y) / 2
+        };
+        const qrSize = Math.sqrt(Math.pow(qrLoc.topRightCorner.x - qrLoc.topLeftCorner.x, 2) + Math.pow(qrLoc.topRightCorner.y - qrLoc.topLeftCorner.y, 2));
+
+        // Estimated paper size relative to QR (QR is roughly 1/10th of width)
+        const estPaperWidth = qrSize * 7.5;
+        const estPaperHeight = estPaperWidth * (1100 / 800);
+
+        // QR position in standard 800x1100 form: x=245, y=140
+        // Calculate Top-Left corner of paper relative to QR
+        const tlPaper = {
+            x: center.x - (qrSize * 2.2), // Adjusted for LGS layout
+            y: center.y - (qrSize * 1.5)
+        };
+
+        const result = new cv.Mat(4, 1, cv.CV_32SC2);
+        result.data32S[0] = Math.round(tlPaper.x);
+        result.data32S[1] = Math.round(tlPaper.y);
+        result.data32S[2] = Math.round(tlPaper.x + estPaperWidth);
+        result.data32S[3] = Math.round(tlPaper.y);
+        result.data32S[4] = Math.round(tlPaper.x + estPaperWidth);
+        result.data32S[5] = Math.round(tlPaper.y + estPaperHeight);
+        result.data32S[6] = Math.round(tlPaper.x);
+        result.data32S[7] = Math.round(tlPaper.y + estPaperHeight);
+
+        return result;
     }
 
     /**

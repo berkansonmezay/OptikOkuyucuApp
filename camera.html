@@ -236,7 +236,7 @@
             alert("Kamera otomatik tarama yapmaktadır. Lütfen formu okutun.");
         }
 
-        async function processForm(qrData, imageData) {
+        async function processForm(qrData, imageData, qrResult = null) {
             console.log("processForm: Starting with QR data:", qrData);
 
             const toast = document.getElementById('statusToast');
@@ -259,12 +259,12 @@
                     throw new Error("Kütüphane henüz yüklenmedi");
                 }
 
-                // 1. Process with OpenCV
+                // 1. Process with OpenCV - Use QR result as fallback for paper detection
                 console.log("processForm: Calling omr.processFrame...");
-                const cvResult = omr.processFrame(canvasElement);
+                const cvResult = omr.processFrame(canvasElement, qrResult);
                 if (!cvResult) {
-                    console.log("processForm: Paper not detected");
-                    throw new Error("KAĞIT ALGILANAMADI. Lütfen 4 köşeyi de gösterin.");
+                    console.log("processForm: Paper not detected even with QR fallback");
+                    throw new Error("KAĞIT ALGILANAMADI. Lütfen formu biraz daha yakından ve düz tutun.");
                 }
 
                 // 2. Generate Fixed Grid
@@ -444,7 +444,7 @@
                     const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
 
                     if (code) {
-                        processForm(code.data, imageData);
+                        processForm(code.data, imageData, code);
                     } else if (isDebug) {
                         // REAL-TIME TRACKING: Show grid even without QR
                         const cvResult = omr.processFrame(canvasElement);
