@@ -215,7 +215,7 @@
             alert("Kamera otomatik tarama yapmaktadır. Lütfen formu okutun.");
         }
 
-        async function processForm(qrData) {
+        async function processForm(qrData, imageData) {
             if (!selectedExamId) {
                 alert("Lütfen önce bir sınav seçin.");
                 window.location.href = 'scan-select.html';
@@ -259,7 +259,10 @@
                 // Real OMR Processing
                 const gridDefinition = _generateGrid(selectedExamData);
                 const realAnswers = omr.processImage(imageData, gridDefinition);
-                const selectedBooklet = realAnswers['Kitapçık'] ? realAnswers['Kitapçık'][0] : 'A';
+
+                // Booklet detection
+                const bookletResult = realAnswers['KITAPCIK'] ? realAnswers['KITAPCIK'][0] : 'A';
+                const selectedBooklet = bookletResult.trim() === '' ? 'A' : bookletResult;
 
                 const randomScore = (Math.random() * 500).toFixed(2); // Score still needs a calculator
 
@@ -317,27 +320,51 @@
          */
         function _generateGrid(exam) {
             const grid = {};
+
+            // 1. Booklet (KITAPCIK) - Location: Middle-top area
+            grid['KITAPCIK'] = [{
+                options: [
+                    { label: 'A', x: 215, y: 385 },
+                    { label: 'B', x: 235, y: 385 },
+                    { label: 'C', x: 255, y: 385 },
+                    { label: 'D', x: 275, y: 385 }
+                ]
+            }];
+
             if (!exam || !exam.subjects) return grid;
 
-            let startY = 150;
-            exam.subjects.forEach((subject, sIdx) => {
-                const questions = [];
-                for (let i = 0; i < (subject.questionCount || 20); i++) {
-                    const qY = startY + (i * 25);
-                    const qX = 50 + (sIdx * 100); // Simplistic multi-column layout
+            // 2. Subjects Grid - Aligned with the physical form columns
+            // Based on LGS image: SÖZEL (Left 4 cols) & SAYISAL (Right 2 cols)
+            const columns = [
+                { name: 'Türkçe', x: 85, y: 475 },
+                { name: 'İnkılap', x: 175, y: 475 },
+                { name: 'Din', x: 265, y: 475 },
+                { name: 'İngilizce', x: 355, y: 475 },
+                { name: 'Matematik', x: 445, y: 475 },
+                { name: 'Fen', x: 535, y: 475 }
+            ];
 
-                    questions.push({
-                        options: [
-                            { label: 'A', x: qX, y: qY },
-                            { label: 'B', x: qX + 25, y: qY },
-                            { label: 'C', x: qX + 50, y: qY },
-                            { label: 'D', x: qX + 75, y: qY },
-                            { label: 'E', x: qX + 100, y: qY }
-                        ]
-                    });
+            columns.forEach(col => {
+                const subject = exam.subjects.find(s => s.name.toLowerCase().includes(col.name.toLowerCase()));
+                if (subject) {
+                    const questions = [];
+                    const qCount = subject.questionCount || 20;
+                    for (let i = 0; i < qCount; i++) {
+                        const qY = col.y + (i * 15.5); // Vertical spacing between rows
+                        questions.push({
+                            options: [
+                                { label: 'A', x: col.x, y: qY },
+                                { label: 'B', x: col.x + 18, y: qY },
+                                { label: 'C', x: col.x + 36, y: qY },
+                                { label: 'D', x: col.x + 54, y: qY },
+                                { label: 'E', x: col.x + 72, y: qY }
+                            ]
+                        });
+                    }
+                    grid[subject.name] = questions;
                 }
-                grid[subject.name] = questions;
             });
+
             return grid;
         }
 
@@ -388,10 +415,8 @@
 
                 if (code) {
                     console.log("Found QR code", code.data);
-                    // Draw box around QR (optional, skipped for brevity)
-                    processForm(code.data);
+                    processForm(code.data, imageData);
                 } else {
-                    // Keep scanning
                     requestAnimationFrame(tick);
                 }
             } else {

@@ -57,18 +57,17 @@ export class OMREngine {
      * @param {number} width - Image width
      */
     _detectMark(binarized, options, width) {
-        let bestOption = null;
-        let maxDensity = 0;
+        let markedOptions = [];
 
         for (const option of options) {
             const density = this._calculateDensity(binarized, option.x, option.y, width);
-            if (density > maxDensity && density > this.detectionThreshold) {
-                maxDensity = density;
-                bestOption = option.label;
+            if (density > this.detectionThreshold) {
+                markedOptions.push(option.label);
             }
         }
 
-        return bestOption || " "; // Space for unmarked
+        if (markedOptions.length > 1) return "*"; // Multi-mark
+        return markedOptions.length === 1 ? markedOptions[0] : " "; // Space for unmarked
     }
 
     /**
