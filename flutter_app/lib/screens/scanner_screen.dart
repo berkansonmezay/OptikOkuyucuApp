@@ -78,18 +78,37 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
       final image = await _controller!.takePicture();
       if (!mounted) return;
 
+      final result = _simulateOMRProcess(widget.exam);
+
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ScanSuccessScreen(
             exam: widget.exam,
             imagePath: image.path,
+            result: result,
           ),
         ),
       );
     } catch (e) {
       debugPrint('Error capturing image: $e');
     }
+  }
+
+  StudentResult _simulateOMRProcess(Exam exam) {
+    // This is still a simulation, but it respects the exam subjects
+    // to show how real data flow should work.
+    final random = (10000 + (90000 * (DateTime.now().millisecond / 1000))).toInt();
+    
+    return StudentResult(
+      id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+      name: 'ÖĞRENCİ $random',
+      studentNo: random.toString(),
+      score: 0.0,
+      booklet: 'A',
+      className: '12/A',
+      tcNo: '12345678901',
+    );
   }
 
   @override

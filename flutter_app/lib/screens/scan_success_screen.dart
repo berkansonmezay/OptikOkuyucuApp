@@ -6,21 +6,22 @@ import '../core/app_colors.dart';
 class ScanSuccessScreen extends StatelessWidget {
   final Exam exam;
   final String imagePath;
+  final StudentResult result;
 
   const ScanSuccessScreen({
     super.key,
     required this.exam,
     required this.imagePath,
+    required this.result,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Mock data for display parity with scan-success.html
-    const studentName = 'AHMET YILMAZ';
-    const studentNo = '12345';
-    const studentTc = '12345678901';
-    const studentClass = '12/A';
-    const booklet = 'A';
+    final studentName = result.name;
+    final studentNo = result.studentNo;
+    final studentTc = result.tcNo ?? '-';
+    final studentClass = result.className ?? '-';
+    final booklet = result.booklet ?? '-';
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
