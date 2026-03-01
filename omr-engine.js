@@ -6,8 +6,8 @@
 
 export class OMREngine {
     constructor(config = {}) {
-        this.bubbleRadius = config.bubbleRadius || 11; // Slightly larger for better coverage
-        this.detectionThreshold = config.detectionThreshold || 0.45; // More sensitive
+        this.bubbleRadius = config.bubbleRadius || 10; // Back to 10 for better search window fit
+        this.detectionThreshold = config.detectionThreshold || 0.30; // More sensitive for dark marks
         this.targetWidth = 800;
         this.targetHeight = 1100;
     }
@@ -254,28 +254,41 @@ export class OMREngine {
 
     readMarks(processedOMR, grid) {
         const results = {};
+        const searchSize = 5; // Search +/- 5px window for the mark
+
         for (const [subject, questions] of Object.entries(grid)) {
             results[subject] = questions.map(q => {
                 let markedOptions = [];
                 q.options.forEach(opt => {
-                    let rect = new cv.Rect(
-                        Math.max(0, opt.x - this.bubbleRadius),
-                        Math.max(0, opt.y - this.bubbleRadius),
-                        this.bubbleRadius * 2,
-                        this.bubbleRadius * 2
-                    );
-                    try {
-                        let roi = processedOMR.roi(rect);
-                        let n = cv.countNonZero(roi);
-                        let total = rect.width * rect.height;
-                        if (n / total > this.detectionThreshold) {
-                            markedOptions.push(opt.label);
+                    let bestIntensity = 0;
+
+                    // SUB-PIXEL SEARCH: Look for the mark in a small window
+                    for (let oy = -searchSize; oy <= searchSize; oy += 2) {
+                        for (let ox = -searchSize; ox <= searchSize; ox += 2) {
+                            let rect = new cv.Rect(
+                                Math.max(0, opt.x + ox - this.bubbleRadius),
+                                Math.max(0, opt.y + oy - this.bubbleRadius),
+                                this.bubbleRadius * 2,
+                                this.bubbleRadius * 2
+                            );
+
+                            try {
+                                let roi = processedOMR.roi(rect);
+                                let n = cv.countNonZero(roi);
+                                let intensity = n / (rect.width * rect.height);
+                                bestIntensity = Math.max(bestIntensity, intensity);
+                                roi.delete();
+                            } catch (e) { }
                         }
-                        roi.delete();
-                    } catch (e) { }
+                    }
+
+                    if (bestIntensity > this.detectionThreshold) {
+                        markedOptions.push(opt.label);
+                    }
                 });
-                if (markedOptions.length > 1) return "*";
-                return markedOptions.length === 1 ? markedOptions[0] : " ";
+
+                if (markedOptions.length > 1) return "*"; // Multiple marks
+                return markedOptions.length === 1 ? markedOptions[0] : " "; // Single mark or empty
             });
         }
         return results;

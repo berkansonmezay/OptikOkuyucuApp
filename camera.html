@@ -285,8 +285,15 @@
                 const realAnswers = omr.readMarks(cvResult.processedOMR, fixedGrid);
 
                 // Booklet & Score
-                const bookletResult = realAnswers['KITAPCIK'] ? realAnswers['KITAPCIK'][0] : 'A';
-                const selectedBooklet = (bookletResult === " " || bookletResult === "*") ? 'A' : bookletResult;
+                let selectedBooklet = 'OKUNAMADI';
+                if (realAnswers['KITAPCIK']) {
+                    const bMark = realAnswers['KITAPCIK'][0];
+                    if (bMark !== " " && bMark !== "*") {
+                        selectedBooklet = bMark;
+                    } else if (bMark === "*") {
+                        selectedBooklet = "HATALI (ÇİFT)";
+                    }
+                }
 
                 // Cleanup
                 cvResult.warpedImage.delete();
@@ -348,10 +355,10 @@
             // 1. Booklet (KITAPCIK) - Calibrated for LGS Form
             grid['KITAPCIK'] = [{
                 options: [
-                    { label: 'A', x: 550, y: 238 },
-                    { label: 'B', x: 580, y: 238 },
-                    { label: 'C', x: 610, y: 238 },
-                    { label: 'D', x: 640, y: 238 }
+                    { label: 'A', x: 552, y: 238 },
+                    { label: 'B', x: 578, y: 238 },
+                    { label: 'C', x: 604, y: 238 },
+                    { label: 'D', x: 630, y: 238 }
                 ]
             }];
 
