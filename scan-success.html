@@ -221,9 +221,9 @@
             const studentTc = urlParams.get('studentTc') || '12345678901';
             const studentClass = urlParams.get('studentClass') || '12/A';
             const booklet = urlParams.get('booklet') || 'A';
-            const answersStr = urlParams.get('answers');
+            const answersStr = urlParams.get('answers') || sessionStorage.getItem('lastScanAnswers');
             const examId = urlParams.get('examId');
-            const previewUrl = urlParams.get('previewUrl');
+            const previewUrl = urlParams.get('previewUrl') || sessionStorage.getItem('lastScanPreview');
 
             document.getElementById('displayStudentName').textContent = studentName;
             document.getElementById('displayStudentNo').textContent = studentNo;

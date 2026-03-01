@@ -278,11 +278,20 @@
                 // Get preview image data URL to pass to next screen
                 // Reduce size for URL parameter (taking a smaller quality jpeg from canvas)
                 const previewUrl = canvasElement ? canvasElement.toDataURL('image/jpeg', 0.5) : '';
+                // Save large data to sessionStorage to avoid URI_TOO_LONG
+                sessionStorage.setItem('lastScanPreview', previewUrl);
+                sessionStorage.setItem('lastScanAnswers', resultData.rawAnswers);
 
                 setTimeout(() => {
-                    const encodedPreview = encodeURIComponent(previewUrl);
-                    const encodedAnswers = encodeURIComponent(resultData.rawAnswers);
-                    window.location.href = `scan-success.html?examId=${selectedExamId}&studentName=${encodeURIComponent(resultData.name)}&studentNo=${encodeURIComponent(resultData.studentNo)}&studentTc=${encodeURIComponent(resultData.tcNo)}&studentClass=${encodeURIComponent(resultData.className)}&booklet=${resultData.booklet}&answers=${encodedAnswers}&previewUrl=${encodedPreview}`;
+                    const params = new URLSearchParams({
+                        examId: selectedExamId,
+                        studentName: resultData.name,
+                        studentNo: resultData.studentNo,
+                        studentTc: resultData.tcNo,
+                        studentClass: resultData.className,
+                        booklet: resultData.booklet
+                    });
+                    window.location.href = `scan-success.html?${params.toString()}`;
                 }, 1000);
 
             } catch (error) {
