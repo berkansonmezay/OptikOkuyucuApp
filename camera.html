@@ -405,8 +405,12 @@
             const videoEl = document.getElementById('camera-feed');
             if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
                 if (scanning) {
-                    canvasElement.height = videoEl.videoHeight;
-                    canvasElement.width = videoEl.videoWidth;
+                    // PERFORMANCE FIX: Use a fixed detection resolution instead of full camera res
+                    const targetDetectWidth = 1280;
+                    const scale = targetDetectWidth / videoEl.videoWidth;
+                    canvasElement.width = targetDetectWidth;
+                    canvasElement.height = videoEl.videoHeight * scale;
+
                     canvasContext.drawImage(videoEl, 0, 0, canvasElement.width, canvasElement.height);
                     const imageData = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height);
 
@@ -425,19 +429,24 @@
         }
 
         async function initCamera() {
+            console.log("initCamera: Requesting environment camera...");
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' }
+                    video: {
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
                 });
                 const videoEl = document.getElementById('camera-feed');
                 videoEl.srcObject = stream;
 
-                // Hide placeholder once video playing
                 videoEl.onplaying = () => {
+                    console.log("initCamera: Video playing, resolution:", videoEl.videoWidth, "x", videoEl.videoHeight);
                     document.getElementById('camera-placeholder').style.opacity = '0';
                     setTimeout(() => {
                         document.getElementById('camera-placeholder').style.display = 'none';
-                        requestAnimationFrame(tick); // start scanning loop
+                        requestAnimationFrame(tick);
                     }, 500);
                 };
             } catch (err) {

@@ -1,7 +1,7 @@
 /**
  * OMR Engine - Optical Mark Recognition using OpenCV.js
  * Handles image processing to detect marked bubbles on optical forms.
- * Features: Performance downscaling, Dual-pass detection, Extreme point recovery.
+ * Features: Performance downscaling, Aspect Ratio verification, Extreme point recovery.
  */
 
 export class OMREngine {
@@ -24,26 +24,22 @@ export class OMREngine {
         let gray = null;
 
         try {
-            // 1. Performance: Downscale for detection
-            let ratio = src.rows / 500;
+            // 1. Performance: Downscale for detection (target ~500px width/height)
+            let ratio = Math.max(src.rows, src.cols) / 600;
             small = new cv.Mat();
-            cv.resize(src, small, new cv.Size(Math.round(src.cols / ratio), 500), 0, 0, cv.INTER_AREA);
+            cv.resize(src, small, new cv.Size(Math.round(src.cols / ratio), Math.round(src.rows / ratio)), 0, 0, cv.INTER_AREA);
 
             gray = new cv.Mat();
             cv.cvtColor(small, gray, cv.COLOR_RGBA2GRAY);
 
-            // 2. Dual-Strategy Detection
-            // Pass A: Canny (Better for clear edges)
+            // 2. Multi-Pass Detection
             paperContour = this._findPaperContour(gray, "canny");
-
-            // Pass B: Fallback to Adaptive Threshold (Better for low-contrast masses)
             if (!paperContour) {
-                console.log("OMR: Canny failed, trying Adaptive fallback...");
                 paperContour = this._findPaperContour(gray, "adaptive");
             }
 
             if (paperContour) {
-                // Upscale points to original resolution
+                // Upscale points back to high res
                 let upscaled = new cv.Mat(4, 1, cv.CV_32SC2);
                 for (let i = 0; i < 4; i++) {
                     upscaled.data32S[i * 2] = Math.round(paperContour.data32S[i * 2] * ratio);
@@ -84,15 +80,14 @@ export class OMREngine {
         try {
             if (mode === "canny") {
                 cv.GaussianBlur(gray, processed, new cv.Size(5, 5), 0);
-                cv.Canny(processed, processed, 30, 80); // Sensitive
-                let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(7, 7));
+                cv.Canny(processed, processed, 40, 100);
+                let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
                 cv.dilate(processed, processed, kernel);
                 kernel.delete();
             } else {
                 cv.adaptiveThreshold(gray, processed, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 5);
-                let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
+                let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
                 cv.dilate(processed, processed, kernel);
-                cv.erode(processed, processed, kernel);
                 kernel.delete();
             }
 
@@ -101,10 +96,15 @@ export class OMREngine {
             let maxArea = 0;
             let bestCnt = null;
 
+            // Filter by Area and Aspect Ratio (LGS paper is ~1.4 ratio)
             for (let i = 0; i < contours.size(); ++i) {
                 let cnt = contours.get(i);
                 let area = cv.contourArea(cnt);
-                if (area > 8000 && area > maxArea) {
+                let rect = cv.boundingRect(cnt);
+                let aspectRatio = Math.max(rect.width, rect.height) / Math.min(rect.width, rect.height);
+
+                // Area must be significant, and Aspect Ratio must be realistic (0.8 to 2.2 for slanted 1.4 ratio)
+                if (area > 20000 && aspectRatio > 0.8 && aspectRatio < 2.5 && area > maxArea) {
                     maxArea = area;
                     bestCnt = cnt;
                 }
@@ -112,12 +112,10 @@ export class OMREngine {
 
             if (!bestCnt) return null;
 
-            // Extreme Points Strategy: Find corners even if the contour is messy/noisy
-            // sum = x+y, diff = y-x
+            // Extreme Points Strategy to handle noisy background (like keyboards)
+            let pts = [];
             let hull = new cv.Mat();
             cv.convexHull(bestCnt, hull, false, true);
-
-            let pts = [];
             for (let i = 0; i < hull.rows; i++) {
                 pts.push({ x: hull.data32S[i * 2], y: hull.data32S[i * 2 + 1] });
             }
@@ -125,11 +123,11 @@ export class OMREngine {
 
             if (pts.length < 4) return null;
 
-            // Sort points to find the 4 corners
-            let tl = pts.reduce((prev, curr) => (prev.x + prev.y < curr.x + curr.y) ? prev : curr);
-            let br = pts.reduce((prev, curr) => (prev.x + prev.y > curr.x + curr.y) ? prev : curr);
-            let tr = pts.reduce((prev, curr) => (prev.y - prev.x < curr.y - curr.x) ? prev : curr);
-            let bl = pts.reduce((prev, curr) => (prev.y - prev.x > curr.y - curr.x) ? prev : curr);
+            // Find TL, TR, BR, BL by sorting
+            let tl = pts.reduce((p, c) => (p.x + p.y < c.x + c.y) ? p : c);
+            let br = pts.reduce((p, c) => (p.x + p.y > c.x + c.y) ? p : c);
+            let tr = pts.reduce((p, c) => (c.y - c.x < p.y - p.x) ? p : c);
+            let bl = pts.reduce((p, c) => (c.y - c.x > p.y - p.x) ? p : c);
 
             let result = new cv.Mat(4, 1, cv.CV_32SC2);
             result.data32S[0] = tl.x; result.data32S[1] = tl.y;
@@ -138,6 +136,7 @@ export class OMREngine {
             result.data32S[6] = bl.x; result.data32S[7] = bl.y;
 
             return result;
+
         } catch (e) {
             console.error("_findPaperContour error:", e);
             return null;
@@ -152,7 +151,6 @@ export class OMREngine {
             corners.push({ x: contour.data32S[i * 2], y: contour.data32S[i * 2 + 1] });
         }
 
-        // Final sanity sort for warp
         corners.sort((a, b) => a.y - b.y);
         let top = corners.slice(0, 2).sort((a, b) => a.x - b.x);
         let bottom = corners.slice(2, 4).sort((a, b) => a.x - b.x);
