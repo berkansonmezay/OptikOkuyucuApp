@@ -6,8 +6,8 @@
 
 export class OMREngine {
     constructor(config = {}) {
-        this.bubbleRadius = config.bubbleRadius || 10; // Back to 10 for better search window fit
-        this.detectionThreshold = config.detectionThreshold || 0.30; // More sensitive for dark marks
+        this.bubbleRadius = config.bubbleRadius || 10;
+        this.detectionThreshold = config.detectionThreshold || 0.22; // Lowered for better sensitivity
         this.targetWidth = 800;
         this.targetHeight = 1100;
     }
@@ -113,8 +113,8 @@ export class OMREngine {
         // QR Center is at {x: 245, y: 140}, QR size is ~80px
         const W_SCALE = 10.0;     // 800 / 80
         const H_SCALE = 13.75;   // 1100 / 80
-        const X_OFF_PX = 245 / 80;
-        const Y_OFF_PX = 140 / 80;
+        const X_OFF_PX = 3.125;
+        const Y_OFF_PX = 1.75;
 
         // Function to map standard OMR coordinates to current frame coordinates
         const getPoint = (sx, sy) => ({
@@ -254,7 +254,7 @@ export class OMREngine {
 
     readMarks(processedOMR, grid) {
         const results = {};
-        const searchSize = 5; // Search +/- 5px window for the mark
+        const searchSize = 8; // Wider search +/- 8px window for the mark
 
         for (const [subject, questions] of Object.entries(grid)) {
             results[subject] = questions.map(q => {
