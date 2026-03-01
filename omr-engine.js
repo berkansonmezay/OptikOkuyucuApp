@@ -25,7 +25,7 @@ export class OMREngine {
 
         try {
             // 1. Downscale image for MUCH faster and more reliable contour detection
-            let ratio = src.rows / 500; // Work with 500px height for detection
+            let ratio = src.rows / 500;
             small = new cv.Mat();
             let dsize = new cv.Size(Math.round(src.cols / ratio), 500);
             cv.resize(src, small, dsize, 0, 0, cv.INTER_AREA);
@@ -37,7 +37,6 @@ export class OMREngine {
             let smallContour = this._findPaperContour(gray);
 
             if (smallContour && smallContour.rows === 4) {
-                // Upscale the points back to original size
                 paperContour = new cv.Mat(4, 1, cv.CV_32SC2);
                 for (let i = 0; i < 4; i++) {
                     paperContour.data32S[i * 2] = Math.round(smallContour.data32S[i * 2] * ratio);
@@ -46,11 +45,9 @@ export class OMREngine {
                 smallContour.delete();
             }
 
-            if (!paperContour) {
-                return null;
-            }
+            if (!paperContour) return null;
 
-            // 3. Perspective Warp (Straighten the paper)
+            // 3. Perspective Warp
             let warped = this._warpPerspective(src, paperContour);
 
             // 4. Final Processing for OMR
@@ -58,13 +55,10 @@ export class OMREngine {
             cv.cvtColor(warped, finalGray, cv.COLOR_RGBA2GRAY);
             cv.adaptiveThreshold(finalGray, finalGray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 15, 5);
 
-            return {
-                warpedImage: warped,
-                processedOMR: finalGray
-            };
+            return { warpedImage: warped, processedOMR: finalGray };
 
         } catch (e) {
-            console.error("OMR Logic Error:", e);
+            console.error("OMR processFrame Error:", e);
             return null;
         } finally {
             if (gray) gray.delete();
@@ -79,59 +73,58 @@ export class OMREngine {
         let contours = new cv.MatVector();
         let hierarchy = new cv.Mat();
 
-        // Canny + Dilation is extremely robust
-        cv.GaussianBlur(gray, processed, new cv.Size(5, 5), 0);
-        cv.Canny(processed, processed, 30, 100); // Lowered thresholds
-        let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
-        cv.dilate(processed, processed, kernel);
-        kernel.delete();
+        try {
+            cv.GaussianBlur(gray, processed, new cv.Size(5, 5), 0);
+            cv.Canny(processed, processed, 30, 100);
+            let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
+            cv.dilate(processed, processed, kernel);
+            kernel.delete();
 
-        cv.findContours(processed, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+            // SPEED FIX: Use RETR_EXTERNAL instead of RETR_LIST to avoid thousands of bubble contours
+            cv.findContours(processed, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+            console.log(`_findPaperContour: ${contours.size()} contours found`);
 
-        let bestContour = null;
-        let maxArea = 0;
+            let bestContour = null;
+            let maxArea = 0;
 
-        for (let i = 0; i < contours.size(); ++i) {
-            let cnt = contours.get(i);
-            let area = cv.contourArea(cnt);
-            if (area > 10000) { // On the 500px small image
+            for (let i = 0; i < contours.size(); ++i) {
+                let cnt = contours.get(i);
+                let area = cv.contourArea(cnt);
+                if (area < 10000) continue;
+
                 let peri = cv.arcLength(cnt, true);
                 let approx = new cv.Mat();
                 cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
 
-                // Be more lenient: if 4-6 points, it's likely a rectangle with noise
                 if (approx.rows >= 4 && approx.rows <= 6 && area > maxArea) {
                     let hull = new cv.Mat();
                     cv.convexHull(approx, hull, false, true);
-
-                    // Now approximate the hull to exactly 4 points
                     let hullPeri = cv.arcLength(hull, true);
                     let finalApprox = new cv.Mat();
 
-                    // Iteratively try to get 4 points
                     for (let epsilon = 0.01; epsilon < 0.1; epsilon += 0.01) {
                         cv.approxPolyDP(hull, finalApprox, epsilon * hullPeri, true);
                         if (finalApprox.rows === 4) break;
                     }
 
                     if (finalApprox.rows === 4) {
-                        console.log(`Paper detected! Area: ${Math.round(area)}, Corners: ${finalApprox.rows}`);
                         if (bestContour) bestContour.delete();
                         bestContour = finalApprox.clone();
                         maxArea = area;
+                        console.log(`Paper candidate! Area: ${Math.round(area)}`);
                     }
-
-                    hull.delete();
-                    finalApprox.delete();
-                    approx.delete();
+                    hull.delete(); finalApprox.delete(); approx.delete();
                 } else {
                     approx.delete();
                 }
             }
+            return bestContour;
+        } catch (e) {
+            console.error("_findPaperContour Error:", e);
+            return null;
+        } finally {
+            processed.delete(); contours.delete(); hierarchy.delete();
         }
-
-        processed.delete(); contours.delete(); hierarchy.delete();
-        return bestContour;
     }
 
     _warpPerspective(src, contour) {
@@ -139,8 +132,6 @@ export class OMREngine {
         for (let i = 0; i < 4; i++) {
             corners.push({ x: contour.data32S[i * 2], y: contour.data32S[i * 2 + 1] });
         }
-
-        // Sort corners: TL, TR, BR, BL
         corners.sort((a, b) => a.y - b.y);
         let top = corners.slice(0, 2).sort((a, b) => a.x - b.x);
         let bottom = corners.slice(2, 4).sort((a, b) => a.x - b.x);
@@ -149,7 +140,6 @@ export class OMREngine {
             top[0].x, top[0].y, top[1].x, top[1].y,
             bottom[1].x, bottom[1].y, bottom[0].x, bottom[0].y
         ]);
-
         let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
             0, 0, this.targetWidth, 0,
             this.targetWidth, this.targetHeight, 0, this.targetHeight
@@ -179,13 +169,10 @@ export class OMREngine {
                         let roi = processedOMR.roi(rect);
                         let n = cv.countNonZero(roi);
                         let total = rect.width * rect.height;
-                        if (n / total > this.detectionThreshold) {
-                            markedOptions.push(opt.label);
-                        }
+                        if (n / total > this.detectionThreshold) markedOptions.push(opt.label);
                         roi.delete();
                     } catch (e) { }
                 });
-
                 if (markedOptions.length > 1) return "*";
                 return markedOptions.length === 1 ? markedOptions[0] : " ";
             });
