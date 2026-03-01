@@ -402,35 +402,36 @@
 
 
         window.onload = async () => {
-            // Get selected exam from URL params
-            const urlParams = new URLSearchParams(window.location.search);
-            selectedExamId = urlParams.get('examId');
+            // 1. Start Camera Immediately
+            initCamera();
 
-            if (!selectedExamId) {
-                // Determine the most recent exam if none selected (for testing)
-                const exams = await getExams();
-                if (exams && exams.length > 0) {
-                    selectedExamId = exams[0].id;
-                    document.getElementById('examTypeLabel').textContent = exams[0].name || "SINAV";
-                } else {
-                    document.getElementById('examTypeLabel').textContent = "SINAV SEÇİLMEDİ";
-                }
-            } else {
-                document.getElementById('examTypeLabel').textContent = "Taranıyor...";
-                // Ideally fetch exam name by ID and display it here
-                const exams = await getExams();
-                selectedExamData = exams.find(e => e.id === selectedExamId);
-                if (selectedExamData) {
-                    document.getElementById('examTypeLabel').textContent = selectedExamData.name || "SINAV";
-                }
-            }
-
-            // Create hidden canvas for jsQR
+            // 2. Prepare Canvas
             canvasElement = document.createElement("canvas");
             canvasContext = canvasElement.getContext("2d", { willReadFrequently: true });
 
-            // Initialize Camera
-            await initCamera();
+            // 3. Get selected exam from URL params
+            const urlParams = new URLSearchParams(window.location.search);
+            selectedExamId = urlParams.get('examId');
+
+            try {
+                if (!selectedExamId) {
+                    const exams = await getExams();
+                    if (exams && exams.length > 0) {
+                        selectedExamId = exams[0].id;
+                        selectedExamData = exams[0];
+                        document.getElementById('examTypeLabel').textContent = selectedExamData.name || "SINAV";
+                    }
+                } else {
+                    const exams = await getExams();
+                    selectedExamData = exams.find(e => e.id === selectedExamId);
+                    if (selectedExamData) {
+                        document.getElementById('examTypeLabel').textContent = selectedExamData.name || "SINAV";
+                    }
+                }
+            } catch (e) {
+                console.error("Exam load failed:", e);
+                document.getElementById('examTypeLabel').textContent = "SINAV VERISI ALINAMADI";
+            }
         };
 
         function tick() {
