@@ -317,43 +317,47 @@
         function _generateFixedGrid(exam) {
             const grid = {};
 
-            // 1. Booklet (KITAPCIK) - Fixed coordinates on 800x1100
+            // 1. Booklet (KITAPCIK) - Positioned in the middle-top area
             grid['KITAPCIK'] = [{
                 options: [
-                    { label: 'A', x: 350, y: 154 },
-                    { label: 'B', x: 390, y: 154 },
-                    { label: 'C', x: 430, y: 154 },
-                    { label: 'D', x: 470, y: 154 }
+                    { label: 'A', x: 580, y: 238 },
+                    { label: 'B', x: 610, y: 238 },
+                    { label: 'C', x: 640, y: 238 },
+                    { label: 'D', x: 670, y: 238 }
                 ]
             }];
 
             if (!exam || !exam.subjects) return grid;
 
-            // 2. Subjects Grid - Calibration based on LGS form layout
-            const startX = 64;
-            const startY = 328;
-            const colWidth = 118;
-            const rowHeight = 36;
+            // 2. Subjects Grid - Aligned with the bottom highlighted boxes
+            const startY = 378;
+            const rowHeight = 34; // Spacing between question rows
+            const optStep = 24;   // Spacing between A-B-C-D bubbles
 
-            const subjectNames = ['Türkçe', 'İnkılap', 'Din', 'İngilizce', 'Matematik', 'Fen'];
+            // X-coordinates for the start of each subject column
+            const columns = [
+                { name: 'Türkçe', x: 65 },
+                { name: 'İnkılap', x: 203 },
+                { name: 'Din', x: 341 },
+                { name: 'İngilizce', x: 479 },
+                { name: 'Matematik', x: 617 },
+                { name: 'Fen', x: 755 }
+            ];
 
-            subjectNames.forEach((name, sIdx) => {
-                const subject = exam.subjects.find(s => s.name.toLowerCase().includes(name.toLowerCase()));
+            columns.forEach((col) => {
+                const subject = exam.subjects.find(s => s.name.toLowerCase().includes(col.name.toLowerCase()));
                 if (subject) {
                     const questions = [];
                     const qCount = subject.questionCount || 20;
-                    const curX = startX + (sIdx * colWidth);
 
                     for (let i = 0; i < qCount; i++) {
                         const curY = startY + (i * rowHeight);
-                        const optStep = 21;
                         questions.push({
                             options: [
-                                { label: 'A', x: curX + optStep * 0, y: curY },
-                                { label: 'B', x: curX + optStep * 1, y: curY },
-                                { label: 'C', x: curX + optStep * 2, y: curY },
-                                { label: 'D', x: curX + optStep * 3, y: curY },
-                                { label: 'E', x: curX + optStep * 4, y: curY }
+                                { label: 'A', x: col.x + optStep * 0, y: curY },
+                                { label: 'B', x: col.x + optStep * 1, y: curY },
+                                { label: 'C', x: col.x + optStep * 2, y: curY },
+                                { label: 'D', x: col.x + optStep * 3, y: curY }
                             ]
                         });
                     }
