@@ -6,8 +6,8 @@
 
 export class OMREngine {
     constructor(config = {}) {
-        this.bubbleRadius = config.bubbleRadius || 11;
-        this.detectionThreshold = config.detectionThreshold || 0.12; // Max sensitivity
+        this.bubbleRadius = config.bubbleRadius || 10;
+        this.detectionThreshold = config.detectionThreshold || 0.28; // Filter outlines and noise
         this.targetWidth = 800;
         this.targetHeight = 1100;
     }
@@ -62,9 +62,8 @@ export class OMREngine {
 
             // 4. Final Processing for OMR
             let finalGray = new cv.Mat();
-            cv.cvtColor(warped, finalGray, cv.COLOR_RGBA2GRAY);
-            // More aggressive adaptive threshold for better mark detection
-            cv.adaptiveThreshold(finalGray, finalGray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 31, 5);
+            // More balanced adaptive threshold
+            cv.adaptiveThreshold(finalGray, finalGray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 10);
 
             return { warpedImage: warped, processedOMR: finalGray };
 
@@ -246,7 +245,7 @@ export class OMREngine {
 
     readMarks(processedOMR, grid) {
         const results = {};
-        const searchSize = 15; // Max search window
+        const searchSize = 7; // Narrower search +/- 7px to prevent adjacent overlap
 
         for (const [subject, questions] of Object.entries(grid)) {
             results[subject] = questions.map(q => {
