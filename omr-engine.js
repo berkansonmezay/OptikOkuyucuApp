@@ -20,15 +20,17 @@ export class OMREngine {
 
         let src = cv.imread(canvas);
         let paperContour = null;
+        let small = null;
+        let gray = null;
 
         try {
             // 1. Downscale image for MUCH faster and more reliable contour detection
             let ratio = src.rows / 500; // Work with 500px height for detection
-            let small = new cv.Mat();
+            small = new cv.Mat();
             let dsize = new cv.Size(Math.round(src.cols / ratio), 500);
             cv.resize(src, small, dsize, 0, 0, cv.INTER_AREA);
 
-            let gray = new cv.Mat();
+            gray = new cv.Mat();
             cv.cvtColor(small, gray, cv.COLOR_RGBA2GRAY);
 
             // 2. Find Paper Contour on the SMALL image
@@ -44,10 +46,7 @@ export class OMREngine {
                 smallContour.delete();
             }
 
-            gray.delete(); small.delete();
-
             if (!paperContour) {
-                src.delete();
                 return null;
             }
 
@@ -68,8 +67,10 @@ export class OMREngine {
             console.error("OMR Logic Error:", e);
             return null;
         } finally {
+            if (gray) gray.delete();
+            if (small) small.delete();
             if (paperContour) paperContour.delete();
-            src.delete();
+            if (src) src.delete();
         }
     }
 
