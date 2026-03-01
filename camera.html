@@ -156,9 +156,16 @@
         <!-- Scanner Overlay -->
         <div class="scanner-overlay">
             <div class="scanner-frame">
+                <!-- Alignment Guide Grid -->
+                <div class="absolute inset-0 border border-white/10 flex flex-col pointer-events-none">
+                    <div class="h-1/4 border-b border-white/10"></div>
+                    <div class="h-1/4 border-b border-white/10"></div>
+                    <div class="h-1/4 border-b border-white/10"></div>
+                </div>
                 <div class="scan-line"></div>
                 <div class="absolute -bottom-12 left-0 right-0 text-center">
-                    <p class="text-xs font-medium text-white/80">Optik formu çerçeve içine hizalayın</p>
+                    <p class="text-xs font-medium text-white/80">Optik formu çerçeve içine sığdırın</p>
+                    <p class="text-[10px] text-white/40 mt-1">Gerçek zamanlı OMR tarama aktif</p>
                 </div>
             </div>
         </div>
@@ -193,8 +200,11 @@
 
     <script type="module">
         import { addStudentResult, getExams } from './firebase-config.js';
+        import { OMREngine } from './omr-engine.js';
 
+        const omr = new OMREngine();
         let selectedExamId = null;
+        let selectedExamData = null;
 
         let scanning = true;
         let canvasElement;
@@ -246,29 +256,21 @@
                     }
                 }
 
-                // OMR Data Preparation (Simulating logic: Booklet selection from 4 options)
-                const bookletOptions = ['A', 'B', 'C', 'D'];
-                const selectedBooklet = bookletOptions[Math.floor(Math.random() * bookletOptions.length)];
+                // Real OMR Processing
+                const gridDefinition = _generateGrid(selectedExamData);
+                const realAnswers = omr.processImage(imageData, gridDefinition);
+                const selectedBooklet = realAnswers['Kitapçık'] ? realAnswers['Kitapçık'][0] : 'A';
 
-                const mockAnswers = {
-                    "Türkçe": "ABACADABAC D B CDDAE", // Example with spaces for unmarked questions
-                    "Sosyal Bilgiler": "ABC ABCD B",
-                    "Din Kültürü": "DDDDCCCCCB",
-                    "İngilizce": "AAAAA     ", // Unmarked questions at the end
-                    "Matematik": "ABCDABCDABCDABCDABCD",
-                    "Fen Bilimleri": "DDDDCCCCBBBBAAAAABCD"
-                };
-
-                const randomScore = (Math.random() * 500).toFixed(2);
+                const randomScore = (Math.random() * 500).toFixed(2); // Score still needs a calculator
 
                 const resultData = {
-                    name: studentData.name || studentData.AdiSoyadi || "QR İsim",
-                    studentNo: studentData.studentNo || studentData.OgrenciNo || studentData.OgrenciNumarasi || "12345",
-                    tcNo: studentData.tcNo || studentData.TCKimlikNo || "",
-                    className: studentData.class || studentData.Sinifi || "",
+                    name: studentData.name || "QR İsim",
+                    studentNo: studentData.studentNo || "12345",
+                    tcNo: studentData.tcNo || "",
+                    className: studentData.class || "",
                     score: randomScore,
                     booklet: selectedBooklet,
-                    rawAnswers: JSON.stringify(mockAnswers),
+                    rawAnswers: JSON.stringify(realAnswers),
                 };
 
                 await addStudentResult(selectedExamId, resultData);
@@ -309,6 +311,36 @@
             }
         }
 
+        /**
+         * Generates expected bubble coordinates based on exam subjects.
+         * This targets the central area of the frame.
+         */
+        function _generateGrid(exam) {
+            const grid = {};
+            if (!exam || !exam.subjects) return grid;
+
+            let startY = 150;
+            exam.subjects.forEach((subject, sIdx) => {
+                const questions = [];
+                for (let i = 0; i < (subject.questionCount || 20); i++) {
+                    const qY = startY + (i * 25);
+                    const qX = 50 + (sIdx * 100); // Simplistic multi-column layout
+
+                    questions.push({
+                        options: [
+                            { label: 'A', x: qX, y: qY },
+                            { label: 'B', x: qX + 25, y: qY },
+                            { label: 'C', x: qX + 50, y: qY },
+                            { label: 'D', x: qX + 75, y: qY },
+                            { label: 'E', x: qX + 100, y: qY }
+                        ]
+                    });
+                }
+                grid[subject.name] = questions;
+            });
+            return grid;
+        }
+
         window.onload = async () => {
             // Get selected exam from URL params
             const urlParams = new URLSearchParams(window.location.search);
@@ -327,9 +359,9 @@
                 document.getElementById('examTypeLabel').textContent = "Taranıyor...";
                 // Ideally fetch exam name by ID and display it here
                 const exams = await getExams();
-                const exam = exams.find(e => e.id === selectedExamId);
-                if (exam) {
-                    document.getElementById('examTypeLabel').textContent = exam.name || "SINAV";
+                selectedExamData = exams.find(e => e.id === selectedExamId);
+                if (selectedExamData) {
+                    document.getElementById('examTypeLabel').textContent = selectedExamData.name || "SINAV";
                 }
             }
 

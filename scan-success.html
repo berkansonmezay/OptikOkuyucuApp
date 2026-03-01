@@ -243,12 +243,18 @@
                     omrCard.classList.remove('hidden');
 
                     Object.keys(answers).forEach(branch => {
-                        const count = answers[branch].length;
+                        const questions = answers[branch];
+                        const markedCount = questions.filter(a => a !== ' ').length;
+                        const totalCount = questions.length;
+
                         const badge = document.createElement('div');
-                        badge.className = 'px-3 py-1.5 bg-purple-50 border border-purple-100 rounded-lg flex items-center gap-2 mb-2';
+                        badge.className = 'px-3 py-1.5 bg-purple-50 border border-purple-100 rounded-lg flex items-center justify-between gap-4 mb-2 min-w-[120px]';
                         badge.innerHTML = `
                             <span class="text-[11px] font-bold text-slate-700">${branch}</span>
-                            <span class="px-1.5 py-0.5 bg-primary text-white text-[9px] rounded-md font-bold">${count}</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="px-1.5 py-0.5 bg-primary text-white text-[9px] rounded-md font-bold">${markedCount}/${totalCount}</span>
+                                <span class="material-symbols-outlined text-[14px] text-green-500">done_all</span>
+                            </div>
                         `;
                         branchList.appendChild(badge);
                     });
