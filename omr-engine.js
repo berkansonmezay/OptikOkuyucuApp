@@ -6,8 +6,8 @@
 
 export class OMREngine {
     constructor(config = {}) {
-        this.bubbleRadius = config.bubbleRadius || 10;
-        this.detectionThreshold = config.detectionThreshold || 0.55;
+        this.bubbleRadius = config.bubbleRadius || 11; // Slightly larger for better coverage
+        this.detectionThreshold = config.detectionThreshold || 0.45; // More sensitive
         this.targetWidth = 800;
         this.targetHeight = 1100;
     }
@@ -104,9 +104,10 @@ export class OMREngine {
 
         // QR position in standard 800x1100 form: x=245, y=140
         // Calculate Top-Left corner of paper relative to QR
+        // Center of QR (245, 140) needs to map back to paper TL (0,0)
         const tlPaper = {
-            x: center.x - (qrSize * 2.2), // Adjusted for LGS layout
-            y: center.y - (qrSize * 1.5)
+            x: center.x - (qrSize * 3.1), // Adjusted: 245 / 80 = ~3.06
+            y: center.y - (qrSize * 1.8)  // Adjusted: 140 / 80 = ~1.75
         };
 
         const result = new cv.Mat(4, 1, cv.CV_32SC2);
