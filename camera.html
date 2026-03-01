@@ -356,17 +356,17 @@
             // 1. Booklet (KITAPCIK) - Calibrated for LGS Form
             grid['KITAPCIK'] = [{
                 options: [
-                    { label: 'A', x: 236, y: 155 },
-                    { label: 'B', x: 263, y: 155 },
-                    { label: 'C', x: 290, y: 155 },
-                    { label: 'D', x: 317, y: 155 }
+                    { label: 'A', x: 520, y: 240 },
+                    { label: 'B', x: 546, y: 240 },
+                    { label: 'C', x: 572, y: 240 },
+                    { label: 'D', x: 598, y: 240 }
                 ]
             }];
 
             if (!exam || !exam.subjects) return grid;
 
             // 2. Subjects Grid - Aligned for Sözel (4) and Sayısal (2) blocks
-            const startY = 400; // Shifted down for better vertical alignment
+            const startY = 385; // Reverting to previous stable Y
             const rowHeight = 33.5;
             const optStep = 24.5;
 

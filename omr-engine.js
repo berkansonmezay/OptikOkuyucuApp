@@ -105,8 +105,8 @@ export class OMREngine {
         // QR Center is at {x: 245, y: 140}, QR size is ~80px
         const W_SCALE = 10.0;     // 800 / 80
         const H_SCALE = 13.75;   // 1100 / 80
-        const X_OFF_PX = 8.85; // Calibrated for Top-Right QR placement (LGS)
-        const Y_OFF_PX = 1.35;
+        const X_OFF_PX = 9.06; // Refined for Top-Right QR placement (725px / 80px)
+        const Y_OFF_PX = 1.69; // Refined for Top-Right QR placement (135px / 80px)
 
         // Function to map standard OMR coordinates to current frame coordinates
         const getPoint = (sx, sy) => ({
