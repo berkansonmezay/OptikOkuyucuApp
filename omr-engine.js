@@ -71,7 +71,8 @@ export class OMREngine {
             // 4. Final Processing for OMR
             let finalGray = new cv.Mat();
             cv.cvtColor(warped, finalGray, cv.COLOR_RGBA2GRAY);
-            cv.adaptiveThreshold(finalGray, finalGray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 7);
+            // More aggressive adaptive threshold for better mark detection
+            cv.adaptiveThreshold(finalGray, finalGray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 31, 5);
 
             return { warpedImage: warped, processedOMR: finalGray };
 
@@ -91,34 +92,46 @@ export class OMREngine {
      * Calculated for LGS form where QR is ~140px from top and ~245px from left on 800x1100 target.
      */
     _estimateContourFromQR(qrLoc, frameSize, ratio) {
-        // Find QR center and approximate size
+        // Find QR center using all 4 corners for better precision
         const center = {
-            x: (qrLoc.topLeftCorner.x + qrLoc.bottomRightCorner.x) / 2,
-            y: (qrLoc.topLeftCorner.y + qrLoc.bottomRightCorner.y) / 2
+            x: (qrLoc.topLeftCorner.x + qrLoc.topRightCorner.x + qrLoc.bottomRightCorner.x + qrLoc.bottomLeftCorner.x) / 4,
+            y: (qrLoc.topLeftCorner.y + qrLoc.topRightCorner.y + qrLoc.bottomRightCorner.y + qrLoc.bottomLeftCorner.y) / 4
         };
-        const qrSize = Math.sqrt(Math.pow(qrLoc.topRightCorner.x - qrLoc.topLeftCorner.x, 2) + Math.pow(qrLoc.topRightCorner.y - qrLoc.topLeftCorner.y, 2));
 
-        // Estimated paper size relative to QR (QR is roughly 1/10th of width)
-        const estPaperWidth = qrSize * 7.5;
-        const estPaperHeight = estPaperWidth * (1100 / 800);
+        // Calculate QR side length (qrSize) based on top edge
+        const dx = qrLoc.topRightCorner.x - qrLoc.topLeftCorner.x;
+        const dy = qrLoc.topRightCorner.y - qrLoc.topLeftCorner.y;
+        const qrSize = Math.sqrt(dx * dx + dy * dy);
 
-        // QR position in standard 800x1100 form: x=245, y=140
-        // Calculate Top-Left corner of paper relative to QR
-        // Center of QR (245, 140) needs to map back to paper TL (0,0)
-        const tlPaper = {
-            x: center.x - (qrSize * 3.1), // Adjusted: 245 / 80 = ~3.06
-            y: center.y - (qrSize * 1.8)  // Adjusted: 140 / 80 = ~1.75
-        };
+        // Unit vectors for Orientation (u) and Perpendicular (v)
+        const ux = dx / qrSize;
+        const uy = dy / qrSize;
+        const vx = -uy;
+        const vy = ux;
+
+        // LGS Form Layout Constants (Target 800x1100)
+        // QR Center is at {x: 245, y: 140}, QR size is ~80px
+        const W_SCALE = 10.0;     // 800 / 80
+        const H_SCALE = 13.75;   // 1100 / 80
+        const X_OFF_PX = 245 / 80;
+        const Y_OFF_PX = 140 / 80;
+
+        // Function to map standard OMR coordinates to current frame coordinates
+        const getPoint = (sx, sy) => ({
+            x: center.x + (sx - X_OFF_PX) * qrSize * ux + (sy - Y_OFF_PX) * qrSize * vx,
+            y: center.y + (sx - X_OFF_PX) * qrSize * uy + (sy - Y_OFF_PX) * qrSize * vy
+        });
+
+        const pTL = getPoint(0, 0);
+        const pTR = getPoint(W_SCALE, 0);
+        const pBR = getPoint(W_SCALE, H_SCALE);
+        const pBL = getPoint(0, H_SCALE);
 
         const result = new cv.Mat(4, 1, cv.CV_32SC2);
-        result.data32S[0] = Math.round(tlPaper.x);
-        result.data32S[1] = Math.round(tlPaper.y);
-        result.data32S[2] = Math.round(tlPaper.x + estPaperWidth);
-        result.data32S[3] = Math.round(tlPaper.y);
-        result.data32S[4] = Math.round(tlPaper.x + estPaperWidth);
-        result.data32S[5] = Math.round(tlPaper.y + estPaperHeight);
-        result.data32S[6] = Math.round(tlPaper.x);
-        result.data32S[7] = Math.round(tlPaper.y + estPaperHeight);
+        result.data32S[0] = Math.round(pTL.x); result.data32S[1] = Math.round(pTL.y);
+        result.data32S[2] = Math.round(pTR.x); result.data32S[3] = Math.round(pTR.y);
+        result.data32S[4] = Math.round(pBR.x); result.data32S[5] = Math.round(pBR.y);
+        result.data32S[6] = Math.round(pBL.x); result.data32S[7] = Math.round(pBL.y);
 
         return result;
     }
