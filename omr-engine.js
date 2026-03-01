@@ -1,7 +1,7 @@
 /**
  * OMR Engine - Optical Mark Recognition using OpenCV.js
  * Handles image processing to detect marked bubbles on optical forms.
- * Features: Performance downscaling, Robust perspective correction, Adaptive thresholding.
+ * Features: Performance downscaling, Dual-pass detection, Extreme point recovery.
  */
 
 export class OMREngine {
@@ -24,25 +24,33 @@ export class OMREngine {
         let gray = null;
 
         try {
-            // 1. Downscale image for MUCH faster and more reliable contour detection
+            // 1. Performance: Downscale for detection
             let ratio = src.rows / 500;
             small = new cv.Mat();
-            let dsize = new cv.Size(Math.round(src.cols / ratio), 500);
-            cv.resize(src, small, dsize, 0, 0, cv.INTER_AREA);
+            cv.resize(src, small, new cv.Size(Math.round(src.cols / ratio), 500), 0, 0, cv.INTER_AREA);
 
             gray = new cv.Mat();
             cv.cvtColor(small, gray, cv.COLOR_RGBA2GRAY);
 
-            // 2. Find Paper Contour on the SMALL image
-            let smallContour = this._findPaperContour(gray);
+            // 2. Dual-Strategy Detection
+            // Pass A: Canny (Better for clear edges)
+            paperContour = this._findPaperContour(gray, "canny");
 
-            if (smallContour && smallContour.rows === 4) {
-                paperContour = new cv.Mat(4, 1, cv.CV_32SC2);
+            // Pass B: Fallback to Adaptive Threshold (Better for low-contrast masses)
+            if (!paperContour) {
+                console.log("OMR: Canny failed, trying Adaptive fallback...");
+                paperContour = this._findPaperContour(gray, "adaptive");
+            }
+
+            if (paperContour) {
+                // Upscale points to original resolution
+                let upscaled = new cv.Mat(4, 1, cv.CV_32SC2);
                 for (let i = 0; i < 4; i++) {
-                    paperContour.data32S[i * 2] = Math.round(smallContour.data32S[i * 2] * ratio);
-                    paperContour.data32S[i * 2 + 1] = Math.round(smallContour.data32S[i * 2 + 1] * ratio);
+                    upscaled.data32S[i * 2] = Math.round(paperContour.data32S[i * 2] * ratio);
+                    upscaled.data32S[i * 2 + 1] = Math.round(paperContour.data32S[i * 2 + 1] * ratio);
                 }
-                smallContour.delete();
+                paperContour.delete();
+                paperContour = upscaled;
             }
 
             if (!paperContour) return null;
@@ -68,59 +76,70 @@ export class OMREngine {
         }
     }
 
-    _findPaperContour(gray) {
+    _findPaperContour(gray, mode) {
         let processed = new cv.Mat();
         let contours = new cv.MatVector();
         let hierarchy = new cv.Mat();
 
         try {
-            cv.GaussianBlur(gray, processed, new cv.Size(5, 5), 0);
-            cv.Canny(processed, processed, 30, 100);
-            let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
-            cv.dilate(processed, processed, kernel);
-            kernel.delete();
+            if (mode === "canny") {
+                cv.GaussianBlur(gray, processed, new cv.Size(5, 5), 0);
+                cv.Canny(processed, processed, 30, 80); // Sensitive
+                let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(7, 7));
+                cv.dilate(processed, processed, kernel);
+                kernel.delete();
+            } else {
+                cv.adaptiveThreshold(gray, processed, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 5);
+                let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
+                cv.dilate(processed, processed, kernel);
+                cv.erode(processed, processed, kernel);
+                kernel.delete();
+            }
 
-            // SPEED FIX: Use RETR_EXTERNAL instead of RETR_LIST to avoid thousands of bubble contours
             cv.findContours(processed, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-            console.log(`_findPaperContour: ${contours.size()} contours found`);
 
-            let bestContour = null;
             let maxArea = 0;
+            let bestCnt = null;
 
             for (let i = 0; i < contours.size(); ++i) {
                 let cnt = contours.get(i);
                 let area = cv.contourArea(cnt);
-                if (area < 10000) continue;
-
-                let peri = cv.arcLength(cnt, true);
-                let approx = new cv.Mat();
-                cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
-
-                if (approx.rows >= 4 && approx.rows <= 6 && area > maxArea) {
-                    let hull = new cv.Mat();
-                    cv.convexHull(approx, hull, false, true);
-                    let hullPeri = cv.arcLength(hull, true);
-                    let finalApprox = new cv.Mat();
-
-                    for (let epsilon = 0.01; epsilon < 0.1; epsilon += 0.01) {
-                        cv.approxPolyDP(hull, finalApprox, epsilon * hullPeri, true);
-                        if (finalApprox.rows === 4) break;
-                    }
-
-                    if (finalApprox.rows === 4) {
-                        if (bestContour) bestContour.delete();
-                        bestContour = finalApprox.clone();
-                        maxArea = area;
-                        console.log(`Paper candidate! Area: ${Math.round(area)}`);
-                    }
-                    hull.delete(); finalApprox.delete(); approx.delete();
-                } else {
-                    approx.delete();
+                if (area > 8000 && area > maxArea) {
+                    maxArea = area;
+                    bestCnt = cnt;
                 }
             }
-            return bestContour;
+
+            if (!bestCnt) return null;
+
+            // Extreme Points Strategy: Find corners even if the contour is messy/noisy
+            // sum = x+y, diff = y-x
+            let hull = new cv.Mat();
+            cv.convexHull(bestCnt, hull, false, true);
+
+            let pts = [];
+            for (let i = 0; i < hull.rows; i++) {
+                pts.push({ x: hull.data32S[i * 2], y: hull.data32S[i * 2 + 1] });
+            }
+            hull.delete();
+
+            if (pts.length < 4) return null;
+
+            // Sort points to find the 4 corners
+            let tl = pts.reduce((prev, curr) => (prev.x + prev.y < curr.x + curr.y) ? prev : curr);
+            let br = pts.reduce((prev, curr) => (prev.x + prev.y > curr.x + curr.y) ? prev : curr);
+            let tr = pts.reduce((prev, curr) => (prev.y - prev.x < curr.y - curr.x) ? prev : curr);
+            let bl = pts.reduce((prev, curr) => (prev.y - prev.x > curr.y - curr.x) ? prev : curr);
+
+            let result = new cv.Mat(4, 1, cv.CV_32SC2);
+            result.data32S[0] = tl.x; result.data32S[1] = tl.y;
+            result.data32S[2] = tr.x; result.data32S[3] = tr.y;
+            result.data32S[4] = br.x; result.data32S[5] = br.y;
+            result.data32S[6] = bl.x; result.data32S[7] = bl.y;
+
+            return result;
         } catch (e) {
-            console.error("_findPaperContour Error:", e);
+            console.error("_findPaperContour error:", e);
             return null;
         } finally {
             processed.delete(); contours.delete(); hierarchy.delete();
@@ -132,6 +151,8 @@ export class OMREngine {
         for (let i = 0; i < 4; i++) {
             corners.push({ x: contour.data32S[i * 2], y: contour.data32S[i * 2 + 1] });
         }
+
+        // Final sanity sort for warp
         corners.sort((a, b) => a.y - b.y);
         let top = corners.slice(0, 2).sort((a, b) => a.x - b.x);
         let bottom = corners.slice(2, 4).sort((a, b) => a.x - b.x);
