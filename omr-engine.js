@@ -6,8 +6,8 @@
 
 export class OMREngine {
     constructor(config = {}) {
-        this.bubbleRadius = config.bubbleRadius || 10;
-        this.detectionThreshold = config.detectionThreshold || 0.15; // Even more sensitive for light marks
+        this.bubbleRadius = config.bubbleRadius || 11;
+        this.detectionThreshold = config.detectionThreshold || 0.12; // Max sensitivity
         this.targetWidth = 800;
         this.targetHeight = 1100;
     }
@@ -40,27 +40,19 @@ export class OMREngine {
                 paperContour = this._findPaperContour(gray, "adaptive");
             }
 
-            // Fallback: If no contour found but we have QR coordinates
-            if (!paperContour && qrResult && qrResult.location) {
-                console.log("OMR: Contour failed, attempting QR-assisted localization");
-                paperContour = this._estimateContourFromQR(qrResult.location, { width: canvas.width, height: canvas.height }, ratio);
-            }
-
             if (paperContour) {
-                // Upscale points back to high res (if not already high-res from QR estimation)
-                if (paperContour.rows === 4 && paperContour.type() === cv.CV_32SC2) {
-                    // Check if they need scaling (QR result is already high-res)
-                    const isHighRes = paperContour.data32S[0] > 600 || paperContour.data32S[1] > 600;
-                    if (!isHighRes) {
-                        let upscaled = new cv.Mat(4, 1, cv.CV_32SC2);
-                        for (let i = 0; i < 4; i++) {
-                            upscaled.data32S[i * 2] = Math.round(paperContour.data32S[i * 2] * ratio);
-                            upscaled.data32S[i * 2 + 1] = Math.round(paperContour.data32S[i * 2 + 1] * ratio);
-                        }
-                        paperContour.delete();
-                        paperContour = upscaled;
-                    }
+                // Scaling: paperContour is from 'small' Mat (~600px)
+                let upscaled = new cv.Mat(4, 1, cv.CV_32SC2);
+                for (let i = 0; i < 4; i++) {
+                    upscaled.data32S[i * 2] = Math.round(paperContour.data32S[i * 2] * ratio);
+                    upscaled.data32S[i * 2 + 1] = Math.round(paperContour.data32S[i * 2 + 1] * ratio);
                 }
+                paperContour.delete();
+                paperContour = upscaled;
+            } else if (qrResult && qrResult.location) {
+                // Fallback: QR estimation returns high-res points directly
+                console.log("OMR: Contour failed, using High-Res QR estimation");
+                paperContour = this._estimateContourFromQR(qrResult.location, { width: canvas.width, height: canvas.height }, ratio);
             }
 
             if (!paperContour) return null;
@@ -254,7 +246,7 @@ export class OMREngine {
 
     readMarks(processedOMR, grid) {
         const results = {};
-        const searchSize = 12; // Even wider search +/- 12px window
+        const searchSize = 15; // Max search window
 
         for (const [subject, questions] of Object.entries(grid)) {
             results[subject] = questions.map(q => {
