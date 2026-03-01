@@ -1,7 +1,7 @@
 /**
  * OMR Engine - Optical Mark Recognition using OpenCV.js
  * Handles image processing to detect marked bubbles on optical forms.
- * Features: Perspective correction, Adaptive thresholding, Contour detection.
+ * Features: Performance downscaling, Robust perspective correction, Adaptive thresholding.
  */
 
 export class OMREngine {
@@ -19,20 +19,35 @@ export class OMREngine {
         if (!window.cv || !cv.imread) return null;
 
         let src = cv.imread(canvas);
-        let gray = new cv.Mat();
         let paperContour = null;
 
         try {
-            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+            // 1. Downscale image for MUCH faster and more reliable contour detection
+            let ratio = src.rows / 500; // Work with 500px height for detection
+            let small = new cv.Mat();
+            let dsize = new cv.Size(Math.round(src.cols / ratio), 500);
+            cv.resize(src, small, dsize, 0, 0, cv.INTER_AREA);
 
-            // Try detection with two different methods for maximum robustness
-            paperContour = this._findPaperContour(gray, "canny");
-            if (!paperContour) {
-                paperContour = this._findPaperContour(gray, "adaptive");
+            let gray = new cv.Mat();
+            cv.cvtColor(small, gray, cv.COLOR_RGBA2GRAY);
+
+            // 2. Find Paper Contour on the SMALL image
+            let smallContour = this._findPaperContour(gray);
+
+            if (smallContour && smallContour.rows === 4) {
+                // Upscale the points back to original size
+                paperContour = new cv.Mat(4, 1, cv.CV_32SC2);
+                for (let i = 0; i < 4; i++) {
+                    paperContour.data32S[i * 2] = Math.round(smallContour.data32S[i * 2] * ratio);
+                    paperContour.data32S[i * 2 + 1] = Math.round(smallContour.data32S[i * 2 + 1] * ratio);
+                }
+                smallContour.delete();
             }
 
+            gray.delete(); small.delete();
+
             if (!paperContour) {
-                src.delete(); gray.delete();
+                src.delete();
                 return null;
             }
 
@@ -50,30 +65,25 @@ export class OMREngine {
             };
 
         } catch (e) {
-            console.error("OpenCV Processing Error:", e);
+            console.error("OMR Logic Error:", e);
             return null;
         } finally {
-            gray.delete();
             if (paperContour) paperContour.delete();
             src.delete();
         }
     }
 
-    _findPaperContour(gray, method) {
+    _findPaperContour(gray) {
         let processed = new cv.Mat();
         let contours = new cv.MatVector();
         let hierarchy = new cv.Mat();
 
-        if (method === "canny") {
-            cv.GaussianBlur(gray, processed, new cv.Size(5, 5), 0);
-            cv.Canny(processed, processed, 30, 100); // Lowered thresholds
-            let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
-            cv.dilate(processed, processed, kernel);
-            kernel.delete();
-        } else {
-            // Fallback: Use adaptive thresholding for high contrast areas
-            cv.adaptiveThreshold(gray, processed, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 5);
-        }
+        // Canny + Dilation is extremely robust
+        cv.GaussianBlur(gray, processed, new cv.Size(5, 5), 0);
+        cv.Canny(processed, processed, 50, 150);
+        let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+        cv.dilate(processed, processed, kernel);
+        kernel.delete();
 
         cv.findContours(processed, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
 
@@ -83,30 +93,16 @@ export class OMREngine {
         for (let i = 0; i < contours.size(); ++i) {
             let cnt = contours.get(i);
             let area = cv.contourArea(cnt);
-            if (area > 20000) { // Slightly lower threshold
+            if (area > 15000) { // On the 500px small image
                 let peri = cv.arcLength(cnt, true);
                 let approx = new cv.Mat();
                 cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
 
-                // Be more lenient: 4 to 6 corners is often a distorted rectangle
-                if (approx.rows >= 4 && approx.rows <= 6 && area > maxArea) {
-                    // Check if it's convex enough
-                    if (cv.isContourConvex(approx) || method === "adaptive") {
-                        if (bestContour) bestContour.delete();
-                        // If it has more than 4 points, take the convex hull to get 4 points
-                        if (approx.rows > 4) {
-                            let hull = new cv.Mat();
-                            cv.convexHull(approx, hull, false, true);
-                            bestContour = this._approximateToFourPoints(hull, peri);
-                            hull.delete();
-                            approx.delete();
-                        } else {
-                            bestContour = approx;
-                        }
-                        maxArea = area;
-                    } else {
-                        approx.delete();
-                    }
+                // Check if it's rectangular (4 corners)
+                if (approx.rows === 4 && area > maxArea) {
+                    if (bestContour) bestContour.delete();
+                    bestContour = approx;
+                    maxArea = area;
                 } else {
                     approx.delete();
                 }
@@ -117,27 +113,10 @@ export class OMREngine {
         return bestContour;
     }
 
-    _approximateToFourPoints(cnt, peri) {
-        let approx = new cv.Mat();
-        let epsilon = 0.02 * peri;
-        // Iteratively adjust epsilon to find 4 points
-        for (let j = 0; j < 10; j++) {
-            cv.approxPolyDP(cnt, approx, epsilon, true);
-            if (approx.rows === 4) break;
-            if (approx.rows > 4) epsilon += 0.01 * peri;
-            else epsilon -= 0.01 * peri;
-        }
-        return approx;
-    }
-
     _warpPerspective(src, contour) {
         let corners = [];
-        // Ensure we handle data properly regardless of mat type
         for (let i = 0; i < 4; i++) {
-            corners.push({
-                x: contour.data32S[i * 2],
-                y: contour.data32S[i * 2 + 1]
-            });
+            corners.push({ x: contour.data32S[i * 2], y: contour.data32S[i * 2 + 1] });
         }
 
         // Sort corners: TL, TR, BR, BL
@@ -183,9 +162,7 @@ export class OMREngine {
                             markedOptions.push(opt.label);
                         }
                         roi.delete();
-                    } catch (e) {
-                        // ROI out of bounds, skip
-                    }
+                    } catch (e) { }
                 });
 
                 if (markedOptions.length > 1) return "*";

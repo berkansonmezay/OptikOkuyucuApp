@@ -264,6 +264,7 @@
                     score: "0",
                     booklet: selectedBooklet,
                     rawAnswers: JSON.stringify(realAnswers),
+                    timestamp: new Date().toISOString()
                 };
 
                 await addStudentResult(selectedExamId, resultData);
