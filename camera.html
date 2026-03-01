@@ -156,15 +156,56 @@
         <!-- Scanner Overlay -->
         <div class="scanner-overlay">
             <div class="scanner-frame">
-                <!-- Alignment Guide Grid -->
-                <div class="absolute inset-0 border border-white/10 flex flex-col pointer-events-none">
-                    <div class="h-1/4 border-b border-white/10"></div>
-                    <div class="h-1/4 border-b border-white/10"></div>
-                    <div class="h-1/4 border-b border-white/10"></div>
+                <!-- QR Code Guide (Top Left) -->
+                <div
+                    class="absolute top-[15%] left-[10%] w-[30%] h-[15%] border-2 border-dashed border-white/30 rounded-lg flex items-center justify-center">
+                    <span class="text-[8px] font-bold text-white/40 uppercase">QR KOD</span>
                 </div>
+
+                <!-- Booklet Guide (Top Center) -->
+                <div
+                    class="absolute top-[35%] left-[35%] w-[30%] h-[8%] border-2 border-dashed border-primary/40 rounded-lg flex items-center justify-center">
+                    <span class="text-[8px] font-bold text-primary/60 uppercase">KİTAPÇIK</span>
+                </div>
+
+                <!-- Subjects Columns Guide (Bottom) -->
+                <div class="absolute top-[45%] left-[5%] right-[5%] bottom-[15%] flex gap-2 pointer-events-none">
+                    <div class="flex-1 border-x border-dashed border-white/20 relative">
+                        <span
+                            class="absolute top-2 left-1/2 -translate-x-1/2 text-[7px] text-white/20 vertical-text">TÜRKÇE</span>
+                    </div>
+                    <div class="flex-1 border-x border-dashed border-white/20 relative">
+                        <span
+                            class="absolute top-2 left-1/2 -translate-x-1/2 text-[7px] text-white/20 vertical-text">İNKILAP</span>
+                    </div>
+                    <div class="flex-1 border-x border-dashed border-white/20 relative">
+                        <span
+                            class="absolute top-2 left-1/2 -translate-x-1/2 text-[7px] text-white/20 vertical-text">DİN</span>
+                    </div>
+                    <div class="flex-1 border-x border-dashed border-white/20 relative">
+                        <span
+                            class="absolute top-2 left-1/2 -translate-x-1/2 text-[7px] text-white/20 vertical-text">İNGİLİZCE</span>
+                    </div>
+                    <div class="flex-1 border-x border-dashed border-white/20 relative">
+                        <span
+                            class="absolute top-2 left-1/2 -translate-x-1/2 text-[7px] text-white/20 vertical-text">MAT</span>
+                    </div>
+                    <div class="flex-1 border-x border-dashed border-white/20 relative">
+                        <span
+                            class="absolute top-2 left-1/2 -translate-x-1/2 text-[7px] text-white/20 vertical-text">FEN</span>
+                    </div>
+                </div>
+
+                <style>
+                    .vertical-text {
+                        writing-mode: vertical-rl;
+                        text-orientation: mixed;
+                    }
+                </style>
+
                 <div class="scan-line"></div>
                 <div class="absolute -bottom-12 left-0 right-0 text-center">
-                    <p class="text-xs font-medium text-white/80">Optik formu çerçeve içine sığdırın</p>
+                    <p class="text-xs font-medium text-white/80">Formu kılavuzlara göre hizalayın</p>
                     <p class="text-[10px] text-white/40 mt-1">Gerçek zamanlı OMR tarama aktif</p>
                 </div>
             </div>
