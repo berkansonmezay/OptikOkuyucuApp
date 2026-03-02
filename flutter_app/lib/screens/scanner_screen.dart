@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'dart:ui';
+import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
 import '../models/exam.dart';
+import '../models/student_result.dart';
 import '../core/app_colors.dart';
 import 'scan_success_screen.dart';
 
@@ -92,21 +96,71 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
       final image = await _controller!.takePicture();
       if (!mounted) return;
 
-      final result = _simulateOMRProcess(widget.exam);
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ScanSuccessScreen(
-            exam: widget.exam,
-            imagePath: image.path,
-            result: result,
-          ),
+      // Show processing dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
+
+      // Read image as base64
+      final bytes = await File(image.path).readAsBytes();
+      final base64Image = base64Encode(bytes);
+
+      // Send to Python Backend
+      final response = await http.post(
+        Uri.parse('http://10.0.2.2:8000/process-omr'), // 10.0.2.2 is localhost for Android Emulator
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'image': 'data:image/jpeg;base64,$base64Image',
+          'examData': widget.exam.toJson(),
+        }),
+      );
+
+      Navigator.pop(context); // Close loading dialog
+
+      if (response.statusCode == 200) {
+        final resultJson = jsonDecode(response.body);
+        if (resultJson['success'] == true) {
+          final result = StudentResult(
+            id: 'res_${DateTime.now().millisecondsSinceEpoch}',
+            name: 'ÖĞRENCİ', // This would ideally come from QR in a full implementation
+            studentNo: '12345',
+            score: 0.0,
+            booklet: resultJson['booklet'],
+            className: '-',
+            tcNo: '',
+            rawAnswers: jsonEncode(resultJson['answers']),
+          );
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ScanSuccessScreen(
+                exam: widget.exam,
+                imagePath: image.path,
+                result: result,
+              ),
+            ),
+          );
+        } else {
+          _showError(resultJson['error'] ?? 'Okuma hatası');
+        }
+      } else {
+        _showError('Sunucu bağlantı hatası (${response.statusCode})');
+      }
     } catch (e) {
-      debugPrint('Error capturing image: $e');
+      if (mounted) Navigator.pop(context);
+      _showError('İşlem hatası: $e');
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   StudentResult _simulateOMRProcess(Exam exam) {

@@ -253,54 +253,34 @@
                 toast.classList.add('opacity-100', 'translate-y-0');
                 toast.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">sync</span> FORM ANALİZ EDİLİYOR...';
 
-                // 0. Check if OpenCV is ready
-                if (!window.cv || !cv.Mat) {
-                    console.log("processForm: OpenCV not ready");
-                    throw new Error("Kütüphane henüz yüklenmedi");
+                // 1. Send to Python Backend for High-Accuracy OMR
+                console.log("processForm: Sending to Python Backend...");
+                const base64Image = canvasElement.toDataURL('image/jpeg', 0.8);
+
+                const response = await fetch('http://localhost:8000/process-omr', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image: base64Image,
+                        examData: selectedExamData
+                    })
+                });
+
+                if (!response.ok) {
+                    const errDetail = await response.json();
+                    throw new Error(errDetail.detail || "Backend hatası");
                 }
 
-                // 1. Process with OpenCV - Use QR result as fallback for paper detection
-                console.log("processForm: Calling omr.processFrame...");
-                const cvResult = omr.processFrame(canvasElement, qrResult);
-                if (!cvResult) {
-                    console.log("processForm: Paper not detected even with QR fallback");
-                    throw new Error("KAĞIT ALGILANAMADI. Lütfen formu biraz daha yakından ve düz tutun.");
+                const pythonResult = await response.json();
+                if (!pythonResult.success) {
+                    throw new Error(pythonResult.error || "Okuma başarısız");
                 }
 
-                // 2. Generate Fixed Grid
-                console.log("processForm: Generating fixed grid...");
-                const fixedGrid = _generateFixedGrid(selectedExamData);
+                console.log("processForm: Python Result:", pythonResult);
 
-                // DEBUG VIEW: Draw the warped frame and grid
-                if (isDebug) {
-                    const debugCanvas = document.getElementById('debug-canvas');
-                    debugCanvas.width = omr.targetWidth;
-                    debugCanvas.height = omr.targetHeight;
-                    cv.imshow('debug-canvas', cvResult.warpedImage);
-                    omr.drawDebugGrid(debugCanvas, fixedGrid);
-                }
-
-                // 3. Read Marks
-                console.log("processForm: Reading marks...");
-                const realAnswers = omr.readMarks(cvResult.processedOMR, fixedGrid, cvResult.qrInfo);
-                console.log("processForm: Raw answers:", realAnswers);
-
-                // Booklet & Score
-                let selectedBooklet = 'OKUNAMADI';
-                if (realAnswers['KITAPCIK']) {
-                    const bMark = realAnswers['KITAPCIK'][0];
-                    if (bMark !== " " && bMark !== "*") {
-                        selectedBooklet = bMark;
-                    } else if (bMark === "*") {
-                        selectedBooklet = "HATALI (ÇİFT)";
-                    } else {
-                        selectedBooklet = "İŞARETLENMEDİ / OKUNAMADI";
-                    }
-                }
-
-                // Cleanup
-                cvResult.warpedImage.delete();
-                cvResult.processedOMR.delete();
+                // 2. Map results
+                const realAnswers = pythonResult.answers;
+                const selectedBooklet = pythonResult.booklet;
 
                 // Save results
                 const resultData = {
