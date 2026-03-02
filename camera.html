@@ -441,30 +441,44 @@
             grid['KITAPCIK'] = [{
                 options: [
                     { label: 'A', x: 442, y: 254 },
-                    { label: 'B', x: 468, y: 254 },
-                    { label: 'C', x: 494, y: 254 },
-                    { label: 'D', x: 520, y: 254 }
+                    { label: 'B', x: 464, y: 254 },
+                    { label: 'C', x: 486, y: 254 },
+                    { label: 'D', x: 508, y: 254 }
                 ]
             }];
 
             if (!exam || !exam.subjects) return grid;
 
-            // 2. Subjects Grid - Fixed calibrated coordinates for LGS Form
-            const startY = 382;
-            const rowHeight = 33.0;
-            const optStep = 23.5;
+            // 2. Subjects Grid - Recalibrated from debug image
+            const startY = 400;
+            const rowHeight = 31.5;
+            const optStep = 22.0;
 
             const columns = [
-                { name: 'Türkçe', x: 48 },
-                { name: 'İnkılap', x: 168 },
-                { name: 'Din', x: 286 },
-                { name: 'İngilizce', x: 404 },
-                { name: 'Matematik', x: 560 },
-                { name: 'Fen', x: 678 }
+                { name: 'Türkçe', x: 52 },
+                { name: 'İnkılap', x: 172 },
+                { name: 'Din', x: 290 },
+                { name: 'İngilizce', x: 410 },
+                { name: 'Matematik', x: 558 },
+                { name: 'Fen', x: 676 }
             ];
 
+            // Flexible name aliases for matching
+            const aliases = {
+                'Türkçe': ['türkçe', 'turkce'],
+                'İnkılap': ['inkılap', 'inkilap', 'tarih', 't.c.'],
+                'Din': ['din', 'din kültürü', 'din kul'],
+                'İngilizce': ['ingilizce', 'İngilizce', 'yabancı', 'yabancı dil', 'ing'],
+                'Matematik': ['matematik', 'mat'],
+                'Fen': ['fen', 'fen bilimleri', 'fen bil']
+            };
+
             columns.forEach((col) => {
-                const subject = exam.subjects.find(s => s.name.toLowerCase().includes(col.name.toLowerCase()) || col.name.toLowerCase().includes(s.name.toLowerCase()));
+                const colAliases = aliases[col.name] || [col.name.toLowerCase()];
+                const subject = exam.subjects.find(s => {
+                    const sname = s.name.toLowerCase();
+                    return colAliases.some(a => sname.includes(a.toLowerCase()) || a.toLowerCase().includes(sname));
+                });
                 if (subject) {
                     const questions = [];
                     const qCount = subject.questionCount || 20;

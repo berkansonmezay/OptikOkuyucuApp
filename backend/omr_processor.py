@@ -95,34 +95,38 @@ class PythonOMREngine:
         grid['KITAPCIK'] = [{
             'options': [
                 {'label': 'A', 'x': 442, 'y': 254},
-                {'label': 'B', 'x': 468, 'y': 254},
-                {'label': 'C', 'x': 494, 'y': 254},
-                {'label': 'D', 'x': 520, 'y': 254}
+                {'label': 'B', 'x': 464, 'y': 254},
+                {'label': 'C', 'x': 486, 'y': 254},
+                {'label': 'D', 'x': 508, 'y': 254}
             ]
         }]
 
         # Subject column definitions
-        opt_step = 23.5   # Distance between bubble centers A->B->C->D
-        start_y = 382     # Y-coordinate of question 1
-        row_height = 33.0 # Vertical spacing between questions
+        opt_step = 22.0   # Measured distance between bubble centers A->B->C->D
+        start_y = 400     # Y-coordinate of question 1 (below pink sub-headers)
+        row_height = 31.5 # Vertical spacing between questions
 
-        # Column X positions (A bubble), calibrated from debug image
+        # Column X positions (A bubble), recalibrated from debug image
+        # Each entry has 'aliases' for flexible subject name matching
         column_defs = [
-            {'name': 'Türkçe',    'x': 48},
-            {'name': 'İnkılap',   'x': 168},
-            {'name': 'Din',       'x': 286},
-            {'name': 'İngilizce', 'x': 404},
-            {'name': 'Matematik', 'x': 560},
-            {'name': 'Fen',       'x': 678}
+            {'name': 'Türkçe',    'x': 52,  'aliases': ['türkçe', 'turkce']},
+            {'name': 'İnkılap',   'x': 172, 'aliases': ['inkılap', 'inkilap', 'tarih', 't.c.']},
+            {'name': 'Din',       'x': 290, 'aliases': ['din', 'din kültürü', 'din kul']},
+            {'name': 'İngilizce', 'x': 410, 'aliases': ['ingilizce', 'İngilizce', 'yabancı', 'yabancı dil', 'ing']},
+            {'name': 'Matematik', 'x': 558, 'aliases': ['matematik', 'mat']},
+            {'name': 'Fen',       'x': 676, 'aliases': ['fen', 'fen bilimleri', 'fen bil']}
         ]
 
         for col_def in column_defs:
             matching = None
             for s in subjects:
                 sname = s.get('name', '').lower()
-                cname = col_def['name'].lower()
-                if cname in sname or sname in cname:
-                    matching = s
+                # Flexible matching: check all aliases
+                for alias in col_def['aliases']:
+                    if alias.lower() in sname or sname in alias.lower():
+                        matching = s
+                        break
+                if matching:
                     break
 
             if matching:
@@ -141,6 +145,8 @@ class PythonOMREngine:
                         ]
                     })
                 grid[matching['name']] = questions
+            else:
+                print(f"OMR: WARNING - No matching subject for '{col_def['name']}'")
 
         print(f"OMR: Fixed grid generated with {len(grid)} subjects")
         return grid
