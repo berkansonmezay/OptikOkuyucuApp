@@ -102,9 +102,9 @@ class PythonOMREngine:
         }]
 
         # Subject column definitions
-        opt_step = 22.0   # Measured distance between bubble centers A->B->C->D
+        opt_step = 21.0   # Measured distance between bubble centers A->B->C->D
         start_y = 400     # Y-coordinate of question 1 (below pink sub-headers)
-        row_height = 31.5 # Vertical spacing between questions
+        row_height = 30.5 # Vertical spacing between questions
 
         # Column X positions (A bubble), recalibrated from debug image
         # Each entry has 'aliases' for flexible subject name matching
