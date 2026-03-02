@@ -7,7 +7,7 @@
 export class OMREngine {
     constructor(config = {}) {
         this.bubbleRadius = config.bubbleRadius || 10;
-        this.detectionThreshold = config.detectionThreshold || 0.35; // Increased from 0.28 for better precision
+        this.detectionThreshold = config.detectionThreshold || 0.30; // Relaxed from 0.35 for better dark-image/glare tolerance
         this.targetWidth = 800;
         this.targetHeight = 1100;
         this.markers = []; // Store detected markers
@@ -177,15 +177,26 @@ export class OMREngine {
     drawDebugGrid(canvas, grid) {
         const ctx = canvas.getContext('2d');
 
-        // Draw Grid Bubbles
-        ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
+        // Draw Grid Bubbles and Search Areas
         ctx.lineWidth = 1;
         for (const subject in grid) {
             grid[subject].forEach(q => {
                 q.options.forEach(opt => {
+                    // Actual Bubble Location
+                    ctx.strokeStyle = 'rgba(0, 255, 0, 0.4)';
                     ctx.beginPath();
                     ctx.arc(opt.x, opt.y, this.bubbleRadius, 0, Math.PI * 2);
                     ctx.stroke();
+
+                    // Search Window Box (Diagnostic)
+                    const ss = 6; // Current searchSize
+                    ctx.strokeStyle = 'rgba(0, 255, 0, 0.15)';
+                    ctx.strokeRect(
+                        opt.x - this.bubbleRadius - ss,
+                        opt.y - this.bubbleRadius - ss,
+                        (this.bubbleRadius + ss) * 2,
+                        (this.bubbleRadius + ss) * 2
+                    );
                 });
             });
         }
@@ -302,7 +313,7 @@ export class OMREngine {
 
     readMarks(processedOMR, grid) {
         const results = {};
-        const searchSize = 4; // Reduced from 7 to prevent adjacent bubble overlap (step is 24-28px)
+        const searchSize = 6; // Increased from 4 for better alignment tolerance
 
         // Align grid if markers are available
         const alignedGrid = this._alignGrid(grid);
