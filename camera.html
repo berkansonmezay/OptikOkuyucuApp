@@ -298,7 +298,7 @@
                 console.log("processForm: Sending to Python Backend...");
                 const base64Image = canvasElement.toDataURL('image/jpeg', 0.8);
 
-                const apiUrl = (localStorage.getItem('omr_api_url') || 'http://localhost:8000').replace(/\/$/, "");
+                const apiUrl = (localStorage.getItem('omr_api_url') || 'http://192.168.1.129:8000').replace(/\/$/, "");
                 const response = await fetch(`${apiUrl}/process-omr`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
