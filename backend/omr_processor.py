@@ -94,10 +94,10 @@ class PythonOMREngine:
         # Booklet bubbles (KITAPCIK TÜRÜ area)
         grid['KITAPCIK'] = [{
             'options': [
-                {'label': 'A', 'x': 442, 'y': 254},
-                {'label': 'B', 'x': 464, 'y': 254},
-                {'label': 'C', 'x': 486, 'y': 254},
-                {'label': 'D', 'x': 508, 'y': 254}
+                {'label': 'A', 'x': 442, 'y': 262},
+                {'label': 'B', 'x': 461, 'y': 262},
+                {'label': 'C', 'x': 480, 'y': 262},
+                {'label': 'D', 'x': 499, 'y': 262}
             ]
         }]
 
