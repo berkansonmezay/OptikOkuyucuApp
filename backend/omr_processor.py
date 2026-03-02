@@ -113,8 +113,8 @@ class PythonOMREngine:
             {'name': 'İnkılap',   'x': 172, 'aliases': ['inkılap', 'inkilap', 'tarih', 't.c.']},
             {'name': 'Din',       'x': 290, 'aliases': ['din', 'din kültürü', 'din kul']},
             {'name': 'İngilizce', 'x': 410, 'aliases': ['ingilizce', 'İngilizce', 'yabancı', 'yabancı dil', 'ing']},
-            {'name': 'Matematik', 'x': 548, 'aliases': ['matematik', 'mat']},
-            {'name': 'Fen',       'x': 666, 'aliases': ['fen', 'fen bilimleri', 'fen bil']}
+            {'name': 'Matematik', 'x': 498, 'aliases': ['matematik', 'mat']},
+            {'name': 'Fen',       'x': 616, 'aliases': ['fen', 'fen bilimleri', 'fen bil']}
         ]
 
         for col_def in column_defs:
