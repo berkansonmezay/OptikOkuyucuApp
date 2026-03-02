@@ -5,13 +5,11 @@ import json
 
 class PythonOMREngine:
     """
-    High-accuracy OMR engine using corner-square (registration mark) alignment.
-    
-    Strategy:
-    1. Detect the 4 solid black corner squares on the optical form
-    2. Use their centers for a precise 4-point perspective warp
-    3. This guarantees pixel-perfect alignment of the bubble grid
-    4. Read bubbles using relative positions from corner anchors
+    OMR engine with AUTO-CALIBRATION.
+    Instead of fixed pixel coordinates, this engine:
+    1. Detects corner squares for perspective warp
+    2. Detects the pink header bars to find grid regions
+    3. Scans for actual bubble positions within each region
     """
     
     def __init__(self):
@@ -20,7 +18,6 @@ class PythonOMREngine:
         self.detection_threshold = 0.35
 
     def process_image_base64(self, base64_str, exam_data):
-        """Main entry: base64 image -> OMR results"""
         try:
             encoded_data = base64_str.split(',')[1] if ',' in base64_str else base64_str
             nparr = np.frombuffer(base64.b64decode(encoded_data), np.uint8)
@@ -29,43 +26,39 @@ class PythonOMREngine:
             if img is None:
                 return {"error": "Görüntü çözülemedi", "success": False}
 
-            # Step 1: Find paper contour first (rough crop)
+            # Step 1: Find and warp paper
             warped = self._find_and_warp_paper(img)
             if warped is None:
-                return {"error": "Kağıt algılanamadı. Lütfen formu düz ve tam çerçevede tutun.", "success": False}
+                return {"error": "Kağıt algılanamadı.", "success": False}
 
-            # Step 2: Detect corner squares on the warped image for fine alignment
+            # Step 2: Fine-align using corner squares
             corners = self._detect_corner_squares(warped)
-            
-            if corners is not None and len(corners) == 4:
-                # Re-warp using corner squares for pixel-perfect alignment
+            if corners and len(corners) == 4:
                 warped = self._warp_by_corners(warped, corners)
-                print(f"OMR: Corner squares found! Fine alignment applied.")
+                print("OMR: ✓ Corner-aligned")
             else:
-                print(f"OMR: Corner squares not found ({len(corners) if corners else 0}/4). Using rough alignment.")
+                print("OMR: ✗ Corner squares not found, using rough warp")
 
-            # Step 3: Preprocess for bubble reading
-            gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
+            # Step 3: Auto-detect grid positions
+            grid = self._auto_detect_grid(warped, exam_data)
             
-            # CLAHE for glare resistance
+            # Step 4: Prepare for reading
+            gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
             clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
             enhanced = clahe.apply(gray)
-            
-            # Otsu threshold for clean binary
             _, thresh = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
-            # Step 4: Generate grid & read marks
-            grid = self._generate_grid(exam_data)
+            # Step 5: Read marks
             results = self._read_marks(thresh, gray, grid)
 
-            # Save debug image
+            # Save debug
             try:
                 debug = warped.copy()
                 self._draw_debug(debug, grid, results)
                 cv2.imwrite("debug_output.jpg", debug)
-                print("OMR: Debug image saved as debug_output.jpg")
+                print("OMR: Debug saved")
             except Exception as e:
-                print(f"OMR: Debug save failed: {e}")
+                print(f"Debug save error: {e}")
 
             return {
                 "booklet": results.get("KITAPCIK", "OKUNAMADI"),
@@ -73,225 +66,418 @@ class PythonOMREngine:
                 "success": True
             }
         except Exception as e:
-            print(f"OMR Error: {e}")
             import traceback
             traceback.print_exc()
             return {"error": str(e), "success": False}
 
-    def _find_and_warp_paper(self, img):
-        """Detect the paper rectangle and warp to standard size."""
-        ratio = max(img.shape[0], img.shape[1]) / 800.0
-        small = cv2.resize(img, (int(img.shape[1] / ratio), int(img.shape[0] / ratio)))
+    def _auto_detect_grid(self, warped, exam_data):
+        """
+        Auto-detect bubble grid by finding:
+        1. Pink/magenta header bars → gives Y regions
+        2. Vertical dark columns → gives X positions  
+        3. Circular blobs in each column → gives bubble rows
+        """
+        h, w = warped.shape[:2]
+        hsv = cv2.cvtColor(warped, cv2.COLOR_BGR2HSV)
+        gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
         
-        gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
-        gray = cv2.GaussianBlur(gray, (5, 5), 0)
+        # --- FIND PINK HEADERS ---
+        # Pink/magenta in HSV: H=140-170, S>30, V>100
+        lower_pink = np.array([140, 30, 100])
+        upper_pink = np.array([175, 255, 255])
+        pink_mask = cv2.inRange(hsv, lower_pink, upper_pink)
         
-        # Try multiple edge detection approaches
-        for method in ['canny', 'adaptive']:
-            if method == 'canny':
-                edged = cv2.Canny(gray, 50, 150)
-            else:
-                thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                               cv2.THRESH_BINARY_INV, 11, 2)
-                edged = thresh
-            
-            # Dilate to close gaps
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-            edged = cv2.dilate(edged, kernel, iterations=1)
-            
-            cnts, _ = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:5]
-            
-            for c in cnts:
-                peri = cv2.arcLength(c, True)
-                approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-                
-                # Must be a quadrilateral with significant area
-                if len(approx) == 4 and cv2.contourArea(approx) > (small.shape[0] * small.shape[1] * 0.2):
-                    pts = approx.reshape(4, 2).astype(np.float32) * ratio
-                    return self._four_point_warp(img, pts)
+        # Also try red range (pink can appear as red)
+        lower_red1 = np.array([0, 40, 100])
+        upper_red1 = np.array([10, 255, 255])
+        lower_red2 = np.array([160, 40, 100])
+        upper_red2 = np.array([180, 255, 255])
+        red_mask = cv2.inRange(hsv, lower_red1, upper_red1) | cv2.inRange(hsv, lower_red2, upper_red2)
         
-        # Fallback: use entire image
-        h, w = img.shape[:2]
-        pts = np.array([[0, 0], [w, 0], [w, h], [0, h]], dtype=np.float32)
-        return self._four_point_warp(img, pts)
+        color_mask = pink_mask | red_mask
+        
+        # Find horizontal bands of pink
+        row_sums = np.sum(color_mask > 0, axis=1)
+        threshold_width = w * 0.15  # A header bar covers at least 15% of width
+        
+        pink_rows = np.where(row_sums > threshold_width)[0]
+        
+        # Group continuous pink rows into bands
+        pink_bands = []
+        if len(pink_rows) > 0:
+            band_start = pink_rows[0]
+            for i in range(1, len(pink_rows)):
+                if pink_rows[i] - pink_rows[i-1] > 5:
+                    band_center = (band_start + pink_rows[i-1]) // 2
+                    band_h = pink_rows[i-1] - band_start
+                    if band_h > 5:  # Minimum height
+                        pink_bands.append({'y': band_center, 'h': band_h, 'y_start': band_start, 'y_end': pink_rows[i-1]})
+                    band_start = pink_rows[i]
+            # Last band
+            band_center = (band_start + pink_rows[-1]) // 2
+            band_h = pink_rows[-1] - band_start
+            if band_h > 5:
+                pink_bands.append({'y': band_center, 'h': band_h, 'y_start': band_start, 'y_end': pink_rows[-1]})
+        
+        print(f"OMR: Found {len(pink_bands)} pink headers at Y={[b['y'] for b in pink_bands]}")
+        
+        # --- FIND ANSWER GRID START ---
+        # The answer grid starts after the column sub-headers (small pink bars under main header)
+        # Typically: Main header → sub-headers → first row of bubbles
+        
+        # Find the Y where actual bubbles start using circle detection
+        answer_start_y, row_height, num_rows = self._detect_bubble_rows(gray, pink_bands)
+        
+        print(f"OMR: Bubble grid: start_y={answer_start_y}, row_height={row_height:.1f}, rows={num_rows}")
+        
+        # --- FIND COLUMN X POSITIONS ---
+        col_positions = self._detect_column_positions(gray, answer_start_y, row_height, num_rows)
+        
+        print(f"OMR: Column X positions: {col_positions}")
+        
+        # --- BUILD GRID ---
+        grid = self._build_grid_from_detection(answer_start_y, row_height, col_positions, exam_data)
+        
+        # --- BOOKLET (above the main grid) ---
+        # Booklet area: look for bubbles between y=200-300
+        booklet_bubbles = self._find_bubbles_in_region(gray, 180, 310, 400, 600)
+        if booklet_bubbles:
+            grid['KITAPCIK'] = [{'options': booklet_bubbles}]
+            print(f"OMR: Booklet bubbles found at: {[(b['x'], b['y']) for b in booklet_bubbles]}")
+        else:
+            # Fallback fixed positions
+            grid['KITAPCIK'] = [{
+                'options': [
+                    {'label': 'A', 'x': 455, 'y': 258},
+                    {'label': 'B', 'x': 483, 'y': 258},
+                    {'label': 'C', 'x': 511, 'y': 258},
+                    {'label': 'D', 'x': 539, 'y': 258}
+                ]
+            }]
+            print("OMR: Using fallback booklet positions")
+        
+        return grid
 
-    def _detect_corner_squares(self, img):
-        """
-        Detect the 4 solid black registration squares at the corners of the form.
-        These are typically 10-20px solid black squares placed at specific positions.
-        """
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    def _detect_bubble_rows(self, gray, pink_bands):
+        """Detect where bubble rows start and their spacing."""
+        h, w = gray.shape
         
-        # Strong threshold to find solid black regions
-        _, binary = cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY_INV)
+        # Look for the region below the last significant pink band
+        # The answer area is in the lower 60% of the form
+        search_start = int(h * 0.3)
         
-        # Clean up noise
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-        binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations=1)
-        binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel, iterations=1)
+        if len(pink_bands) >= 2:
+            # Use the last pink band as reference
+            last_band = max(pink_bands, key=lambda b: b['y'] if b['y'] > h * 0.25 else 0)
+            search_start = last_band['y_end'] + 20
         
-        cnts, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # Binary threshold for bubble detection
+        _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
         
-        # Filter for square-like shapes
-        h, w = img.shape[:2]
-        candidates = []
+        # Project horizontally: count dark pixels per row
+        row_profile = np.sum(binary[search_start:, :] > 0, axis=1).astype(float)
         
-        for c in cnts:
-            area = cv2.contourArea(c)
-            if area < 100 or area > 5000:  # Corner squares are small but not tiny
-                continue
-            
-            x, y, bw, bh = cv2.boundingRect(c)
-            aspect = float(bw) / bh if bh > 0 else 0
-            extent = area / (bw * bh) if (bw * bh) > 0 else 0
-            
-            # Must be roughly square (aspect 0.5-2.0) and filled (extent > 0.6)
-            if 0.5 < aspect < 2.0 and extent > 0.6:
-                cx = x + bw // 2
-                cy = y + bh // 2
-                candidates.append({'x': cx, 'y': cy, 'area': area, 'w': bw, 'h': bh})
+        # Smooth the profile
+        kernel_size = 5
+        kernel = np.ones(kernel_size) / kernel_size
+        smoothed = np.convolve(row_profile, kernel, mode='same')
         
-        if len(candidates) < 4:
-            print(f"OMR: Only {len(candidates)} square candidates found.")
+        # Find peaks (rows with many dark pixels = bubble rows)
+        threshold = np.mean(smoothed) * 0.7
+        peak_rows = []
+        in_peak = False
+        peak_start = 0
+        
+        for i, val in enumerate(smoothed):
+            if val > threshold and not in_peak:
+                in_peak = True
+                peak_start = i
+            elif val <= threshold and in_peak:
+                in_peak = False
+                peak_center = search_start + (peak_start + i) // 2
+                if peak_center < h - 20:
+                    peak_rows.append(peak_center)
+        
+        if len(peak_rows) < 3:
+            # Fallback
+            return search_start + 30, 31.0, 20
+        
+        # Calculate row spacing from consecutive peaks
+        spacings = [peak_rows[i+1] - peak_rows[i] for i in range(len(peak_rows)-1)]
+        # Filter out outliers (gaps between sections)
+        median_spacing = np.median(spacings)
+        valid_spacings = [s for s in spacings if abs(s - median_spacing) < median_spacing * 0.3]
+        
+        if valid_spacings:
+            avg_spacing = np.mean(valid_spacings)
+        else:
+            avg_spacing = median_spacing
+        
+        return peak_rows[0], avg_spacing, min(len(peak_rows), 20)
+
+    def _detect_column_positions(self, gray, start_y, row_height, num_rows):
+        """Detect X positions of answer columns by analyzing vertical projection."""
+        h, w = gray.shape
+        end_y = min(int(start_y + row_height * num_rows), h)
+        
+        # Binary threshold
+        _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        
+        # Vertical projection within the answer area
+        col_profile = np.sum(binary[int(start_y):end_y, :] > 0, axis=0).astype(float)
+        
+        # Smooth
+        kernel = np.ones(5) / 5
+        smoothed = np.convolve(col_profile, kernel, mode='same')
+        
+        # Find clusters of high density (column positions)
+        threshold = np.mean(smoothed) * 0.5
+        
+        peaks = []
+        in_peak = False
+        peak_start = 0
+        peak_sum = 0
+        
+        for i, val in enumerate(smoothed):
+            if val > threshold and not in_peak:
+                in_peak = True
+                peak_start = i
+                peak_sum = val
+            elif val > threshold and in_peak:
+                peak_sum += val
+            elif val <= threshold and in_peak:
+                in_peak = False
+                peak_center = (peak_start + i) // 2
+                peak_width = i - peak_start
+                if peak_width > 15 and peak_width < 150:  # Reasonable column width
+                    peaks.append({'x': peak_center, 'width': peak_width, 'strength': peak_sum})
+        
+        # Group nearby peaks into column groups (4 bubbles per question)
+        if len(peaks) < 4:
+            # Fallback
+            return [
+                {'x': 90, 'name': 'col1'},
+                {'x': 210, 'name': 'col2'},
+                {'x': 330, 'name': 'col3'},
+                {'x': 450, 'name': 'col4'},
+                {'x': 605, 'name': 'col5'},
+                {'x': 725, 'name': 'col6'}
+            ]
+        
+        # Merge peaks that are close together into column groups
+        columns = []
+        current_group = [peaks[0]]
+        
+        for i in range(1, len(peaks)):
+            if peaks[i]['x'] - current_group[-1]['x'] < 40:
+                current_group.append(peaks[i])
+            else:
+                # Save group center
+                group_x = int(np.mean([p['x'] for p in current_group]))
+                columns.append({'x': group_x, 'width': current_group[-1]['x'] - current_group[0]['x'] + current_group[-1]['width']})
+                current_group = [peaks[i]]
+        
+        # Last group
+        group_x = int(np.mean([p['x'] for p in current_group]))
+        columns.append({'x': group_x, 'width': current_group[-1]['x'] - current_group[0]['x'] + current_group[-1]['width']})
+        
+        return columns
+
+    def _find_bubbles_in_region(self, gray, y1, y2, x1, x2):
+        """Find individual bubble positions in a specific region."""
+        region = gray[y1:y2, x1:x2]
+        _, binary = cv2.threshold(region, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        
+        # Find circles using HoughCircles
+        circles = cv2.HoughCircles(
+            region, cv2.HOUGH_GRADIENT, 1, 15,
+            param1=50, param2=20, minRadius=5, maxRadius=15
+        )
+        
+        if circles is None:
             return None
         
-        # Identify the 4 corner squares (closest to each corner of the image)
-        corners_target = [
-            (0, 0),          # Top-left
-            (w, 0),          # Top-right
-            (0, h),          # Bottom-left
-            (w, h)           # Bottom-right
-        ]
+        # Sort by X position
+        bubbles = sorted(circles[0], key=lambda c: c[0])
         
-        found_corners = []
-        for tx, ty in corners_target:
-            # Find the candidate closest to this corner, within 25% of image dimensions
-            best = None
-            best_dist = float('inf')
-            max_dist = max(w, h) * 0.25
-            
-            for c in candidates:
-                dist = np.sqrt((c['x'] - tx) ** 2 + (c['y'] - ty) ** 2)
-                if dist < best_dist and dist < max_dist:
-                    best_dist = dist
-                    best = c
-            
-            if best:
-                found_corners.append((best['x'], best['y']))
-            else:
-                print(f"OMR: No corner square found near ({tx}, {ty})")
-                return None
+        # Filter to get 4 evenly spaced bubbles (A, B, C, D)
+        if len(bubbles) >= 4:
+            labels = ['A', 'B', 'C', 'D']
+            # Take the 4 most evenly spaced ones
+            result = []
+            for i, (bx, by, br) in enumerate(bubbles[:4]):
+                result.append({
+                    'label': labels[i] if i < 4 else '?',
+                    'x': int(bx + x1),
+                    'y': int(by + y1)
+                })
+            return result
         
-        print(f"OMR: Corner squares detected at: {found_corners}")
-        return found_corners
+        return None
 
-    def _warp_by_corners(self, img, corners):
-        """Re-warp using detected corner square centers for pixel-perfect alignment."""
-        # corners: [top-left, top-right, bottom-left, bottom-right]
-        src = np.array(corners, dtype=np.float32)
-        
-        # Corner squares sit inside the printable area
-        # Calibrated from debug_output.jpg analysis
-        margin_x = 25
-        margin_y = 30
-        dst = np.array([
-            [margin_x, margin_y],
-            [self.target_width - margin_x, margin_y],
-            [margin_x, self.target_height - margin_y],
-            [self.target_width - margin_x, self.target_height - margin_y]
-        ], dtype=np.float32)
-        
-        M = cv2.getPerspectiveTransform(src, dst)
-        return cv2.warpPerspective(img, M, (self.target_width, self.target_height))
-
-    def _four_point_warp(self, img, pts):
-        """Standard 4-point perspective warp with point ordering."""
-        rect = np.zeros((4, 2), dtype="float32")
-        s = pts.sum(axis=1)
-        rect[0] = pts[np.argmin(s)]   # Top-left
-        rect[2] = pts[np.argmax(s)]   # Bottom-right
-        diff = np.diff(pts, axis=1)
-        rect[1] = pts[np.argmin(diff)] # Top-right
-        rect[3] = pts[np.argmax(diff)] # Bottom-left
-
-        dst = np.array([
-            [0, 0],
-            [self.target_width - 1, 0],
-            [self.target_width - 1, self.target_height - 1],
-            [0, self.target_height - 1]
-        ], dtype="float32")
-
-        M = cv2.getPerspectiveTransform(rect, dst)
-        return cv2.warpPerspective(img, M, (self.target_width, self.target_height))
-
-    def _generate_grid(self, exam):
-        """Generate bubble positions for the standard 800x1100 warped form."""
+    def _build_grid_from_detection(self, start_y, row_height, columns, exam_data):
+        """Build the answer grid from detected positions."""
         grid = {}
         
-        # Booklet section (A/B/C/D near top-center)
-        grid['KITAPCIK'] = [{
-            'options': [
-                {'label': 'A', 'x': 455, 'y': 258},
-                {'label': 'B', 'x': 483, 'y': 258},
-                {'label': 'C', 'x': 511, 'y': 258},
-                {'label': 'D', 'x': 539, 'y': 258}
-            ]
-        }]
-        
-        if not exam or 'subjects' not in exam:
+        if not exam_data or 'subjects' not in exam_data:
             return grid
-
-        start_y = 403
-        row_height = 33.5
-        opt_step = 24.5
-        columns = [
-            {'name': 'Türkçe',    'x': 76},
-            {'name': 'İnkılap',   'x': 196},
-            {'name': 'Din',       'x': 316},
-            {'name': 'İngilizce', 'x': 436},
-            {'name': 'Matematik', 'x': 590},
-            {'name': 'Fen',       'x': 710}
-        ]
-
-        for col in columns:
+        
+        # Map detected columns to subjects
+        subject_names = ['Türkçe', 'İnkılap', 'Din', 'İngilizce', 'Matematik', 'Fen']
+        subjects = exam_data.get('subjects', [])
+        
+        opt_step = 24.5  # Distance between A, B, C, D bubbles
+        
+        for col_idx, col in enumerate(columns):
+            if col_idx >= len(subject_names):
+                break
+            
+            # Find matching subject
+            target_name = subject_names[col_idx]
             matching = None
-            for s in exam.get('subjects', []):
-                if col['name'].lower() in s.get('name', '').lower() or s.get('name', '').lower() in col['name'].lower():
+            for s in subjects:
+                if target_name.lower() in s.get('name', '').lower() or s.get('name', '').lower() in target_name.lower():
                     matching = s
                     break
             
             if matching:
                 questions = []
                 count = matching.get('questionCount', 20)
+                col_x = col['x'] - int(opt_step * 1.5)  # Center the 4 options around the column center
+                
                 for i in range(count):
                     cur_y = start_y + (i * row_height)
                     questions.append({
                         'options': [
-                            {'label': 'A', 'x': col['x'] + opt_step * 0, 'y': cur_y},
-                            {'label': 'B', 'x': col['x'] + opt_step * 1, 'y': cur_y},
-                            {'label': 'C', 'x': col['x'] + opt_step * 2, 'y': cur_y},
-                            {'label': 'D', 'x': col['x'] + opt_step * 3, 'y': cur_y}
+                            {'label': 'A', 'x': col_x + opt_step * 0, 'y': cur_y},
+                            {'label': 'B', 'x': col_x + opt_step * 1, 'y': cur_y},
+                            {'label': 'C', 'x': col_x + opt_step * 2, 'y': cur_y},
+                            {'label': 'D', 'x': col_x + opt_step * 3, 'y': cur_y}
                         ]
                     })
                 grid[matching['name']] = questions
+        
         return grid
 
+    # ============== PAPER & CORNER DETECTION ==============
+
+    def _find_and_warp_paper(self, img):
+        ratio = max(img.shape[0], img.shape[1]) / 800.0
+        small = cv2.resize(img, (int(img.shape[1] / ratio), int(img.shape[0] / ratio)))
+        gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (5, 5), 0)
+        
+        for method in ['canny', 'adaptive']:
+            if method == 'canny':
+                edged = cv2.Canny(gray, 50, 150)
+            else:
+                edged = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                               cv2.THRESH_BINARY_INV, 11, 2)
+            
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+            edged = cv2.dilate(edged, kernel, iterations=1)
+            cnts, _ = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:5]
+            
+            for c in cnts:
+                peri = cv2.arcLength(c, True)
+                approx = cv2.approxPolyDP(c, 0.02 * peri, True)
+                if len(approx) == 4 and cv2.contourArea(approx) > (small.shape[0] * small.shape[1] * 0.2):
+                    pts = approx.reshape(4, 2).astype(np.float32) * ratio
+                    return self._four_point_warp(img, pts)
+        
+        # Fallback: entire image
+        h, w = img.shape[:2]
+        pts = np.array([[0, 0], [w, 0], [w, h], [0, h]], dtype=np.float32)
+        return self._four_point_warp(img, pts)
+
+    def _detect_corner_squares(self, img):
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        _, binary = cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY_INV)
+        
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
+        binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+        
+        cnts, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        h, w = img.shape[:2]
+        candidates = []
+        
+        for c in cnts:
+            area = cv2.contourArea(c)
+            if area < 100 or area > 5000:
+                continue
+            x, y, bw, bh = cv2.boundingRect(c)
+            aspect = float(bw) / bh if bh > 0 else 0
+            extent = area / (bw * bh) if (bw * bh) > 0 else 0
+            if 0.5 < aspect < 2.0 and extent > 0.6:
+                cx = x + bw // 2
+                cy = y + bh // 2
+                candidates.append({'x': cx, 'y': cy, 'area': area})
+        
+        if len(candidates) < 4:
+            return None
+        
+        corners_target = [(0, 0), (w, 0), (0, h), (w, h)]
+        found = []
+        for tx, ty in corners_target:
+            best = None
+            best_dist = float('inf')
+            for c in candidates:
+                dist = np.sqrt((c['x'] - tx)**2 + (c['y'] - ty)**2)
+                if dist < best_dist and dist < max(w, h) * 0.25:
+                    best_dist = dist
+                    best = c
+            if best:
+                found.append((best['x'], best['y']))
+            else:
+                return None
+        
+        print(f"OMR: Corners at {found}")
+        return found
+
+    def _warp_by_corners(self, img, corners):
+        src = np.array(corners, dtype=np.float32)
+        # Map corner centers to known positions
+        # These define the coordinate system for the entire grid
+        m = 20  # Corner squares are ~20px from edge in 800x1100 space
+        dst = np.array([
+            [m, m],
+            [self.target_width - m, m],
+            [m, self.target_height - m],
+            [self.target_width - m, self.target_height - m]
+        ], dtype=np.float32)
+        M = cv2.getPerspectiveTransform(src, dst)
+        return cv2.warpPerspective(img, M, (self.target_width, self.target_height))
+
+    def _four_point_warp(self, img, pts):
+        rect = np.zeros((4, 2), dtype="float32")
+        s = pts.sum(axis=1)
+        rect[0] = pts[np.argmin(s)]
+        rect[2] = pts[np.argmax(s)]
+        diff = np.diff(pts, axis=1)
+        rect[1] = pts[np.argmin(diff)]
+        rect[3] = pts[np.argmax(diff)]
+        dst = np.array([
+            [0, 0], [self.target_width-1, 0],
+            [self.target_width-1, self.target_height-1], [0, self.target_height-1]
+        ], dtype="float32")
+        M = cv2.getPerspectiveTransform(rect, dst)
+        return cv2.warpPerspective(img, M, (self.target_width, self.target_height))
+
+    # ============== MARK READING ==============
+
     def _read_marks(self, thresh, gray, grid):
-        """Read marked bubbles using both binary and grayscale analysis."""
         results = {}
-        search_radius = 10  # Large search window for tolerance
+        search_radius = 10
         
         for subject, questions in grid.items():
             subject_answers = []
             for q in questions:
-                # For each question, find the darkest option
                 option_scores = []
-                
                 for opt in q['options']:
                     x, y = int(opt['x']), int(opt['y'])
-                    
-                    # Bounds check
                     y1 = max(0, y - search_radius)
                     y2 = min(thresh.shape[0], y + search_radius)
                     x1 = max(0, x - search_radius)
@@ -301,58 +487,46 @@ class PythonOMREngine:
                         option_scores.append((opt['label'], 0))
                         continue
                     
-                    # Binary analysis (from threshold image)
                     roi_bin = thresh[y1:y2, x1:x2]
                     fill_ratio = np.sum(roi_bin > 0) / roi_bin.size if roi_bin.size > 0 else 0
                     
-                    # Grayscale analysis (raw darkness)
                     roi_gray = gray[y1:y2, x1:x2]
                     darkness = 1.0 - (np.mean(roi_gray) / 255.0) if roi_gray.size > 0 else 0
                     
-                    # Combined score (weighted)
                     score = fill_ratio * 0.6 + darkness * 0.4
                     option_scores.append((opt['label'], score))
                 
-                # Find marked options 
                 if not option_scores:
                     subject_answers.append(" ")
                     continue
                 
-                # Sort by score descending
                 option_scores.sort(key=lambda x: x[1], reverse=True)
                 best_label, best_score = option_scores[0]
-                
-                # Dynamic threshold: marked bubble should be significantly darker
                 second_score = option_scores[1][1] if len(option_scores) > 1 else 0
                 
                 if best_score > self.detection_threshold:
-                    # Check if there's a clear winner (best is much stronger than 2nd)
                     if best_score > second_score * 1.5 or (best_score > 0.5 and second_score < 0.3):
                         subject_answers.append(best_label)
                     elif second_score > self.detection_threshold:
-                        subject_answers.append("*")  # Double mark
+                        subject_answers.append("*")
                     else:
                         subject_answers.append(best_label)
                 else:
-                    subject_answers.append(" ")  # Not marked
+                    subject_answers.append(" ")
             
             if subject == 'KITAPCIK':
                 results[subject] = subject_answers[0] if subject_answers else "OKUNAMADI"
             else:
                 results[subject] = "".join(subject_answers)
-                 
+        
         return results
 
     def _draw_debug(self, img, grid, results):
-        """Draw debug visualization on the warped image."""
         for subject, questions in grid.items():
             for i, q in enumerate(questions):
                 for opt in q['options']:
                     x, y = int(opt['x']), int(opt['y'])
-                    # Green circle for each bubble position
                     cv2.circle(img, (x, y), 8, (0, 255, 0), 1)
-                    
-                    # Red filled circle if marked
                     if subject in results:
                         if subject == 'KITAPCIK':
                             if results[subject] == opt['label']:
