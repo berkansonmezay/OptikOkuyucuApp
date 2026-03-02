@@ -389,6 +389,36 @@ class ScannerOverlayPainter extends CustomPainter {
         ..lineTo(left + scanWidth, top + scanHeight - bracketSize),
       bracketPaint,
     );
+
+    // Marker Guides (Anchor alignment for Kitapçık and Branş)
+    final sw = scanWidth / 800;
+    final sh = scanHeight / 1100;
+    
+    final markerPaint = Paint()
+      ..color = AppColors.primary.withOpacity(0.4)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    // Booklet area guide
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(left + 430 * sw, top + 225 * sh, 105 * sw, 35 * sh),
+        const Radius.circular(4),
+      ),
+      markerPaint,
+    );
+
+    // Subject columns guides (top markers)
+    final colX = [64.0, 184.0, 304.0, 424.0, 578.0, 698.0];
+    for (var x in colX) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(left + (x - 10) * sw, top + 370 * sh, 90 * sw, 20 * sh),
+          const Radius.circular(4),
+        ),
+        markerPaint,
+      );
+    }
   }
 
   @override

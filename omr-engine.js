@@ -10,6 +10,7 @@ export class OMREngine {
         this.detectionThreshold = config.detectionThreshold || 0.28; // Filter outlines and noise
         this.targetWidth = 800;
         this.targetHeight = 1100;
+        this.markers = []; // Store detected markers
     }
 
     /**
@@ -66,7 +67,10 @@ export class OMREngine {
             // More balanced adaptive threshold
             cv.adaptiveThreshold(finalGray, finalGray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 10);
 
-            return { warpedImage: warped, processedOMR: finalGray };
+            // 5. Marker Detection for Alignment
+            this.markers = this._detectMarkers(finalGray);
+
+            return { warpedImage: warped, processedOMR: finalGray, markers: this.markers };
 
         } catch (e) {
             console.error("OMR processFrame Error:", e);
@@ -77,6 +81,45 @@ export class OMREngine {
             if (paperContour) paperContour.delete();
             if (src) src.delete();
         }
+    }
+
+    /**
+     * Detects small square markers used for area anchoring
+     */
+    _detectMarkers(binary) {
+        let detected = [];
+        let contours = new cv.MatVector();
+        let hierarchy = new cv.Mat();
+
+        try {
+            cv.findContours(binary, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+            for (let i = 0; i < contours.size(); ++i) {
+                let cnt = contours.get(i);
+                let area = cv.contourArea(cnt);
+                let rect = cv.boundingRect(cnt);
+                let aspectRatio = rect.width / rect.height;
+
+                // Thresholds for markers on a 800x1100 target (Lowered area for robustness)
+                if (area > 50 && area < 1200 && aspectRatio > 0.6 && aspectRatio < 1.4) {
+                    let extent = area / (rect.width * rect.height);
+                    if (extent > 0.65) { // Likely a square
+                        detected.push({
+                            x: rect.x + rect.width / 2,
+                            y: rect.y + rect.height / 2,
+                            w: rect.width,
+                            h: rect.height,
+                            area: area
+                        });
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("OMR: Marker detection failed", e);
+        } finally {
+            contours.delete(); hierarchy.delete();
+        }
+        return detected;
     }
 
     /**
@@ -133,9 +176,10 @@ export class OMREngine {
      */
     drawDebugGrid(canvas, grid) {
         const ctx = canvas.getContext('2d');
+
+        // Draw Grid Bubbles
         ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
         ctx.lineWidth = 1;
-
         for (const subject in grid) {
             grid[subject].forEach(q => {
                 q.options.forEach(opt => {
@@ -145,6 +189,18 @@ export class OMREngine {
                 });
             });
         }
+
+        // Draw Detected Markers
+        ctx.strokeStyle = '#ff3b30';
+        ctx.lineWidth = 2;
+        this.markers.forEach(m => {
+            ctx.strokeRect(m.x - m.w / 2, m.y - m.h / 2, m.w, m.h);
+            // Small crosshair
+            ctx.beginPath();
+            ctx.moveTo(m.x - 3, m.y); ctx.lineTo(m.x + 3, m.y);
+            ctx.moveTo(m.x, m.y - 3); ctx.lineTo(m.x, m.y + 3);
+            ctx.stroke();
+        });
     }
 
     _findPaperContour(gray, mode) {
@@ -246,9 +302,12 @@ export class OMREngine {
 
     readMarks(processedOMR, grid) {
         const results = {};
-        const searchSize = 7; // Narrower search +/- 7px to prevent adjacent overlap
+        const searchSize = 7;
 
-        for (const [subject, questions] of Object.entries(grid)) {
+        // Align grid if markers are available
+        const alignedGrid = this._alignGrid(grid);
+
+        for (const [subject, questions] of Object.entries(alignedGrid)) {
             results[subject] = questions.map(q => {
                 let markedOptions = [];
                 q.options.forEach(opt => {
@@ -258,10 +317,10 @@ export class OMREngine {
                     for (let oy = -searchSize; oy <= searchSize; oy += 2) {
                         for (let ox = -searchSize; ox <= searchSize; ox += 2) {
                             let rect = new cv.Rect(
-                                Math.max(0, opt.x + ox - this.bubbleRadius),
-                                Math.max(0, opt.y + oy - this.bubbleRadius),
-                                this.bubbleRadius * 2,
-                                this.bubbleRadius * 2
+                                Math.max(0, Math.round(opt.x + ox - this.bubbleRadius)),
+                                Math.max(0, Math.round(opt.y + oy - this.bubbleRadius)),
+                                Math.round(this.bubbleRadius * 2),
+                                Math.round(this.bubbleRadius * 2)
                             );
 
                             try {
@@ -279,10 +338,69 @@ export class OMREngine {
                     }
                 });
 
-                if (markedOptions.length > 1) return "*"; // Multiple marks
-                return markedOptions.length === 1 ? markedOptions[0] : " "; // Single mark or empty
+                if (markedOptions.length > 1) return "*";
+                return markedOptions.length === 1 ? markedOptions[0] : " ";
             });
         }
         return results;
+    }
+
+    /**
+     * Adjusts grid coordinates based on detected markers.
+     * Logic: 
+     * 1. Booklet Area (centered top): Uses markers near (482, 240)
+     * 2. Subject Columns: Uses markers near column start/end points
+     */
+    _alignGrid(grid) {
+        if (!this.markers || this.markers.length < 1) return grid;
+
+        const aligned = JSON.parse(JSON.stringify(grid));
+
+        // 1. Booklet Alignment
+        if (aligned['KITAPCIK']) {
+            const bookletCentroid = { x: 482, y: 240 };
+            const nearbyMarkers = this._findMarkersNear(bookletCentroid, 180);
+            if (nearbyMarkers.length >= 1) {
+                const observedCentroid = nearbyMarkers.reduce((acc, m) => ({ x: acc.x + m.x / nearbyMarkers.length, y: acc.y + m.y / nearbyMarkers.length }), { x: 0, y: 0 });
+                const offsetX = observedCentroid.x - bookletCentroid.x;
+                const offsetY = observedCentroid.y - bookletCentroid.y;
+
+                // Debug log for alignment
+                console.log(`OMR: Aligned KITAPCIK using ${nearbyMarkers.length} markers. Offset: (${Math.round(offsetX)}, ${Math.round(offsetY)})`);
+
+                aligned['KITAPCIK'].forEach(q => q.options.forEach(opt => {
+                    opt.x += offsetX;
+                    opt.y += offsetY;
+                }));
+            }
+        }
+
+        // 2. Subjects column alignment
+        for (const [subject, questions] of Object.entries(aligned)) {
+            if (subject === 'KITAPCIK') continue;
+
+            const firstOpt = questions[0].options[0];
+            const columnX = firstOpt.x;
+
+            const topMarkers = this._findMarkersNear({ x: columnX + 30, y: 380 }, 100);
+            if (topMarkers.length > 0) {
+                const offsetX = topMarkers[0].x - (columnX - 20);
+                const offsetY = topMarkers[0].y - 370;
+
+                questions.forEach(q => q.options.forEach(opt => {
+                    opt.x += offsetX;
+                    opt.y += offsetY;
+                }));
+            }
+        }
+
+        return aligned;
+    }
+
+    _findMarkersNear(pt, radius) {
+        return this.markers.filter(m => {
+            const dist = Math.sqrt(Math.pow(m.x - pt.x, 2) + Math.pow(m.y - pt.y, 2));
+            return dist < radius;
+        });
     }
 }
