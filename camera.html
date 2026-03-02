@@ -294,58 +294,96 @@
                 toast.classList.add('opacity-100', 'translate-y-0');
                 toast.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">sync</span> FORM ANALİZ EDİLİYOR...';
 
-                // 1. Send to Python Backend for High-Accuracy OMR
-                console.log("processForm: Sending to Python Backend...");
+                // 1. Try Python Backend first, fallback to client-side OMR
+                console.log("processForm: Attempting Python Backend...");
                 const base64Image = canvasElement.toDataURL('image/jpeg', 0.8);
 
                 const apiUrl = (localStorage.getItem('omr_api_url') || 'http://192.168.1.231:8000').replace(/\/$/, "");
                 console.log("processForm: API URL:", apiUrl);
 
-                // Add timeout to fetch
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+                let realAnswers = null;
+                let selectedBooklet = 'OKUNAMADI';
+                let debugImageB64 = null;
 
-                let response;
                 try {
-                    response = await fetch(`${apiUrl}/process-omr`, {
+                    // Backend attempt with 12-second timeout
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+                    const response = await fetch(`${apiUrl}/process-omr`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            image: base64Image,
-                            examData: selectedExamData
-                        }),
+                        body: JSON.stringify({ image: base64Image, examData: selectedExamData }),
                         signal: controller.signal
                     });
-                } catch (fetchErr) {
                     clearTimeout(timeoutId);
-                    if (fetchErr.name === 'AbortError') {
-                        throw new Error("Sunucu yanıt vermedi (15s). Ayarlardan IP adresini kontrol edin.");
+
+                    if (response.ok) {
+                        const pythonResult = await response.json();
+                        if (pythonResult.success) {
+                            console.log("processForm: ✓ Python Backend succeeded");
+                            realAnswers = pythonResult.answers;
+                            selectedBooklet = pythonResult.booklet;
+                            debugImageB64 = pythonResult.debug_image;
+                        }
                     }
-                    throw new Error("Sunucuya bağlanılamadı: " + apiUrl + " - Ayarlar > IP adresini kontrol edin.");
-                }
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    let errMsg = "Backend hatası";
-                    try { const errDetail = await response.json(); errMsg = errDetail.detail || errMsg; } catch (e) { }
-                    throw new Error(errMsg);
+                } catch (backendErr) {
+                    console.warn("processForm: Backend unavailable, using client-side OMR:", backendErr.message);
                 }
 
-                const pythonResult = await response.json();
-                if (!pythonResult.success) {
-                    throw new Error(pythonResult.error || "Okuma başarısız");
+                // 2. Fallback: Client-side JavaScript OMR
+                if (!realAnswers) {
+                    console.log("processForm: Using client-side OMR engine...");
+                    toast.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">sync</span> YEREL OKUMA YAPILIYOR...';
+
+                    if (!window.cv || !cv.Mat) {
+                        throw new Error("OpenCV henüz yüklenmedi. Lütfen bekleyin.");
+                    }
+
+                    const cvResult = omr.processFrame(canvasElement, qrResult);
+                    if (!cvResult) {
+                        throw new Error("KAĞIT ALGILANAMADI. Lütfen formu düz tutun.");
+                    }
+
+                    const fixedGrid = _generateFixedGrid(selectedExamData);
+
+                    // Debug view
+                    if (isDebug) {
+                        const debugCanvas = document.getElementById('debug-canvas');
+                        debugCanvas.width = omr.targetWidth;
+                        debugCanvas.height = omr.targetHeight;
+                        cv.imshow('debug-canvas', cvResult.warpedImage);
+                        omr.drawDebugGrid(debugCanvas, fixedGrid);
+                    }
+
+                    // Generate preview image from warped result
+                    const previewCanvas = document.createElement('canvas');
+                    previewCanvas.width = omr.targetWidth;
+                    previewCanvas.height = omr.targetHeight;
+                    cv.imshow(previewCanvas, cvResult.warpedImage);
+                    debugImageB64 = previewCanvas.toDataURL('image/jpeg', 0.7);
+
+                    realAnswers = omr.readMarks(cvResult.processedOMR, fixedGrid, qrResult);
+                    console.log("processForm: Client-side answers:", realAnswers);
+
+                    // Booklet
+                    if (realAnswers['KITAPCIK']) {
+                        const bMark = realAnswers['KITAPCIK'][0];
+                        if (bMark !== " " && bMark !== "*") {
+                            selectedBooklet = bMark;
+                        } else if (bMark === "*") {
+                            selectedBooklet = "HATALI (ÇİFT)";
+                        }
+                    }
+
+                    cvResult.warpedImage.delete();
+                    cvResult.processedOMR.delete();
                 }
 
-                console.log("processForm: Python Result:", pythonResult);
-
-                // 2. Store debug image for preview on success page
-                if (pythonResult.debug_image) {
-                    sessionStorage.setItem('lastScanPreview', pythonResult.debug_image);
+                // 3. Store preview image for success page
+                if (debugImageB64) {
+                    sessionStorage.setItem('lastScanPreview', debugImageB64);
                 }
-
-                // 3. Map results
-                const realAnswers = pythonResult.answers;
-                const selectedBooklet = pythonResult.booklet;
 
                 // Store answers for success page
                 sessionStorage.setItem('lastScanAnswers', JSON.stringify(realAnswers));
