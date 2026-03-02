@@ -132,7 +132,7 @@
     <div class="max-w-md mx-auto h-full relative flex flex-col overflow-hidden">
         <!-- Top Controls -->
         <header class="absolute top-0 w-full px-6 pt-12 flex justify-between items-center z-20">
-            <button onclick="window.location.href='scan-select.html'"
+            <button onclick="window.history.back(); setTimeout(() => window.location.href='dashboard.html', 100);"
                 class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white">
                 <span class="material-symbols-outlined">close</span>
             </button>
@@ -143,12 +143,6 @@
             <button id="settingsToggle" onclick="toggleSettings()"
                 class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white">
                 <span class="material-symbols-outlined">settings</span>
-            </button>
-            <button id="debugToggle" onclick="toggleSettings()" class="hidden">Settings</button>
-            <!-- Dummy to avoid breaking older refs -->
-            <button onclick="toggleDebug()"
-                class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white">
-                <span class="material-symbols-outlined">bug_report</span>
             </button>
             <button
                 class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white">
@@ -527,9 +521,17 @@
             }
         };
 
+        let frameCount = 0;
         function tick() {
             const videoEl = document.getElementById('camera-feed');
             if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA && videoEl.videoWidth > 0) {
+                frameCount++;
+                // Only process every 3rd frame for better performance
+                if (frameCount % 3 !== 0) {
+                    requestAnimationFrame(tick);
+                    return;
+                }
+
                 // Resize detection canvas
                 const targetW = 1280;
                 const scale = targetW / videoEl.videoWidth;
@@ -543,20 +545,6 @@
 
                     if (code) {
                         processForm(code.data, imageData, code);
-                    } else if (isDebug) {
-                        // REAL-TIME TRACKING: Show grid even without QR
-                        const cvResult = omr.processFrame(canvasElement);
-                        if (cvResult) {
-                            const debugCanvas = document.getElementById('debug-canvas');
-                            debugCanvas.width = omr.targetWidth;
-                            debugCanvas.height = omr.targetHeight;
-                            cv.imshow('debug-canvas', cvResult.warpedImage);
-                            const fixedGrid = _generateFixedGrid(selectedExamData);
-                            omr.drawDebugGrid(debugCanvas, fixedGrid);
-
-                            cvResult.warpedImage.delete();
-                            cvResult.processedOMR.delete();
-                        }
                     }
                 }
             }
