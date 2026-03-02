@@ -298,19 +298,37 @@
                 console.log("processForm: Sending to Python Backend...");
                 const base64Image = canvasElement.toDataURL('image/jpeg', 0.8);
 
-                const apiUrl = (localStorage.getItem('omr_api_url') || 'http://192.168.1.129:8000').replace(/\/$/, "");
-                const response = await fetch(`${apiUrl}/process-omr`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        image: base64Image,
-                        examData: selectedExamData
-                    })
-                });
+                const apiUrl = (localStorage.getItem('omr_api_url') || 'http://192.168.1.231:8000').replace(/\/$/, "");
+                console.log("processForm: API URL:", apiUrl);
+
+                // Add timeout to fetch
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+                let response;
+                try {
+                    response = await fetch(`${apiUrl}/process-omr`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            image: base64Image,
+                            examData: selectedExamData
+                        }),
+                        signal: controller.signal
+                    });
+                } catch (fetchErr) {
+                    clearTimeout(timeoutId);
+                    if (fetchErr.name === 'AbortError') {
+                        throw new Error("Sunucu yanıt vermedi (15s). Ayarlardan IP adresini kontrol edin.");
+                    }
+                    throw new Error("Sunucuya bağlanılamadı: " + apiUrl + " - Ayarlar > IP adresini kontrol edin.");
+                }
+                clearTimeout(timeoutId);
 
                 if (!response.ok) {
-                    const errDetail = await response.json();
-                    throw new Error(errDetail.detail || "Backend hatası");
+                    let errMsg = "Backend hatası";
+                    try { const errDetail = await response.json(); errMsg = errDetail.detail || errMsg; } catch (e) { }
+                    throw new Error(errMsg);
                 }
 
                 const pythonResult = await response.json();
