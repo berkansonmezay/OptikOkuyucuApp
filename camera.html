@@ -320,9 +320,17 @@
 
                 console.log("processForm: Python Result:", pythonResult);
 
-                // 2. Map results
+                // 2. Store debug image for preview on success page
+                if (pythonResult.debug_image) {
+                    sessionStorage.setItem('lastScanPreview', pythonResult.debug_image);
+                }
+
+                // 3. Map results
                 const realAnswers = pythonResult.answers;
                 const selectedBooklet = pythonResult.booklet;
+
+                // Store answers for success page
+                sessionStorage.setItem('lastScanAnswers', JSON.stringify(realAnswers));
 
                 // Save results
                 const resultData = {
@@ -354,7 +362,9 @@
                         examId: selectedExamId,
                         studentName: resultData.name,
                         studentNo: resultData.studentNo,
-                        booklet: resultData.booklet
+                        booklet: resultData.booklet,
+                        tcNo: resultData.tcNo,
+                        className: resultData.className
                     });
                     window.location.href = `scan-success.html?${params.toString()}`;
                 }, 1000);

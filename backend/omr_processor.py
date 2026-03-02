@@ -15,7 +15,7 @@ class PythonOMREngine:
     def __init__(self):
         self.target_width = 800
         self.target_height = 1100
-        self.detection_threshold = 0.35
+        self.detection_threshold = 0.30  # Lowered for better sensitivity
 
     def process_image_base64(self, base64_str, exam_data):
         try:
@@ -51,18 +51,23 @@ class PythonOMREngine:
             # Step 5: Read marks
             results = self._read_marks(thresh, gray, grid)
 
-            # Save debug
+            # Generate debug image and encode as base64
+            debug_image_b64 = None
             try:
                 debug = warped.copy()
                 self._draw_debug(debug, grid, results)
                 cv2.imwrite("debug_output.jpg", debug)
-                print("OMR: Debug saved")
+                # Encode debug image as base64 for frontend preview
+                _, buffer = cv2.imencode('.jpg', debug, [cv2.IMWRITE_JPEG_QUALITY, 75])
+                debug_image_b64 = "data:image/jpeg;base64," + base64.b64encode(buffer).decode('utf-8')
+                print("OMR: Debug image generated and encoded")
             except Exception as e:
                 print(f"Debug save error: {e}")
 
             return {
                 "booklet": results.get("KITAPCIK", "OKUNAMADI"),
                 "answers": results,
+                "debug_image": debug_image_b64,
                 "success": True
             }
         except Exception as e:
@@ -470,7 +475,7 @@ class PythonOMREngine:
 
     def _read_marks(self, thresh, gray, grid):
         results = {}
-        search_radius = 10
+        search_radius = 12  # Increased for better alignment tolerance
         
         for subject, questions in grid.items():
             subject_answers = []

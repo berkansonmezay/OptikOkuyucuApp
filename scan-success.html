@@ -147,13 +147,14 @@
 
             <!-- Scanned Preview -->
             <div class="flex flex-col gap-3 mb-auto">
-                <p class="text-slate-400 text-[10px] uppercase font-bold px-1 tracking-wider">Form Önizleme</p>
+                <p class="text-slate-400 text-[10px] uppercase font-bold px-1 tracking-wider">Taranan Form Görüntüsü</p>
                 <div
-                    class="relative rounded-2xl overflow-hidden aspect-[3/4] max-w-[200px] mx-auto w-full shadow-lg bg-slate-100 border border-slate-200">
-                    <div class="absolute inset-0 bg-cover bg-center opacity-80" id="previewImage"
-                        style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDKLS-NA5Z8mWOvBD0QM4zLAr-BeahkBniAnPwO03DJyyGyMDFPJc9_fCz7LLW1NsnSLLLBqOW9K0z_uUhFEXIyGnuDZpSKncJEJToGPcTbnXeapQkEADl783Fyorq0SCP2gnWR8AzgzL2X25X6VSR-ZAbxp8YlNjGSPiiWlkBd2CGJIf2sdLVAxyH2xVHfgdlotd9PiO7F5AXLfm5Rg1BnHZBBhts00s8ylbYjeWNe2xQYGR22d9_GvU3RvuhQ7558riWhqomqgWU')">
+                    class="relative rounded-2xl overflow-hidden max-w-[280px] mx-auto w-full shadow-lg bg-slate-100 border border-slate-200">
+                    <img id="previewImage" src="" alt="Taranan Form" class="w-full h-auto block" style="display: none;">
+                    <div id="previewPlaceholder" class="flex flex-col items-center justify-center py-12 text-slate-300">
+                        <span class="material-symbols-outlined text-5xl mb-2">image</span>
+                        <span class="text-xs">Görüntü yükleniyor...</span>
                     </div>
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                     <div
                         class="absolute bottom-3 right-3 bg-white/95 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 shadow-sm border border-gray-100">
                         <span class="material-symbols-outlined text-[14px] text-green-500 font-bold">verified</span>
@@ -218,12 +219,12 @@
             const urlParams = new URLSearchParams(window.location.search);
             const studentName = urlParams.get('studentName') || 'Ahmet Yılmaz';
             const studentNo = urlParams.get('studentNo') || '12345';
-            const studentTc = urlParams.get('studentTc') || '12345678901';
-            const studentClass = urlParams.get('studentClass') || '12/A';
+            const studentTc = urlParams.get('tcNo') || urlParams.get('studentTc') || '---';
+            const studentClass = urlParams.get('className') || urlParams.get('studentClass') || '---';
             const booklet = urlParams.get('booklet') || 'A';
             const answersStr = urlParams.get('answers') || sessionStorage.getItem('lastScanAnswers');
             const examId = urlParams.get('examId');
-            const previewUrl = urlParams.get('previewUrl') || sessionStorage.getItem('lastScanPreview');
+            const previewUrl = sessionStorage.getItem('lastScanPreview');
 
             document.getElementById('displayStudentName').textContent = studentName;
             document.getElementById('displayStudentNo').textContent = studentNo;
@@ -231,8 +232,17 @@
             document.getElementById('displayStudentClass').textContent = studentClass;
             document.getElementById('displayBooklet').textContent = booklet;
 
+            // Display the scanned form image
+            const previewImg = document.getElementById('previewImage');
+            const placeholder = document.getElementById('previewPlaceholder');
             if (previewUrl) {
-                document.getElementById('previewImage').style.backgroundImage = `url('${previewUrl}')`;
+                previewImg.src = previewUrl;
+                previewImg.style.display = 'block';
+                if (placeholder) placeholder.style.display = 'none';
+                // Clean up sessionStorage after use
+                sessionStorage.removeItem('lastScanPreview');
+            } else {
+                if (placeholder) placeholder.innerHTML = '<span class="material-symbols-outlined text-5xl mb-2 text-slate-300">image_not_supported</span><span class="text-xs text-slate-400">Görsel bulunamadı</span>';
             }
 
             if (answersStr) {
