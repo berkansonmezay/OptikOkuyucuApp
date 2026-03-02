@@ -77,90 +77,72 @@ class PythonOMREngine:
 
     def _auto_detect_grid(self, warped, exam_data):
         """
-        Auto-detect bubble grid by finding:
-        1. Pink/magenta header bars → gives Y regions
-        2. Vertical dark columns → gives X positions  
-        3. Circular blobs in each column → gives bubble rows
+        Use FIXED calibrated coordinates for the LGS form.
+        The corner-square warp ensures the paper is always mapped to 800x1100,
+        so fixed coordinates are reliable and much more accurate than auto-detection.
         """
-        h, w = warped.shape[:2]
-        hsv = cv2.cvtColor(warped, cv2.COLOR_BGR2HSV)
-        gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
-        
-        # --- FIND PINK HEADERS ---
-        # Pink/magenta in HSV: H=140-170, S>30, V>100
-        lower_pink = np.array([140, 30, 100])
-        upper_pink = np.array([175, 255, 255])
-        pink_mask = cv2.inRange(hsv, lower_pink, upper_pink)
-        
-        # Also try red range (pink can appear as red)
-        lower_red1 = np.array([0, 40, 100])
-        upper_red1 = np.array([10, 255, 255])
-        lower_red2 = np.array([160, 40, 100])
-        upper_red2 = np.array([180, 255, 255])
-        red_mask = cv2.inRange(hsv, lower_red1, upper_red1) | cv2.inRange(hsv, lower_red2, upper_red2)
-        
-        color_mask = pink_mask | red_mask
-        
-        # Find horizontal bands of pink
-        row_sums = np.sum(color_mask > 0, axis=1)
-        threshold_width = w * 0.15  # A header bar covers at least 15% of width
-        
-        pink_rows = np.where(row_sums > threshold_width)[0]
-        
-        # Group continuous pink rows into bands
-        pink_bands = []
-        if len(pink_rows) > 0:
-            band_start = pink_rows[0]
-            for i in range(1, len(pink_rows)):
-                if pink_rows[i] - pink_rows[i-1] > 5:
-                    band_center = (band_start + pink_rows[i-1]) // 2
-                    band_h = pink_rows[i-1] - band_start
-                    if band_h > 5:  # Minimum height
-                        pink_bands.append({'y': band_center, 'h': band_h, 'y_start': band_start, 'y_end': pink_rows[i-1]})
-                    band_start = pink_rows[i]
-            # Last band
-            band_center = (band_start + pink_rows[-1]) // 2
-            band_h = pink_rows[-1] - band_start
-            if band_h > 5:
-                pink_bands.append({'y': band_center, 'h': band_h, 'y_start': band_start, 'y_end': pink_rows[-1]})
-        
-        print(f"OMR: Found {len(pink_bands)} pink headers at Y={[b['y'] for b in pink_bands]}")
-        
-        # --- FIND ANSWER GRID START ---
-        # The answer grid starts after the column sub-headers (small pink bars under main header)
-        # Typically: Main header → sub-headers → first row of bubbles
-        
-        # Find the Y where actual bubbles start using circle detection
-        answer_start_y, row_height, num_rows = self._detect_bubble_rows(gray, pink_bands)
-        
-        print(f"OMR: Bubble grid: start_y={answer_start_y}, row_height={row_height:.1f}, rows={num_rows}")
-        
-        # --- FIND COLUMN X POSITIONS ---
-        col_positions = self._detect_column_positions(gray, answer_start_y, row_height, num_rows)
-        
-        print(f"OMR: Column X positions: {col_positions}")
-        
-        # --- BUILD GRID ---
-        grid = self._build_grid_from_detection(answer_start_y, row_height, col_positions, exam_data)
-        
-        # --- BOOKLET (above the main grid) ---
-        # Booklet area: look for bubbles between y=200-300
-        booklet_bubbles = self._find_bubbles_in_region(gray, 180, 310, 400, 600)
-        if booklet_bubbles:
-            grid['KITAPCIK'] = [{'options': booklet_bubbles}]
-            print(f"OMR: Booklet bubbles found at: {[(b['x'], b['y']) for b in booklet_bubbles]}")
-        else:
-            # Fallback fixed positions
-            grid['KITAPCIK'] = [{
-                'options': [
-                    {'label': 'A', 'x': 455, 'y': 258},
-                    {'label': 'B', 'x': 483, 'y': 258},
-                    {'label': 'C', 'x': 511, 'y': 258},
-                    {'label': 'D', 'x': 539, 'y': 258}
-                ]
-            }]
-            print("OMR: Using fallback booklet positions")
-        
+        grid = {}
+
+        if not exam_data or 'subjects' not in exam_data:
+            return grid
+
+        subjects = exam_data.get('subjects', [])
+
+        # ---- FIXED GRID COORDINATES for LGS Form (800x1100 target) ----
+        # Corner squares map to ~(20, 20) on TL and ~(780, 1080) on BR.
+
+        # Booklet bubbles (KITAPCIK TÜRÜ area)
+        grid['KITAPCIK'] = [{
+            'options': [
+                {'label': 'A', 'x': 442, 'y': 254},
+                {'label': 'B', 'x': 468, 'y': 254},
+                {'label': 'C', 'x': 494, 'y': 254},
+                {'label': 'D', 'x': 520, 'y': 254}
+            ]
+        }]
+
+        # Subject column definitions
+        opt_step = 23.5   # Distance between bubble centers A->B->C->D
+        start_y = 382     # Y-coordinate of question 1
+        row_height = 33.0 # Vertical spacing between questions
+
+        # Column X positions (A bubble), calibrated from debug image
+        column_defs = [
+            {'name': 'Türkçe',    'x': 48},
+            {'name': 'İnkılap',   'x': 168},
+            {'name': 'Din',       'x': 286},
+            {'name': 'İngilizce', 'x': 404},
+            {'name': 'Matematik', 'x': 560},
+            {'name': 'Fen',       'x': 678}
+        ]
+
+        for col_def in column_defs:
+            matching = None
+            for s in subjects:
+                sname = s.get('name', '').lower()
+                cname = col_def['name'].lower()
+                if cname in sname or sname in cname:
+                    matching = s
+                    break
+
+            if matching:
+                questions = []
+                count = matching.get('questionCount', 20)
+                col_x = col_def['x']
+
+                for i in range(count):
+                    cur_y = start_y + (i * row_height)
+                    questions.append({
+                        'options': [
+                            {'label': 'A', 'x': col_x,                'y': cur_y},
+                            {'label': 'B', 'x': col_x + opt_step,     'y': cur_y},
+                            {'label': 'C', 'x': col_x + opt_step * 2, 'y': cur_y},
+                            {'label': 'D', 'x': col_x + opt_step * 3, 'y': cur_y}
+                        ]
+                    })
+                grid[matching['name']] = questions
+
+        print(f"OMR: Fixed grid generated with {len(grid)} subjects")
         return grid
 
     def _detect_bubble_rows(self, gray, pink_bands):

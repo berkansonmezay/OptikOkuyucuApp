@@ -440,27 +440,27 @@
             // 1. Booklet (KITAPCIK) - Calibrated for LGS Form
             grid['KITAPCIK'] = [{
                 options: [
-                    { label: 'A', x: 440, y: 240 },
-                    { label: 'B', x: 468, y: 240 },
-                    { label: 'C', x: 496, y: 240 },
-                    { label: 'D', x: 524, y: 240 }
+                    { label: 'A', x: 442, y: 254 },
+                    { label: 'B', x: 468, y: 254 },
+                    { label: 'C', x: 494, y: 254 },
+                    { label: 'D', x: 520, y: 254 }
                 ]
             }];
 
             if (!exam || !exam.subjects) return grid;
 
-            // 2. Subjects Grid - Aligned for Sözel (4) and Sayısal (2) blocks
-            const startY = 385; // Reverting to previous stable Y
-            const rowHeight = 33.5;
-            const optStep = 24.5;
+            // 2. Subjects Grid - Fixed calibrated coordinates for LGS Form
+            const startY = 382;
+            const rowHeight = 33.0;
+            const optStep = 23.5;
 
             const columns = [
-                { name: 'Türkçe', x: 64 },
-                { name: 'İnkılap', x: 184 },
-                { name: 'Din', x: 304 },
-                { name: 'İngilizce', x: 424 },
-                { name: 'Matematik', x: 578 },
-                { name: 'Fen', x: 698 }
+                { name: 'Türkçe', x: 48 },
+                { name: 'İnkılap', x: 168 },
+                { name: 'Din', x: 286 },
+                { name: 'İngilizce', x: 404 },
+                { name: 'Matematik', x: 560 },
+                { name: 'Fen', x: 678 }
             ];
 
             columns.forEach((col) => {
