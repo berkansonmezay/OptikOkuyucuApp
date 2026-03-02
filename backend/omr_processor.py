@@ -191,13 +191,15 @@ class PythonOMREngine:
         # corners: [top-left, top-right, bottom-left, bottom-right]
         src = np.array(corners, dtype=np.float32)
         
-        # Small margin: corner squares are slightly inside the printable area
-        margin = 15
+        # Corner squares sit inside the printable area
+        # Calibrated from debug_output.jpg analysis
+        margin_x = 25
+        margin_y = 30
         dst = np.array([
-            [margin, margin],
-            [self.target_width - margin, margin],
-            [margin, self.target_height - margin],
-            [self.target_width - margin, self.target_height - margin]
+            [margin_x, margin_y],
+            [self.target_width - margin_x, margin_y],
+            [margin_x, self.target_height - margin_y],
+            [self.target_width - margin_x, self.target_height - margin_y]
         ], dtype=np.float32)
         
         M = cv2.getPerspectiveTransform(src, dst)
@@ -230,26 +232,26 @@ class PythonOMREngine:
         # Booklet section (A/B/C/D near top-center)
         grid['KITAPCIK'] = [{
             'options': [
-                {'label': 'A', 'x': 440, 'y': 240},
-                {'label': 'B', 'x': 468, 'y': 240},
-                {'label': 'C', 'x': 496, 'y': 240},
-                {'label': 'D', 'x': 524, 'y': 240}
+                {'label': 'A', 'x': 455, 'y': 258},
+                {'label': 'B', 'x': 483, 'y': 258},
+                {'label': 'C', 'x': 511, 'y': 258},
+                {'label': 'D', 'x': 539, 'y': 258}
             ]
         }]
         
         if not exam or 'subjects' not in exam:
             return grid
 
-        start_y = 385
+        start_y = 403
         row_height = 33.5
         opt_step = 24.5
         columns = [
-            {'name': 'Türkçe',    'x': 64},
-            {'name': 'İnkılap',   'x': 184},
-            {'name': 'Din',       'x': 304},
-            {'name': 'İngilizce', 'x': 424},
-            {'name': 'Matematik', 'x': 578},
-            {'name': 'Fen',       'x': 698}
+            {'name': 'Türkçe',    'x': 76},
+            {'name': 'İnkılap',   'x': 196},
+            {'name': 'Din',       'x': 316},
+            {'name': 'İngilizce', 'x': 436},
+            {'name': 'Matematik', 'x': 590},
+            {'name': 'Fen',       'x': 710}
         ]
 
         for col in columns:
@@ -278,7 +280,7 @@ class PythonOMREngine:
     def _read_marks(self, thresh, gray, grid):
         """Read marked bubbles using both binary and grayscale analysis."""
         results = {}
-        search_radius = 8  # Generous search window
+        search_radius = 10  # Large search window for tolerance
         
         for subject, questions in grid.items():
             subject_answers = []
