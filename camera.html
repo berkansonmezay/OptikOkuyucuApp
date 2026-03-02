@@ -282,7 +282,7 @@
 
                 // 3. Read Marks
                 console.log("processForm: Reading marks...");
-                const realAnswers = omr.readMarks(cvResult.processedOMR, fixedGrid);
+                const realAnswers = omr.readMarks(cvResult.processedOMR, fixedGrid, cvResult.qrInfo);
                 console.log("processForm: Raw answers:", realAnswers);
 
                 // Booklet & Score

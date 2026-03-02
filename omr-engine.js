@@ -64,13 +64,19 @@ export class OMREngine {
             // 4. Final Processing for OMR
             let finalGray = new cv.Mat();
             cv.cvtColor(warped, finalGray, cv.COLOR_RGBA2GRAY);
-            // More balanced adaptive threshold
+
+            // Apply CLAHE (Local Contrast Enhancement) to combat glare
+            let clahe = new cv.CLAHE(2.0, new cv.Size(8, 8));
+            clahe.apply(finalGray, finalGray);
+            clahe.delete();
+
+            // Balanced adaptive threshold
             cv.adaptiveThreshold(finalGray, finalGray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 10);
 
             // 5. Marker Detection for Alignment
             this.markers = this._detectMarkers(finalGray);
 
-            return { warpedImage: warped, processedOMR: finalGray, markers: this.markers };
+            return { warpedImage: warped, processedOMR: finalGray, markers: this.markers, qrInfo: qrResult };
 
         } catch (e) {
             console.error("OMR processFrame Error:", e);
@@ -311,12 +317,12 @@ export class OMREngine {
         return warped;
     }
 
-    readMarks(processedOMR, grid) {
+    readMarks(processedOMR, grid, qrInfo = null) {
         const results = {};
         const searchSize = 6; // Increased from 4 for better alignment tolerance
 
         // Align grid if markers are available
-        const alignedGrid = this._alignGrid(grid);
+        const alignedGrid = this._alignGrid(grid, qrInfo);
 
         for (const [subject, questions] of Object.entries(alignedGrid)) {
             results[subject] = questions.map(q => {
@@ -362,28 +368,29 @@ export class OMREngine {
      * 1. Booklet Area (centered top): Uses markers near (482, 240)
      * 2. Subject Columns: Uses markers near column start/end points
      */
-    _alignGrid(grid) {
-        if (!this.markers || this.markers.length < 1) return grid;
-
+    _alignGrid(grid, qrInfo = null) {
         const aligned = JSON.parse(JSON.stringify(grid));
+
+        let bookletOffset = { x: 0, y: 0 };
+        const bookletCentroid = { x: 482, y: 240 };
+        const nearbyMarkers = this._findMarkersNear(bookletCentroid, 180);
+
+        if (nearbyMarkers.length >= 1) {
+            const observedCentroid = nearbyMarkers.reduce((acc, m) => ({ x: acc.x + m.x / nearbyMarkers.length, y: acc.y + m.y / nearbyMarkers.length }), { x: 0, y: 0 });
+            bookletOffset.x = observedCentroid.x - bookletCentroid.x;
+            bookletOffset.y = observedCentroid.y - bookletCentroid.y;
+            console.log(`OMR: Aligned using ${nearbyMarkers.length} markers. Offset: (${Math.round(bookletOffset.x)}, ${Math.round(bookletOffset.y)})`);
+        } else if (qrInfo) {
+            // QR Fallback: If markers are missing, QR is usually still visible
+            console.log("OMR: No markers found. Using QR-centered grid fallback.");
+        }
 
         // 1. Booklet Alignment
         if (aligned['KITAPCIK']) {
-            const bookletCentroid = { x: 482, y: 240 };
-            const nearbyMarkers = this._findMarkersNear(bookletCentroid, 180);
-            if (nearbyMarkers.length >= 1) {
-                const observedCentroid = nearbyMarkers.reduce((acc, m) => ({ x: acc.x + m.x / nearbyMarkers.length, y: acc.y + m.y / nearbyMarkers.length }), { x: 0, y: 0 });
-                const offsetX = observedCentroid.x - bookletCentroid.x;
-                const offsetY = observedCentroid.y - bookletCentroid.y;
-
-                // Debug log for alignment
-                console.log(`OMR: Aligned KITAPCIK using ${nearbyMarkers.length} markers. Offset: (${Math.round(offsetX)}, ${Math.round(offsetY)})`);
-
-                aligned['KITAPCIK'].forEach(q => q.options.forEach(opt => {
-                    opt.x += offsetX;
-                    opt.y += offsetY;
-                }));
-            }
+            aligned['KITAPCIK'].forEach(q => q.options.forEach(opt => {
+                opt.x += bookletOffset.x;
+                opt.y += bookletOffset.y;
+            }));
         }
 
         // 2. Subjects column alignment

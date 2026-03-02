@@ -68,7 +68,21 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
     setState(() {
       _isFlashOn = !_isFlashOn;
       _controller!.setFlashMode(_isFlashOn ? FlashMode.torch : FlashMode.off);
+      if (_isFlashOn) {
+        // Warning when turning flash on
+        _showGlareWarning();
+      }
     });
+  }
+
+  void _showGlareWarning() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('PARLAMA UYARISI: Flaş kullanımı parlamaya neden olup okumayı zorlaştırabilir. Mümkünse oda ışığını kullanın.'),
+        duration: Duration(seconds: 3),
+        backgroundColor: Colors.orange,
+      ),
+    );
   }
 
   Future<void> _captureImage() async {
@@ -299,17 +313,32 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
                       ),
                     ),
                     const Positioned(
-                      bottom: -40,
+                      bottom: -60,
                       left: 0,
                       right: 0,
-                      child: Text(
-                        'Optik formu çerçeve içine hizalayın',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Optik formu çerçeve içine hizalayın',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'PARLAMA OLMAMASINA DİKKAT EDİN',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.orangeAccent,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
