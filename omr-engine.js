@@ -7,7 +7,7 @@
 export class OMREngine {
     constructor(config = {}) {
         this.bubbleRadius = config.bubbleRadius || 10;
-        this.detectionThreshold = config.detectionThreshold || 0.28; // Filter outlines and noise
+        this.detectionThreshold = config.detectionThreshold || 0.35; // Increased from 0.28 for better precision
         this.targetWidth = 800;
         this.targetHeight = 1100;
         this.markers = []; // Store detected markers
@@ -302,7 +302,7 @@ export class OMREngine {
 
     readMarks(processedOMR, grid) {
         const results = {};
-        const searchSize = 7;
+        const searchSize = 4; // Reduced from 7 to prevent adjacent bubble overlap (step is 24-28px)
 
         // Align grid if markers are available
         const alignedGrid = this._alignGrid(grid);
