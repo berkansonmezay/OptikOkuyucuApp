@@ -7,11 +7,53 @@ import 'scoring_config_screen.dart';
 import 'login_screen.dart';
 import 'admin_panel_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+import 'package:shared_preferences/shared_preferences.dart';
+
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
   @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final TextEditingController _apiIpController = TextEditingController();
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _apiIpController.text = prefs.getString('omr_api_url') ?? 'http://10.0.2.2:8000';
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    String url = _apiIpController.text.trim();
+    if (url.isNotEmpty && !url.startsWith('http')) {
+      url = 'http://$url';
+    }
+    await prefs.setString('omr_api_url', url);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ayarlar kaydedildi'), backgroundColor: Colors.green),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final userProvider = context.watch<UserProvider>();
     final user = userProvider.user;
     final isAdmin = user?.role == 'admin';
@@ -33,6 +75,47 @@ class SettingsScreen extends StatelessWidget {
             _buildProfileCard(userProvider),
             const SizedBox(height: 32),
 
+            _buildSectionHeader('SUNUCU AYARLARI (OMR)'),
+            const SizedBox(height: 12),
+            _buildSettingsGroup([
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Python Backend IP Adresi', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    const Text('Terminaldeki "YEREL IP ADRESİNİZ" değerini buraya girin.', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _apiIpController,
+                      decoration: InputDecoration(
+                        hintText: 'http://192.168.1.XX:8000',
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      ),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _saveSettings,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: const Text('KAYDET VE GÜNCELLE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ]),
+
+            const SizedBox(height: 24),
             _buildSectionHeader('KULLANICI BİLGİLERİ'),
             const SizedBox(height: 12),
             _buildSettingsGroup([

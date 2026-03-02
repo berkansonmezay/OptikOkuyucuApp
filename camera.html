@@ -140,7 +140,13 @@
                 id="examTypeLabel">
                 LGS DENEME
             </div>
-            <button id="debugToggle" onclick="toggleDebug()"
+            <button id="settingsToggle" onclick="toggleSettings()"
+                class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white">
+                <span class="material-symbols-outlined">settings</span>
+            </button>
+            <button id="debugToggle" onclick="toggleSettings()" class="hidden">Settings</button>
+            <!-- Dummy to avoid breaking older refs -->
+            <button onclick="toggleDebug()"
                 class="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white">
                 <span class="material-symbols-outlined">bug_report</span>
             </button>
@@ -160,6 +166,22 @@
             <div id="camera-status" class="text-white/40 text-sm font-medium mb-6 uppercase tracking-widest">Kamera
                 Hazırlanıyor...</div>
             <div id="manual-start-container"></div>
+        </div>
+
+        <!-- Settings Modal (API URL) -->
+        <div id="settings-modal"
+            class="absolute inset-0 bg-black/80 backdrop-blur-lg z-[100] hidden flex-col items-center justify-center p-8 text-center">
+            <h2 class="text-xl font-bold mb-4">Sunucu Ayarları</h2>
+            <p class="text-sm text-white/60 mb-6">Backend terminalindeki IP adresini buraya girin:</p>
+            <input type="text" id="api-url-input"
+                class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white mb-4"
+                placeholder="http://192.168.1.XX:8000">
+            <div class="flex gap-3 w-full">
+                <button onclick="toggleSettings()"
+                    class="flex-1 py-3 rounded-xl bg-white/10 font-bold uppercase tracking-wider text-xs">İptal</button>
+                <button onclick="saveApiSettings()"
+                    class="flex-1 py-3 rounded-xl bg-primary font-bold uppercase tracking-wider text-xs">Kaydet</button>
+            </div>
         </div>
 
         <!-- Debug View (Warped Image) -->
@@ -212,6 +234,25 @@
         const omr = new OMREngine();
         let isDebug = false;
 
+        window.toggleSettings = function () {
+            const modal = document.getElementById('settings-modal');
+            const input = document.getElementById('api-url-input');
+            if (modal.classList.contains('hidden')) {
+                input.value = localStorage.getItem('omr_api_url') || 'http://localhost:8000';
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        window.saveApiSettings = function () {
+            let url = document.getElementById('api-url-input').value.trim();
+            if (!url.startsWith('http')) url = 'http://' + url;
+            localStorage.setItem('omr_api_url', url);
+            toggleSettings();
+            alert("Sunucu adresi güncellendi: " + url);
+        }
+
         window.toggleDebug = function () {
             isDebug = !isDebug;
             const debugCanvas = document.getElementById('debug-canvas');
@@ -257,7 +298,8 @@
                 console.log("processForm: Sending to Python Backend...");
                 const base64Image = canvasElement.toDataURL('image/jpeg', 0.8);
 
-                const response = await fetch('http://localhost:8000/process-omr', {
+                const apiUrl = (localStorage.getItem('omr_api_url') || 'http://localhost:8000').replace(/\/$/, "");
+                const response = await fetch(`${apiUrl}/process-omr`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/exam.dart';
 import '../models/student_result.dart';
 import '../core/app_colors.dart';
@@ -109,15 +110,20 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
       final bytes = await File(image.path).readAsBytes();
       final base64Image = base64Encode(bytes);
 
+      // Get API URL from settings
+      final prefs = await SharedPreferences.getInstance();
+      final apiUrl = prefs.getString('omr_api_url') ?? 'http://10.0.2.2:8000';
+      final cleanUrl = apiUrl.endsWith('/') ? apiUrl.substring(0, apiUrl.length - 1) : apiUrl;
+
       // Send to Python Backend
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:8000/process-omr'), // 10.0.2.2 is localhost for Android Emulator
+        Uri.parse('$cleanUrl/process-omr'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'image': 'data:image/jpeg;base64,$base64Image',
           'examData': widget.exam.toJson(),
         }),
-      );
+      ).timeout(const Duration(seconds: 30));
 
       Navigator.pop(context); // Close loading dialog
 
