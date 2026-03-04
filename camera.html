@@ -445,31 +445,31 @@
         function _generateFixedGrid(exam) {
             const grid = {};
 
-            // 1. Booklet (KITAPCIK) - Final LGS Calibration
+            // 1. Booklet (KITAPCIK) - Grid spacing tightened & shifted up
             grid['KITAPCIK'] = [{
                 options: [
-                    { label: 'A', x: 535, y: 212 },
-                    { label: 'B', x: 552.5, y: 212 },
-                    { label: 'C', x: 570, y: 212 },
-                    { label: 'D', x: 587.5, y: 212 }
+                    { label: 'A', x: 535, y: 195 },
+                    { label: 'B', x: 551.5, y: 195 },
+                    { label: 'C', x: 568, y: 195 },
+                    { label: 'D', x: 584.5, y: 195 }
                 ]
             }];
 
             // 2. Subjects Grid
             // Sözel Bölüm & Sayısal Bölüm
-            const startY = 325; // Final adjustment for row alignment
-            const rowHeight = 26.0; // Standard LGS row spacing
-            const optStep = 17.5; // Standard LGS bubble spacing
+            const startY = 310; // Shifted up from 325
+            const rowHeight = 25.5; // Tightened from 26.0
+            const optStep = 16.5; // Tightened from 17.5
 
             const columns = [
                 // Verbal
-                { name: 'Türkçe', x: 52, startY: startY, maxQ: 20 },
-                { name: 'Sosyal Bilgiler', x: 158, startY: startY, maxQ: 10 },
+                { name: 'Türkçe', x: 54, startY: startY, maxQ: 20 },
+                { name: 'Sosyal Bilgiler', x: 159, startY: startY, maxQ: 10 },
                 { name: 'Din Kültürü', x: 264, startY: startY, maxQ: 10 },
-                { name: 'İngilizce', x: 370, startY: startY, maxQ: 10 },
+                { name: 'İngilizce', x: 369, startY: startY, maxQ: 10 },
                 // Numerical
                 { name: 'Matematik', x: 498, startY: startY, maxQ: 20 },
-                { name: 'Fen Bilimleri', x: 604, startY: startY, maxQ: 20 }
+                { name: 'Fen Bilimleri', x: 602, startY: startY, maxQ: 20 }
             ];
 
             const aliases = {
