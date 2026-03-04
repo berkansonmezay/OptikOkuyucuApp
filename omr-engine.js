@@ -203,8 +203,8 @@ export class OMREngine {
                     const isMarked = qResult === opt.label;
 
                     // Actual Bubble Location
-                    ctx.strokeStyle = isMarked ? '#34c759' : 'rgba(0, 255, 0, 0.4)';
-                    ctx.fillStyle = isMarked ? 'rgba(52, 199, 89, 0.3)' : 'transparent';
+                    ctx.strokeStyle = isMarked ? '#15803D' : 'rgba(21, 128, 61, 0.4)'; // Darker green
+                    ctx.fillStyle = isMarked ? 'rgba(21, 128, 61, 0.5)' : 'transparent'; // More opaque fill
 
                     ctx.beginPath();
                     ctx.arc(opt.x, opt.y, this.bubbleRadius, 0, Math.PI * 2);
@@ -214,7 +214,7 @@ export class OMREngine {
                     // Search Window Box (Diagnostic)
                     if (!isMarked) {
                         const ss = 6; // Current searchSize
-                        ctx.strokeStyle = 'rgba(0, 255, 0, 0.15)';
+                        ctx.strokeStyle = 'rgba(21, 128, 61, 0.15)';
                         ctx.strokeRect(
                             opt.x - this.bubbleRadius - ss,
                             opt.y - this.bubbleRadius - ss,
@@ -226,40 +226,19 @@ export class OMREngine {
 
                 // Draw question number if it's the first option
                 if (qIdx % 5 === 0 || qIdx === 0) {
-                    ctx.fillStyle = 'rgba(0, 255, 0, 0.6)';
+                    ctx.fillStyle = 'rgba(21, 128, 61, 0.7)';
                     ctx.font = 'bold 10px sans-serif';
-                    ctx.fillText(qIdx + 1, q.options[0].x - 25, q.options[0].y + 4);
+                    ctx.fillText(qIdx + 1, q.options[0].x - 22, q.options[0].y + 4);
                 }
             });
 
             // Draw Subject Name
             if (grid[subject][0]) {
                 ctx.fillStyle = '#7C3AED';
-                ctx.font = 'bold 12px sans-serif';
-                ctx.fillText(subject, grid[subject][0].options[0].x, grid[subject][0].options[0].y - 20);
+                ctx.font = 'bold 11px sans-serif';
+                ctx.fillText(subject, grid[subject][0].options[0].x, grid[subject][0].options[0].y - 18);
             }
         }
-
-        // Draw Detected Markers / Anchor Points
-        ctx.strokeStyle = '#ff3b30'; // Red for anchors
-        ctx.lineWidth = 2;
-        this.markers.forEach(m => {
-            const isAnchor = m.area > 100;
-            ctx.strokeStyle = isAnchor ? '#ff3b30' : '#ff9500'; // Red for anchors, orange for small markers
-
-            ctx.strokeRect(m.x - m.w / 2, m.y - m.h / 2, m.w, m.h);
-            // Small crosshair
-            ctx.beginPath();
-            ctx.moveTo(m.x - 5, m.y); ctx.lineTo(m.x + 5, m.y);
-            ctx.moveTo(m.x, m.y - 5); ctx.lineTo(m.x, m.y + 5);
-            ctx.stroke();
-
-            if (isAnchor) {
-                ctx.fillStyle = '#ff3b30';
-                ctx.font = '8px sans-serif';
-                ctx.fillText(`ANCHOR ${Math.round(m.area)}`, m.x - 15, m.y - 12);
-            }
-        });
     }
 
     _findPaperContour(gray, mode) {
