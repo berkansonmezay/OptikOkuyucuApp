@@ -6,10 +6,10 @@
 
 export class OMREngine {
     constructor(config = {}) {
-        this.bubbleRadius = config.bubbleRadius || 10;
-        this.detectionThreshold = config.detectionThreshold || 0.30; // Relaxed from 0.35 for better dark-image/glare tolerance
+        this.bubbleRadius = config.bubbleRadius || 12; // Increased for better margin of error
+        this.detectionThreshold = config.detectionThreshold || 0.30;
         this.targetWidth = 800;
-        this.targetHeight = 1100;
+        this.targetHeight = 1130; // Closer to A4 aspect ratio (1.41)
         this.markers = []; // Store detected markers
         this.anchorPoints = []; // Specifically for the black square anchors
     }
