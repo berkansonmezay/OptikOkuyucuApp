@@ -184,10 +184,14 @@
 
         <!-- Scanner Overlay -->
         <div class="scanner-overlay">
+            <!-- Alignment Template Canvas -->
+            <canvas id="template-overlay" width="800" height="1100"
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] aspect-[800/1100] pointer-events-none opacity-30 z-10"></canvas>
+
             <div class="scanner-frame">
                 <div class="scan-line"></div>
                 <div class="absolute -bottom-16 left-0 right-0 text-center">
-                    <p class="text-xs font-medium text-white/80">Formu çerçeveye ortalayın</p>
+                    <p class="text-xs font-medium text-white/80">Optik formu şablona hizalayın</p>
                     <p class="text-[10px] text-white/40 mt-1 italic">Daha net odak için yaklaşın</p>
                 </div>
             </div>
@@ -436,8 +440,40 @@
         }
 
         /**
-         * Generates FIXED bubble coordinates for the warped 800x1100 image.
+         * Draws high-level template circles on the overlay canvas to guide the user
          */
+        function drawAlignmentTemplate(exam) {
+            const canvas = document.getElementById('template-overlay');
+            if (!canvas || !exam) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const grid = _generateFixedGrid(exam);
+
+            // Draw Subject Labels
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.font = 'bold 10px sans-serif';
+
+            for (const subject in grid) {
+                grid[subject].forEach((q, qIdx) => {
+                    q.options.forEach(opt => {
+                        // Draw faint bubble outline
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.arc(opt.x, opt.y, 6.0, 0, Math.PI * 2);
+                        ctx.stroke();
+                    });
+
+                    // Labelling
+                    if (qIdx === 0 && grid[subject][0]) {
+                        const firstOpt = grid[subject][0].options[0];
+                        ctx.fillText(subject.toUpperCase(), firstOpt.x, firstOpt.y - 15);
+                    }
+                });
+            }
+        }
+
         /**
          * Generates FIXED bubble coordinates for the warped 800x1100 image.
          * Recalibrated for the Primary & Middle School Answer Sheet (LGS).
@@ -529,12 +565,14 @@
                         selectedExamId = exams[0].id;
                         selectedExamData = exams[0];
                         document.getElementById('examTypeLabel').textContent = selectedExamData.name || "SINAV";
+                        drawAlignmentTemplate(selectedExamData);
                     }
                 } else {
                     const exams = await getExams();
                     selectedExamData = exams.find(e => e.id === selectedExamId);
                     if (selectedExamData) {
                         document.getElementById('examTypeLabel').textContent = selectedExamData.name || "SINAV";
+                        drawAlignmentTemplate(selectedExamData);
                     }
                 }
             } catch (e) {
