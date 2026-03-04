@@ -6,7 +6,7 @@
 
 export class OMREngine {
     constructor(config = {}) {
-        this.bubbleRadius = config.bubbleRadius || 12; // Increased for better margin of error
+        this.bubbleRadius = config.bubbleRadius || 9; // Reduced for tighter fit
         this.detectionThreshold = config.detectionThreshold || 0.30;
         this.targetWidth = 800;
         this.targetHeight = 1130; // Closer to A4 aspect ratio (1.41)
