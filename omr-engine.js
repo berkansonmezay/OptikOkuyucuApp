@@ -108,9 +108,9 @@ export class OMREngine {
                 let aspectRatio = rect.width / rect.height;
 
                 // Thresholds for markers on a 800x1100 target (Lowered area for robustness)
-                if (area > 50 && area < 1200 && aspectRatio > 0.6 && aspectRatio < 1.4) {
+                if (area > 60 && area < 1500 && aspectRatio > 0.6 && aspectRatio < 1.4) {
                     let extent = area / (rect.width * rect.height);
-                    if (extent > 0.65) { // Likely a square
+                    if (extent > 0.7) { // Likely a square
                         detected.push({
                             x: rect.x + rect.width / 2,
                             y: rect.y + rect.height / 2,
@@ -157,10 +157,10 @@ export class OMREngine {
 
         // LGS Form Layout Constants (Target 800x1100)
         // QR Center is at {x: 245, y: 140}, QR size is ~80px
-        const W_SCALE = 10.0;     // 800 / 80
-        const H_SCALE = 13.75;   // 1100 / 80
-        const X_OFF_PX = 1.12; // Adjusted for Top-LEFT QR placement (90px / 80px)
-        const Y_OFF_PX = 1.12; // Adjusted for Top-LEFT QR placement (90px / 80px)
+        const W_SCALE = 8.2;     // 800 / ~97px QR
+        const H_SCALE = 11.6;    // 1130 / ~97px QR
+        const X_OFF_PX = 1.45;   // QR Center X / QR Size
+        const Y_OFF_PX = 1.45;   // QR Center Y / QR Size
 
         // Function to map standard OMR coordinates to current frame coordinates
         const getPoint = (sx, sy) => ({
@@ -361,7 +361,7 @@ export class OMREngine {
 
     readMarks(processedOMR, grid, qrInfo = null) {
         const results = {};
-        const searchSize = 6; // Increased from 4 for better alignment tolerance
+        const searchSize = 10; // Increased from 8 for maximum alignment tolerance
 
         // Align grid if markers are available
         const alignedGrid = this._alignGrid(grid, qrInfo);
