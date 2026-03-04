@@ -406,48 +406,59 @@ export class OMREngine {
     }
 
     /**
-     * Adjusts grid coordinates based on detected markers.
-     * Logic: 
-     * 1. Booklet Area (centered top): Uses markers near (482, 240)
-     * 2. Subject Columns: Uses markers near column start/end points
+     * Adjusts grid coordinates based on detected markers (anchor points).
+     * Now implements independent per-column alignment for maximum precision.
      */
     _alignGrid(grid, qrInfo = null) {
         const aligned = JSON.parse(JSON.stringify(grid));
 
-        let bookletOffset = { x: 0, y: 0 };
-        const bookletCentroid = { x: 482, y: 240 };
-        const nearbyMarkers = this._findMarkersNear(bookletCentroid, 180);
-
-        if (nearbyMarkers.length >= 1) {
-            const observedCentroid = nearbyMarkers.reduce((acc, m) => ({ x: acc.x + m.x / nearbyMarkers.length, y: acc.y + m.y / nearbyMarkers.length }), { x: 0, y: 0 });
-            bookletOffset.x = observedCentroid.x - bookletCentroid.x;
-            bookletOffset.y = observedCentroid.y - bookletCentroid.y;
-            console.log(`OMR: Aligned using ${nearbyMarkers.length} markers. Offset: (${Math.round(bookletOffset.x)}, ${Math.round(bookletOffset.y)})`);
-        } else if (qrInfo) {
-            // QR Fallback: If markers are missing, QR is usually still visible
-            console.log("OMR: No markers found. Using QR-centered grid fallback.");
-        }
-
-        // 1. Booklet Alignment
+        // 1. Booklet Alignment (KITAPCIK)
         if (aligned['KITAPCIK']) {
-            aligned['KITAPCIK'].forEach(q => q.options.forEach(opt => {
-                opt.x += bookletOffset.x;
-                opt.y += bookletOffset.y;
-            }));
+            const bookletCentroid = { x: 585, y: 255 }; // Calibrated centroid for booklet markers
+            const bookletMarkers = this._findMarkersNear(bookletCentroid, 150);
+
+            if (bookletMarkers.length > 0) {
+                // Use the average offset of nearby markers
+                const observedCentroid = bookletMarkers.reduce((acc, m) => ({ x: acc.x + m.x / bookletMarkers.length, y: acc.y + m.y / bookletMarkers.length }), { x: 0, y: 0 });
+                const offsetX = observedCentroid.x - bookletCentroid.x;
+                const offsetY = observedCentroid.y - bookletCentroid.y;
+
+                aligned['KITAPCIK'].forEach(q => q.options.forEach(opt => {
+                    opt.x += offsetX;
+                    opt.y += offsetY;
+                }));
+            }
         }
 
-        // 2. Subjects column alignment
+        // 2. Individual Subject Column Alignment
         for (const [subject, questions] of Object.entries(aligned)) {
-            if (subject === 'KITAPCIK') continue;
+            if (subject === 'KITAPCIK' || questions.length === 0) continue;
 
-            const firstOpt = questions[0].options[0];
-            const columnX = firstOpt.x;
+            const baseColX = questions[0].options[0].x;
+            const baseColY = questions[0].options[0].y;
 
-            const topMarkers = this._findMarkersNear({ x: columnX + 30, y: 380 }, 100);
-            if (topMarkers.length > 0) {
-                const offsetX = topMarkers[0].x - (columnX - 20);
-                const offsetY = topMarkers[0].y - 370;
+            // Search for markers that are likely at the top or bottom of this specific column
+            // On LGS form, markers are usually ~20-30px above/below columns
+            const topAnchorSearch = { x: baseColX - 25, y: baseColY - 30 };
+            const bottomAnchorSearch = { x: baseColX - 25, y: baseColY + (questions.length * 28.5) + 10 };
 
+            const nearbyTop = this._findMarkersNear(topAnchorSearch, 60);
+            const nearbyBottom = this._findMarkersNear(bottomAnchorSearch, 60);
+
+            let offsetX = 0;
+            let offsetY = 0;
+
+            if (nearbyTop.length > 0) {
+                // Priority: Align to top marker of column
+                offsetX = nearbyTop[0].x - topAnchorSearch.x;
+                offsetY = nearbyTop[0].y - topAnchorSearch.y;
+            } else if (nearbyBottom.length > 0) {
+                // Fallback: Align to bottom marker
+                offsetX = nearbyBottom[0].x - bottomAnchorSearch.x;
+                offsetY = nearbyBottom[0].y - bottomAnchorSearch.y;
+            }
+
+            if (offsetX !== 0 || offsetY !== 0) {
                 questions.forEach(q => q.options.forEach(opt => {
                     opt.x += offsetX;
                     opt.y += offsetY;
