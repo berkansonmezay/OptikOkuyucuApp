@@ -6,7 +6,7 @@
 
 export class OMREngine {
     constructor(config = {}) {
-        this.bubbleRadius = config.bubbleRadius || 9; // Reduced for tighter fit
+        this.bubbleRadius = config.bubbleRadius || 7.5; // Fine-tuned for real form bubbles
         this.detectionThreshold = config.detectionThreshold || 0.30;
         this.targetWidth = 800;
         this.targetHeight = 1130; // Closer to A4 aspect ratio (1.41)
@@ -414,7 +414,7 @@ export class OMREngine {
 
         // 1. Booklet Alignment (KITAPCIK)
         if (aligned['KITAPCIK']) {
-            const bookletCentroid = { x: 585, y: 170 }; // Calibrated centroid for booklet markers
+            const bookletCentroid = { x: 585, y: 250 }; // Re-calibrated for new KITAPCIK Y
             const bookletMarkers = this._findMarkersNear(bookletCentroid, 150);
 
             if (bookletMarkers.length > 0) {

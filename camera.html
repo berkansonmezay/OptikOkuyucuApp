@@ -448,28 +448,28 @@
             // 1. Booklet (KITAPCIK) - Calibrated
             grid['KITAPCIK'] = [{
                 options: [
-                    { label: 'A', x: 535, y: 110 },
-                    { label: 'B', x: 552, y: 110 },
-                    { label: 'C', x: 569, y: 110 },
-                    { label: 'D', x: 586, y: 110 }
+                    { label: 'A', x: 535, y: 215 },
+                    { label: 'B', x: 552, y: 215 },
+                    { label: 'C', x: 569, y: 215 },
+                    { label: 'D', x: 586, y: 215 }
                 ]
             }];
 
             // 2. Subjects Grid
             // Sözel Bölüm & Sayısal Bölüm
-            const startY = 300; // Significantly shifted upwards from 395
-            const rowHeight = 26.5; // Tightened from 28.5
-            const optStep = 18.0; // Tightened from 20.0
+            const startY = 320; // Shifted slightly down from 300
+            const rowHeight = 26.5;
+            const optStep = 18.0;
 
             const columns = [
                 // Verbal
                 { name: 'Türkçe', x: 55, startY: startY, maxQ: 20 },
-                { name: 'Sosyal Bilgiler', x: 160, startY: startY, maxQ: 10 },
-                { name: 'Din Kültürü', x: 265, startY: startY, maxQ: 10 },
-                { name: 'İngilizce', x: 370, startY: startY, maxQ: 10 },
+                { name: 'Sosyal Bilgiler', x: 162, startY: startY, maxQ: 10 },
+                { name: 'Din Kültürü', x: 269, startY: startY, maxQ: 10 },
+                { name: 'İngilizce', x: 376, startY: startY, maxQ: 10 },
                 // Numerical
-                { name: 'Matematik', x: 495, startY: startY, maxQ: 20 },
-                { name: 'Fen Bilimleri', x: 595, startY: startY, maxQ: 20 }
+                { name: 'Matematik', x: 504, startY: startY, maxQ: 20 },
+                { name: 'Fen Bilimleri', x: 611, startY: startY, maxQ: 20 }
             ];
 
             const aliases = {
