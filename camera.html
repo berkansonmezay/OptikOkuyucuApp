@@ -445,31 +445,31 @@
         function _generateFixedGrid(exam) {
             const grid = {};
 
-            // 1. Booklet (KITAPCIK) - Shifted 6px left
+            // 1. Booklet (KITAPCIK) - Tightened & Shifted Up
             grid['KITAPCIK'] = [{
                 options: [
-                    { label: 'A', x: 529, y: 195 },
-                    { label: 'B', x: 545.5, y: 195 },
-                    { label: 'C', x: 562, y: 195 },
-                    { label: 'D', x: 578.5, y: 195 }
+                    { label: 'A', x: 529, y: 185 },
+                    { label: 'B', x: 545.5, y: 185 },
+                    { label: 'C', x: 562, y: 185 },
+                    { label: 'D', x: 578.5, y: 185 }
                 ]
             }];
 
             // 2. Subjects Grid
             // Sözel Bölüm & Sayısal Bölüm
-            const startY = 310;
+            const startY = 300; // Shifted up from 310
             const rowHeight = 25.5;
             const optStep = 16.5;
 
             const columns = [
-                // Verbal
+                // Verbal - Tightened intervals from 105 to 100
                 { name: 'Türkçe', x: 48, startY: startY, maxQ: 20 },
-                { name: 'Sosyal Bilgiler', x: 153, startY: startY, maxQ: 10 },
-                { name: 'Din Kültürü', x: 258, startY: startY, maxQ: 10 },
-                { name: 'İngilizce', x: 363, startY: startY, maxQ: 10 },
-                // Numerical
-                { name: 'Matematik', x: 492, startY: startY, maxQ: 20 },
-                { name: 'Fen Bilimleri', x: 596, startY: startY, maxQ: 20 }
+                { name: 'Sosyal Bilgiler', x: 148, startY: startY, maxQ: 10 },
+                { name: 'Din Kültürü', x: 248, startY: startY, maxQ: 10 },
+                { name: 'İngilizce', x: 348, startY: startY, maxQ: 10 },
+                // Numerical - Tightened intervals
+                { name: 'Matematik', x: 475, startY: startY, maxQ: 20 },
+                { name: 'Fen Bilimleri', x: 575, startY: startY, maxQ: 20 }
             ];
 
             const aliases = {

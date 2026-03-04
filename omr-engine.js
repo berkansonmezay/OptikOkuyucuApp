@@ -393,7 +393,7 @@ export class OMREngine {
 
         // 1. Booklet Alignment (KITAPCIK)
         if (aligned['KITAPCIK']) {
-            const bookletCentroid = { x: 579, y: 235 }; // Centroid shifted 6px left
+            const bookletCentroid = { x: 579, y: 225 }; // Centroid shifted further up
             const bookletMarkers = this._findMarkersNear(bookletCentroid, 150);
 
             if (bookletMarkers.length > 0) {
