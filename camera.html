@@ -445,31 +445,31 @@
         function _generateFixedGrid(exam) {
             const grid = {};
 
-            // 1. Booklet (KITAPCIK) - Calibrated
+            // 1. Booklet (KITAPCIK) - Final LGS Calibration
             grid['KITAPCIK'] = [{
                 options: [
-                    { label: 'A', x: 535, y: 215 },
-                    { label: 'B', x: 552, y: 215 },
-                    { label: 'C', x: 569, y: 215 },
-                    { label: 'D', x: 586, y: 215 }
+                    { label: 'A', x: 535, y: 212 },
+                    { label: 'B', x: 552.5, y: 212 },
+                    { label: 'C', x: 570, y: 212 },
+                    { label: 'D', x: 587.5, y: 212 }
                 ]
             }];
 
             // 2. Subjects Grid
             // Sözel Bölüm & Sayısal Bölüm
-            const startY = 320; // Shifted slightly down from 300
-            const rowHeight = 26.5;
-            const optStep = 18.0;
+            const startY = 325; // Final adjustment for row alignment
+            const rowHeight = 26.0; // Standard LGS row spacing
+            const optStep = 17.5; // Standard LGS bubble spacing
 
             const columns = [
                 // Verbal
-                { name: 'Türkçe', x: 55, startY: startY, maxQ: 20 },
-                { name: 'Sosyal Bilgiler', x: 162, startY: startY, maxQ: 10 },
-                { name: 'Din Kültürü', x: 269, startY: startY, maxQ: 10 },
-                { name: 'İngilizce', x: 376, startY: startY, maxQ: 10 },
+                { name: 'Türkçe', x: 52, startY: startY, maxQ: 20 },
+                { name: 'Sosyal Bilgiler', x: 158, startY: startY, maxQ: 10 },
+                { name: 'Din Kültürü', x: 264, startY: startY, maxQ: 10 },
+                { name: 'İngilizce', x: 370, startY: startY, maxQ: 10 },
                 // Numerical
-                { name: 'Matematik', x: 504, startY: startY, maxQ: 20 },
-                { name: 'Fen Bilimleri', x: 611, startY: startY, maxQ: 20 }
+                { name: 'Matematik', x: 498, startY: startY, maxQ: 20 },
+                { name: 'Fen Bilimleri', x: 604, startY: startY, maxQ: 20 }
             ];
 
             const aliases = {
