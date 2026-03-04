@@ -445,31 +445,31 @@
         function _generateFixedGrid(exam) {
             const grid = {};
 
-            // 1. Booklet (KITAPCIK) - Grid spacing tightened & shifted up
+            // 1. Booklet (KITAPCIK) - Shifted 6px left
             grid['KITAPCIK'] = [{
                 options: [
-                    { label: 'A', x: 535, y: 195 },
-                    { label: 'B', x: 551.5, y: 195 },
-                    { label: 'C', x: 568, y: 195 },
-                    { label: 'D', x: 584.5, y: 195 }
+                    { label: 'A', x: 529, y: 195 },
+                    { label: 'B', x: 545.5, y: 195 },
+                    { label: 'C', x: 562, y: 195 },
+                    { label: 'D', x: 578.5, y: 195 }
                 ]
             }];
 
             // 2. Subjects Grid
             // Sözel Bölüm & Sayısal Bölüm
-            const startY = 310; // Shifted up from 325
-            const rowHeight = 25.5; // Tightened from 26.0
-            const optStep = 16.5; // Tightened from 17.5
+            const startY = 310;
+            const rowHeight = 25.5;
+            const optStep = 16.5;
 
             const columns = [
                 // Verbal
-                { name: 'Türkçe', x: 54, startY: startY, maxQ: 20 },
-                { name: 'Sosyal Bilgiler', x: 159, startY: startY, maxQ: 10 },
-                { name: 'Din Kültürü', x: 264, startY: startY, maxQ: 10 },
-                { name: 'İngilizce', x: 369, startY: startY, maxQ: 10 },
+                { name: 'Türkçe', x: 48, startY: startY, maxQ: 20 },
+                { name: 'Sosyal Bilgiler', x: 153, startY: startY, maxQ: 10 },
+                { name: 'Din Kültürü', x: 258, startY: startY, maxQ: 10 },
+                { name: 'İngilizce', x: 363, startY: startY, maxQ: 10 },
                 // Numerical
-                { name: 'Matematik', x: 498, startY: startY, maxQ: 20 },
-                { name: 'Fen Bilimleri', x: 602, startY: startY, maxQ: 20 }
+                { name: 'Matematik', x: 492, startY: startY, maxQ: 20 },
+                { name: 'Fen Bilimleri', x: 596, startY: startY, maxQ: 20 }
             ];
 
             const aliases = {
