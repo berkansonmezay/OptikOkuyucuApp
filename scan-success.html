@@ -254,7 +254,7 @@
 
                     Object.keys(answers).forEach(branch => {
                         const questions = answers[branch];
-                        const markedCount = questions.filter(a => a !== ' ').length;
+                        const markedCount = questions.filter(a => a !== ' ' && a !== null).length;
                         const totalCount = questions.length;
 
                         const badge = document.createElement('div');

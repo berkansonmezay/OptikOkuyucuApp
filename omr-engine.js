@@ -11,6 +11,7 @@ export class OMREngine {
         this.targetWidth = 800;
         this.targetHeight = 1100;
         this.markers = []; // Store detected markers
+        this.anchorPoints = []; // Specifically for the black square anchors
     }
 
     /**
@@ -125,6 +126,10 @@ export class OMREngine {
         } finally {
             contours.delete(); hierarchy.delete();
         }
+
+        // Filter and sort anchor points (should be at top/bottom of sections)
+        this.anchorPoints = detected.filter(m => m.area > 100);
+
         return detected;
     }
 
@@ -356,7 +361,8 @@ export class OMREngine {
                 });
 
                 if (markedOptions.length > 1) return "*";
-                return markedOptions.length === 1 ? markedOptions[0] : " ";
+                // Return null or " " if no options marked as per requirement
+                return markedOptions.length === 1 ? markedOptions[0] : null;
             });
         }
         return results;

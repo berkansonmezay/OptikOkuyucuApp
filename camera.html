@@ -434,68 +434,73 @@
         /**
          * Generates FIXED bubble coordinates for the warped 800x1100 image.
          */
+        /**
+         * Generates FIXED bubble coordinates for the warped 800x1100 image.
+         * Recalibrated for the Primary & Middle School Answer Sheet (LGS).
+         */
         function _generateFixedGrid(exam) {
             const grid = {};
 
-            // 1. Booklet (KITAPCIK) - Calibrated for LGS Form
+            // 1. Booklet (KITAPCIK) - Calibrated
             grid['KITAPCIK'] = [{
                 options: [
-                    { label: 'A', x: 442, y: 262 },
-                    { label: 'B', x: 461, y: 262 },
-                    { label: 'C', x: 480, y: 262 },
-                    { label: 'D', x: 499, y: 262 }
-                ]
+                    { label: 'A', x: 812, y: 194 }, // Adjusted to match image right side
+                    { label: 'B', x: 832, y: 194 },
+                    { label: 'C', x: 852, y: 194 },
+                    { label: 'D', x: 872, y: 194 }
+                ].map(opt => ({ ...opt, x: opt.x - 30, y: opt.y - 12 })) // Shift to fit target
             }];
 
-            if (!exam || !exam.subjects) return grid;
-
-            // 2. Subjects Grid - Recalibrated from debug image
-            const startY = 410;
-            const rowHeight = 30.5;
-            const optStep = 21.0;
+            // 2. Subjects Grid
+            // Sözel Bölüm
+            const startY_Verbal = 455;
+            const startY_Numerical = 455;
+            const rowHeight = 28.5;
+            const optStep = 20.0;
 
             const columns = [
-                { name: 'Türkçe', x: 52 },
-                { name: 'İnkılap', x: 172 },
-                { name: 'Din', x: 290 },
-                { name: 'İngilizce', x: 410 },
-                { name: 'Matematik', x: 498 },
-                { name: 'Fen', x: 616 }
+                // Verbal
+                { name: 'Türkçe', x: 55, startY: startY_Verbal, maxQ: 20 },
+                { name: 'Sosyal Bilgiler', x: 175, startY: startY_Verbal, maxQ: 10 },
+                { name: 'Din Kültürü', x: 295, startY: startY_Verbal, maxQ: 10 },
+                { name: 'İngilizce', x: 415, startY: startY_Verbal, maxQ: 10 },
+                // Numerical
+                { name: 'Matematik', x: 555, startY: startY_Numerical, maxQ: 20 },
+                { name: 'Fen Bilimleri', x: 675, startY: startY_Numerical, maxQ: 20 }
             ];
 
-            // Flexible name aliases for matching
             const aliases = {
-                'Türkçe': ['türkçe', 'turkce'],
-                'İnkılap': ['inkılap', 'inkilap', 'tarih', 't.c.'],
-                'Din': ['din', 'din kültürü', 'din kul'],
-                'İngilizce': ['ingilizce', 'İngilizce', 'yabancı', 'yabancı dil', 'ing'],
-                'Matematik': ['matematik', 'mat'],
-                'Fen': ['fen', 'fen bilimleri', 'fen bil']
+                'Türkçe': ['türkçe', 'turkce', 'tr'],
+                'Sosyal Bilgiler': ['sosyal', 'sosyal bilgiler', 'tarih', 'inkılap', 'inkilap'],
+                'Din Kültürü': ['din', 'din kültürü', 'din kul', 'ahlak'],
+                'İngilizce': ['ingilizce', 'ing', 'english', 'yabancı'],
+                'Matematik': ['matematik', 'mat', 'math'],
+                'Fen Bilimleri': ['fen', 'fen bilimleri', 'fen bil', 'science']
             };
 
             columns.forEach((col) => {
                 const colAliases = aliases[col.name] || [col.name.toLowerCase()];
-                const subject = exam.subjects.find(s => {
+                // Find subject in exam data or use a default if it matches the column name
+                const subject = exam?.subjects?.find(s => {
                     const sname = s.name.toLowerCase();
                     return colAliases.some(a => sname.includes(a.toLowerCase()) || a.toLowerCase().includes(sname));
-                });
-                if (subject) {
-                    const questions = [];
-                    const qCount = subject.questionCount || 20;
+                }) || { name: col.name, questionCount: col.maxQ };
 
-                    for (let i = 0; i < qCount; i++) {
-                        const curY = startY + (i * rowHeight);
-                        questions.push({
-                            options: [
-                                { label: 'A', x: col.x + optStep * 0, y: curY },
-                                { label: 'B', x: col.x + optStep * 1, y: curY },
-                                { label: 'C', x: col.x + optStep * 2, y: curY },
-                                { label: 'D', x: col.x + optStep * 3, y: curY }
-                            ]
-                        });
-                    }
-                    grid[subject.name] = questions;
+                const questions = [];
+                const qCount = subject.questionCount || col.maxQ;
+
+                for (let i = 0; i < qCount; i++) {
+                    const curY = col.startY + (i * rowHeight);
+                    questions.push({
+                        options: [
+                            { label: 'A', x: col.x + optStep * 0, y: curY },
+                            { label: 'B', x: col.x + optStep * 1, y: curY },
+                            { label: 'C', x: col.x + optStep * 2, y: curY },
+                            { label: 'D', x: col.x + optStep * 3, y: curY }
+                        ]
+                    });
                 }
+                grid[subject.name] = questions;
             });
 
             return grid;

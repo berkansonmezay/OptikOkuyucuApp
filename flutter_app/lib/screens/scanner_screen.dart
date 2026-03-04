@@ -6,7 +6,6 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/exam.dart';
-import '../models/student_result.dart';
 import '../core/app_colors.dart';
 import 'scan_success_screen.dart';
 
