@@ -341,24 +341,28 @@
 
                     const fixedGrid = _generateFixedGrid(selectedExamData);
 
-                    // Debug view
-                    if (isDebug) {
-                        const debugCanvas = document.getElementById('debug-canvas');
-                        debugCanvas.width = omr.targetWidth;
-                        debugCanvas.height = omr.targetHeight;
-                        cv.imshow('debug-canvas', cvResult.warpedImage);
-                        omr.drawDebugGrid(debugCanvas, fixedGrid);
-                    }
+                    realAnswers = omr.readMarks(cvResult.processedOMR, fixedGrid, qrResult);
+                    console.log("processForm: Client-side answers:", realAnswers);
 
-                    // Generate preview image from warped result
+                    // Generate preview image from warped result WITH debug drawings
                     const previewCanvas = document.createElement('canvas');
                     previewCanvas.width = omr.targetWidth;
                     previewCanvas.height = omr.targetHeight;
                     cv.imshow(previewCanvas, cvResult.warpedImage);
-                    debugImageB64 = previewCanvas.toDataURL('image/jpeg', 0.7);
 
-                    realAnswers = omr.readMarks(cvResult.processedOMR, fixedGrid, qrResult);
-                    console.log("processForm: Client-side answers:", realAnswers);
+                    // Add debug drawings to the preview image
+                    omr.drawDebugGrid(previewCanvas, fixedGrid, realAnswers);
+
+                    debugImageB64 = previewCanvas.toDataURL('image/jpeg', 0.8);
+
+                    // Also update the persistent debug canvas if it's visible
+                    if (isDebug) {
+                        const debugCanvas = document.getElementById('debug-canvas');
+                        debugCanvas.width = omr.targetWidth;
+                        debugCanvas.height = omr.targetHeight;
+                        const ctx = debugCanvas.getContext('2d');
+                        ctx.drawImage(previewCanvas, 0, 0);
+                    }
 
                     // Booklet
                     if (realAnswers['KITAPCIK']) {

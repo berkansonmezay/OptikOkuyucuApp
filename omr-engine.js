@@ -184,44 +184,81 @@ export class OMREngine {
 
     /**
      * Helper to visualize the OMR grid for debugging
+     * @param {HTMLCanvasElement} canvas
+     * @param {Object} grid - The grid coordinates
+     * @param {Object} results - Optional OMR read results to highlight detected marks
      */
-    drawDebugGrid(canvas, grid) {
+    drawDebugGrid(canvas, grid, results = null) {
         const ctx = canvas.getContext('2d');
 
         // Draw Grid Bubbles and Search Areas
         ctx.lineWidth = 1;
         for (const subject in grid) {
-            grid[subject].forEach(q => {
+            const subjectResults = results ? results[subject] : null;
+
+            grid[subject].forEach((q, qIdx) => {
+                const qResult = subjectResults ? subjectResults[qIdx] : null;
+
                 q.options.forEach(opt => {
+                    const isMarked = qResult === opt.label;
+
                     // Actual Bubble Location
-                    ctx.strokeStyle = 'rgba(0, 255, 0, 0.4)';
+                    ctx.strokeStyle = isMarked ? '#34c759' : 'rgba(0, 255, 0, 0.4)';
+                    ctx.fillStyle = isMarked ? 'rgba(52, 199, 89, 0.3)' : 'transparent';
+
                     ctx.beginPath();
                     ctx.arc(opt.x, opt.y, this.bubbleRadius, 0, Math.PI * 2);
+                    if (isMarked) ctx.fill();
                     ctx.stroke();
 
                     // Search Window Box (Diagnostic)
-                    const ss = 6; // Current searchSize
-                    ctx.strokeStyle = 'rgba(0, 255, 0, 0.15)';
-                    ctx.strokeRect(
-                        opt.x - this.bubbleRadius - ss,
-                        opt.y - this.bubbleRadius - ss,
-                        (this.bubbleRadius + ss) * 2,
-                        (this.bubbleRadius + ss) * 2
-                    );
+                    if (!isMarked) {
+                        const ss = 6; // Current searchSize
+                        ctx.strokeStyle = 'rgba(0, 255, 0, 0.15)';
+                        ctx.strokeRect(
+                            opt.x - this.bubbleRadius - ss,
+                            opt.y - this.bubbleRadius - ss,
+                            (this.bubbleRadius + ss) * 2,
+                            (this.bubbleRadius + ss) * 2
+                        );
+                    }
                 });
+
+                // Draw question number if it's the first option
+                if (qIdx % 5 === 0 || qIdx === 0) {
+                    ctx.fillStyle = 'rgba(0, 255, 0, 0.6)';
+                    ctx.font = 'bold 10px sans-serif';
+                    ctx.fillText(qIdx + 1, q.options[0].x - 25, q.options[0].y + 4);
+                }
             });
+
+            // Draw Subject Name
+            if (grid[subject][0]) {
+                ctx.fillStyle = '#7C3AED';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillText(subject, grid[subject][0].options[0].x, grid[subject][0].options[0].y - 20);
+            }
         }
 
-        // Draw Detected Markers
-        ctx.strokeStyle = '#ff3b30';
+        // Draw Detected Markers / Anchor Points
+        ctx.strokeStyle = '#ff3b30'; // Red for anchors
         ctx.lineWidth = 2;
         this.markers.forEach(m => {
+            const isAnchor = m.area > 100;
+            ctx.strokeStyle = isAnchor ? '#ff3b30' : '#ff9500'; // Red for anchors, orange for small markers
+
             ctx.strokeRect(m.x - m.w / 2, m.y - m.h / 2, m.w, m.h);
             // Small crosshair
             ctx.beginPath();
-            ctx.moveTo(m.x - 3, m.y); ctx.lineTo(m.x + 3, m.y);
-            ctx.moveTo(m.x, m.y - 3); ctx.lineTo(m.x, m.y + 3);
+            ctx.moveTo(m.x - 5, m.y); ctx.lineTo(m.x + 5, m.y);
+            ctx.moveTo(m.x, m.y - 5); ctx.lineTo(m.x, m.y + 5);
             ctx.stroke();
+
+            if (isAnchor) {
+                ctx.fillStyle = '#ff3b30';
+                ctx.font = '8px sans-serif';
+                ctx.fillText(`ANCHOR ${Math.round(m.area)}`, m.x - 15, m.y - 12);
+            }
         });
     }
 
